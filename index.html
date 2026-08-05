@@ -178,8 +178,27 @@
 <body>
 <div id="root"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
 <script>
 const BRAND = "Crib";
+
+// ---------- Firebase (shared household data) ----------
+const firebaseConfig = {
+  apiKey: "AIzaSyA35YbanaPUGp3Dg2iDg-OcdXb4LDXUZ58",
+  authDomain: "baby-app-1f851.firebaseapp.com",
+  databaseURL: "https://baby-app-1f851-default-rtdb.firebaseio.com",
+  projectId: "baby-app-1f851",
+  storageBucket: "baby-app-1f851.firebasestorage.app",
+  messagingSenderId: "165438769173",
+  appId: "1:165438769173:web:53aedd16bfa586e485a61c"
+};
+let fbDb = null;
+try{
+  firebase.initializeApp(firebaseConfig);
+  fbDb = firebase.database();
+}catch(e){ console.error('Firebase init failed', e); }
 
 function cribIcon(size){
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -317,32 +336,68 @@ function trimesterOf(week){
   return 3;
 }
 
-// ---------- Persistence ----------
-// Primary store is localStorage, so login + all household data survive
-// closing and reopening this file. If the hosting environment also exposes
-// a window.storage API (for real cross-device sync), we opportunistically
-// use it too and mirror results into localStorage.
-async function sget(key, shared){
+// ---------- Personal login (this device only) ----------
+function personalGet(key){
+  try{ const raw = localStorage.getItem('crib:'+key); return raw ? JSON.parse(raw) : null; }
+  catch(e){ return null; }
+}
+function personalSet(key, value){
+  try{ localStorage.setItem('crib:'+key, JSON.stringify(value)); }catch(e){}
+}
+
+// ---------- Shared household data (synced live via Firebase) ----------
+function householdRef(field){ return fbDb.ref(`households/${state.code}/${field}`); }
+
+async function fbFetch(field){
+  if(!fbDb) return { exists:false, value:null, ok:false };
   try{
-    if(window.storage && window.storage.get){
-      const r = await window.storage.get(key, shared);
-      if(r && r.value != null){
-        try{ localStorage.setItem('crib:'+key, r.value); }catch(e){}
-        return JSON.parse(r.value);
-      }
-    }
-  }catch(e){}
+    const snap = await householdRef(field).once('value');
+    return { exists: snap.exists(), value: snap.exists() ? snap.val() : null, ok:true };
+  }catch(e){
+    console.error('Firebase read failed for', field, e);
+    return { exists:false, value:null, ok:false };
+  }
+}
+
+function legacyLocal(field){
   try{
-    const raw = localStorage.getItem('crib:'+key);
+    const raw = localStorage.getItem(`crib:household:${state.code}:${field}`);
     return raw ? JSON.parse(raw) : null;
   }catch(e){ return null; }
 }
-async function sset(key, value, shared){
-  const raw = JSON.stringify(value);
-  try{ localStorage.setItem('crib:'+key, raw); }catch(e){}
-  try{
-    if(window.storage && window.storage.set){ await window.storage.set(key, raw, shared); }
-  }catch(e){}
+
+async function saveHousehold(field){
+  const value = state[field];
+  try{ localStorage.setItem(`crib:household:${state.code}:${field}`, JSON.stringify(value)); }catch(e){}
+  if(fbDb){
+    try{ await householdRef(field).set(value === undefined ? null : value); }
+    catch(e){ console.error('Firebase write failed for', field, e); }
+  }
+}
+
+function safeRerenderFromRemote(){
+  const contentEl = document.getElementById('tab-content');
+  const active = document.activeElement;
+  const typing = active && contentEl && contentEl.contains(active) && ['INPUT','TEXTAREA','SELECT'].includes(active.tagName);
+  if(typing) return;
+  render();
+}
+
+function attachLiveSync(){
+  if(!fbDb || !state.code || state.liveAttached) return;
+  state.liveAttached = true;
+  fbDb.ref(`households/${state.code}`).on('value', (snap) => {
+    if(state.loading) return; // initial load paints itself once ready
+    const val = snap.val() || {};
+    if(val.info) state.info = val.info;
+    if(state.info.motherName === undefined) state.info.motherName = '';
+    if(state.info.fatherName === undefined) state.info.fatherName = '';
+    if(val.tasks) state.tasks = val.tasks;
+    if(val.registry) state.registry = val.registry;
+    if(val.names) state.names = val.names;
+    if(val.rankings) state.rankings = val.rankings;
+    safeRerenderFromRemote();
+  });
 }
 
 const root = document.getElementById('root');
@@ -360,6 +415,7 @@ let state = {
   taskFilterTime: 'All',
   registryFilterCat: 'All',
   loading: true,
+  liveAttached: false,
 };
 
 function currentWeekNum(){
@@ -368,58 +424,68 @@ function currentWeekNum(){
 }
 
 async function loadPersonal(){
-  const n = await sget('display-name', false);
-  const c = await sget('household-code', false);
-  state.name = n;
-  state.code = c;
+  state.name = personalGet('display-name');
+  state.code = personalGet('household-code');
 }
 
 async function loadHousehold(){
   if(!state.code) return;
-  const [info, tasks, registry, names, rankings, oldChecklist] = await Promise.all([
-    sget(`household:${state.code}:info`, true),
-    sget(`household:${state.code}:tasks`, true),
-    sget(`household:${state.code}:registry`, true),
-    sget(`household:${state.code}:names`, true),
-    sget(`household:${state.code}:rankings`, true),
-    sget(`household:${state.code}:checklist`, true),
-  ]);
-  state.info = info || { dueDate: null };
+
+  const fields = ['info','tasks','registry','names','rankings'];
+  const results = {};
+  for(const f of fields){
+    let r = await fbFetch(f);
+    if(!r.exists && r.ok){
+      // Nothing in Firebase yet for this field — migrate an existing local copy up
+      // (this covers people who used the app before live sync existed).
+      const legacy = legacyLocal(f);
+      if(legacy != null){
+        r = { exists:true, value: legacy, ok:true };
+        try{ await householdRef(f).set(legacy); }catch(e){ console.error(e); }
+      }
+    }
+    results[f] = r.value;
+  }
+
+  // Even older installs stored tasks+registry combined under a single "checklist" key.
+  let oldChecklist = null;
+  if(results.tasks == null && results.registry == null){
+    oldChecklist = legacyLocal('checklist');
+  }
+
+  state.info = results.info || { dueDate: null };
   if(state.info.motherName === undefined) state.info.motherName = '';
   if(state.info.fatherName === undefined) state.info.fatherName = '';
-  state.names = names || [];
-  state.rankings = rankings || {};
+  state.names = results.names || [];
+  state.rankings = results.rankings || {};
 
-  if(tasks){
-    state.tasks = tasks;
+  if(results.tasks){
+    state.tasks = results.tasks;
   } else if(oldChecklist){
-    // Migrate legacy unified checklist: split into tasks vs. registry by category.
     state.tasks = oldChecklist.filter(i => TASK_CATS.includes(i.cat)).map(i => ({...i}));
     if(state.tasks.length === 0){
       state.tasks = DEFAULT_TASKS.map(i => ({id:uid(), text:i.t, cat:i.cat, week:i.week, done:false}));
     }
-    await sset(`household:${state.code}:tasks`, state.tasks, true);
+    await saveHousehold('tasks');
   } else {
     state.tasks = DEFAULT_TASKS.map(i => ({id:uid(), text:i.t, cat:i.cat, week:i.week, done:false}));
-    await sset(`household:${state.code}:tasks`, state.tasks, true);
+    await saveHousehold('tasks');
   }
 
-  if(registry){
-    state.registry = registry;
+  if(results.registry){
+    state.registry = results.registry;
   } else if(oldChecklist){
     state.registry = oldChecklist.filter(i => !TASK_CATS.includes(i.cat)).map(i => ({...i}));
     if(state.registry.length === 0){
       state.registry = DEFAULT_REGISTRY.map(i => ({id:uid(), text:i.t, cat:i.cat, done:false}));
     }
-    await sset(`household:${state.code}:registry`, state.registry, true);
+    await saveHousehold('registry');
   } else {
     state.registry = DEFAULT_REGISTRY.map(i => ({id:uid(), text:i.t, cat:i.cat, done:false}));
-    await sset(`household:${state.code}:registry`, state.registry, true);
+    await saveHousehold('registry');
   }
-}
 
-async function saveHousehold(field){
-  await sset(`household:${state.code}:${field}`, state[field], true);
+  attachLiveSync();
 }
 
 function render(){
@@ -460,8 +526,8 @@ function renderSetup(){
     const code = codeRaw.toLowerCase().replace(/\s+/g,'-');
     state.name = name;
     state.code = code;
-    await sset('display-name', name, false);
-    await sset('household-code', code, false);
+    personalSet('display-name', name);
+    personalSet('household-code', code);
     state.loading = true; render();
     await loadHousehold();
     state.loading = false;
@@ -489,9 +555,10 @@ function renderApp(){
     <div id="tab-content"></div>
   `;
   document.getElementById('switch-btn').onclick = async () => {
-    await sset('display-name', '', false);
-    await sset('household-code', '', false);
-    state.name = null; state.code = null;
+    if(fbDb && state.code){ try{ fbDb.ref(`households/${state.code}`).off(); }catch(e){} }
+    personalSet('display-name', '');
+    personalSet('household-code', '');
+    state.name = null; state.code = null; state.liveAttached = false;
     render();
   };
   document.getElementById('settings-btn').onclick = () => {
