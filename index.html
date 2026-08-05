@@ -64,10 +64,17 @@
   .err{ color: var(--terracotta); font-size: 13px; margin-top: 10px; }
 
   /* ---------- Header / nav ---------- */
-  .topbar{ display:flex; align-items:baseline; justify-content:space-between; padding: 6px 2px 14px; }
+  .topbar{ display:flex; align-items:flex-start; justify-content:space-between; padding: 6px 2px 14px; gap:12px; }
   .topbar h1{ font-size: 22px; display:flex; align-items:center; }
-  .who{ font-family:'JetBrains Mono',monospace; font-size:12px; color: var(--sage); }
+  .who-col{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+  .who{ font-family:'JetBrains Mono',monospace; font-size:12px; color: var(--sage); text-align:right; }
   .who button{ background:none; border:none; color:var(--terracotta); font-family:inherit; cursor:pointer; text-decoration:underline; font-size:12px; padding:0; margin-left:6px;}
+  .settings-btn{
+    font-family:'JetBrains Mono',monospace; font-weight:700; font-size:11px;
+    background: var(--blush); color: var(--evergreen); border:none; border-radius:999px;
+    padding:4px 12px; cursor:pointer; white-space:nowrap;
+  }
+  .settings-btn:hover{ filter: brightness(0.95); }
 
   nav.tabs{ display:flex; gap:6px; margin-bottom:20px; overflow-x:auto; }
   nav.tabs button{
@@ -82,27 +89,33 @@
     padding: 22px; margin-bottom: 16px;
   }
 
-  /* ---------- Overview / vine tracker ---------- */
+  /* ---------- Overview / timeline ---------- */
   .week-hero{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
-  .week-num{ font-family:'Fraunces',serif; font-size: 56px; font-weight:700; color: var(--evergreen); line-height:1; }
+  .week-num{ font-family:'Fraunces',serif; font-size: 36px; font-weight:700; color: var(--evergreen); line-height:1; }
   .week-meta{ font-size: 14px; color: var(--sage); line-height:1.5; }
   .week-meta b{ color: var(--evergreen); }
 
-  .vine{ position:relative; margin: 26px 4px 6px; height: 54px; }
-  .vine-line{ position:absolute; top: 26px; left:0; right:0; height:3px; background: var(--blush); border-radius:2px; }
-  .vine-fill{ position:absolute; top: 26px; left:0; height:3px; background: var(--evergreen); border-radius:2px; transition: width .4s ease; }
+  .vine{ position:relative; margin: 22px 4px 12px; height: 70px; }
+  .vine-line{ position:absolute; top: 34px; left:0; right:0; height:3px; background: var(--blush); border-radius:2px; }
+  .vine-fill{ position:absolute; top: 34px; left:0; height:3px; background: var(--evergreen); border-radius:2px; transition: width .4s ease; }
   .vine-dot{
-    position:absolute; top:18px; width:18px; height:18px; border-radius:50%;
-    background: var(--blush); border:2px solid var(--blush); transform: translateX(-50%);
+    position:absolute; top:17px; width:34px; height:34px; border-radius:50%;
+    transform: translateX(-50%); display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:#fff;
+    border:2px solid transparent;
   }
-  .vine-dot.done{ background: var(--evergreen); border-color: var(--evergreen); }
-  .vine-dot.now{ background: var(--terracotta); border-color: var(--terracotta); width:22px; height:22px; top:16px; box-shadow: 0 0 0 4px rgba(181,123,102,0.3); }
-  .vine-label{ position:absolute; top: 0px; font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--sage); transform: translateX(-50%); }
-
-  .trimester-row{ display:flex; justify-content:space-between; font-size:11.5px; color: var(--sage); font-family:'JetBrains Mono',monospace; margin-top:4px;}
+  .vine-dot.tri-1{ background: var(--sage); }
+  .vine-dot.tri-2{ background: var(--terracotta); }
+  .vine-dot.tri-3{ background: var(--evergreen); }
+  .vine-dot.future{ opacity:.4; }
+  .vine-dot.current{
+    width:40px; height:40px; top:14px; font-size:14px;
+    box-shadow: 0 0 0 3px #fff, 0 0 0 6px rgba(104,117,109,0.25);
+  }
 
   .fact{ margin-top:18px; padding-top:16px; border-top:1px dashed var(--blush); font-size:14.5px; line-height:1.55; }
-  .fact b{ color: var(--terracotta); }
+  .fruit-link{ color: var(--terracotta); text-decoration:underline; font-weight:700; }
+  .fruit-link:hover{ filter: brightness(0.88); }
 
   /* ---------- Checklist / Registry ---------- */
   .cat-heading{ font-family:'Fraunces',serif; font-size:16px; color: var(--evergreen); margin: 18px 0 8px; }
@@ -178,15 +191,16 @@ function cribIcon(size){
   </svg>`;
 }
 
+// Bare nouns (no leading article) so we can link just the fruit/veg name.
 const FRUITS = {
-  4:"a poppy seed",5:"a sesame seed",6:"a lentil",7:"a blueberry",8:"a raspberry",
-  9:"a grape",10:"a kumquat",11:"a fig",12:"a lime",13:"a lemon",14:"a peach",
-  15:"an apple",16:"an avocado",17:"a pear",18:"a bell pepper",19:"a heirloom tomato",
-  20:"a banana",21:"a carrot",22:"a papaya",23:"a large mango",24:"an ear of corn",
-  25:"a rutabaga",26:"a scallion bunch",27:"a head of cauliflower",28:"an eggplant",
-  29:"a butternut squash",30:"a cabbage",31:"a coconut",32:"a jicama",33:"a pineapple",
-  34:"a cantaloupe",35:"a honeydew melon",36:"a head of romaine",37:"a bunch of swiss chard",
-  38:"a leek",39:"a mini watermelon",40:"a small pumpkin"
+  4:"poppy seed",5:"sesame seed",6:"lentil",7:"blueberry",8:"raspberry",
+  9:"grape",10:"kumquat",11:"fig",12:"lime",13:"lemon",14:"peach",
+  15:"apple",16:"avocado",17:"pear",18:"bell pepper",19:"heirloom tomato",
+  20:"banana",21:"carrot",22:"papaya",23:"large mango",24:"ear of corn",
+  25:"rutabaga",26:"scallion bunch",27:"head of cauliflower",28:"eggplant",
+  29:"butternut squash",30:"cabbage",31:"coconut",32:"jicama",33:"pineapple",
+  34:"cantaloupe",35:"honeydew melon",36:"head of romaine",37:"bunch of swiss chard",
+  38:"leek",39:"mini watermelon",40:"small pumpkin"
 };
 
 // ---------- Checklist / To-Do (pregnancy prep tasks, tied to a week) ----------
@@ -335,7 +349,7 @@ const root = document.getElementById('root');
 let state = {
   code: null,
   name: null,
-  info: { dueDate: null },
+  info: { dueDate: null, motherName: '', fatherName: '' },
   tasks: [],
   registry: [],
   names: [],
@@ -371,6 +385,8 @@ async function loadHousehold(){
     sget(`household:${state.code}:checklist`, true),
   ]);
   state.info = info || { dueDate: null };
+  if(state.info.motherName === undefined) state.info.motherName = '';
+  if(state.info.fatherName === undefined) state.info.fatherName = '';
   state.names = names || [];
   state.rankings = rankings || {};
 
@@ -459,7 +475,10 @@ function renderApp(){
   root.innerHTML = `
     <div class="topbar">
       <h1><span class="brand-icon">${cribIcon(24)}</span>${BRAND}</h1>
-      <div class="who">${state.name} · ${state.code} <button id="switch-btn">switch</button></div>
+      <div class="who-col">
+        <div class="who">${state.name} · ${state.code} <button id="switch-btn">switch</button></div>
+        <button class="settings-btn" id="settings-btn">⚙ Settings</button>
+      </div>
     </div>
     <nav class="tabs">
       <button data-tab="overview" class="${state.tab==='overview'?'active':''}">Home</button>
@@ -475,6 +494,10 @@ function renderApp(){
     state.name = null; state.code = null;
     render();
   };
+  document.getElementById('settings-btn').onclick = () => {
+    state.tab = 'settings';
+    render();
+  };
   root.querySelectorAll('nav.tabs button').forEach(b => {
     b.onclick = () => { state.tab = b.dataset.tab; render(); };
   });
@@ -484,6 +507,7 @@ function renderApp(){
   else if(state.tab === 'checklist') content.innerHTML = tasksHTML();
   else if(state.tab === 'registry') content.innerHTML = registryHTML();
   else if(state.tab === 'names') content.innerHTML = namesHTML();
+  else if(state.tab === 'settings') content.innerHTML = settingsHTML();
 
   bindTabEvents();
 }
@@ -499,24 +523,28 @@ function overviewHTML(w){
     </div>`;
   }
   const week = w.week;
-  const tri = trimesterOf(week);
   const pct = ((week-4)/(40-4))*100;
-  const triLabel = tri===1? 'First trimester' : tri===2? 'Second trimester' : 'Third trimester';
+  const currentMonthIdx = Math.min(9, Math.max(0, Math.round((week-4)/4)));
 
   let dots = '';
-  for(let wk=4; wk<=40; wk+=4){
-    const left = ((wk-4)/(40-4))*100;
-    dots += `<div class="vine-dot ${wk<=week?'done':''}" style="left:${left}%"></div>`;
+  for(let i=0; i<=9; i++){
+    const wk = 4 + i*4;
+    const left = (i/9)*100;
+    const tri = trimesterOf(Math.min(wk,40));
+    const stateClass = i === currentMonthIdx ? 'current' : (i > currentMonthIdx ? 'future' : '');
+    dots += `<div class="vine-dot tri-${tri} ${stateClass}" style="left:${left}%">${i}</div>`;
   }
-  dots += `<div class="vine-dot now" style="left:${pct}%"></div>`;
+
+  const fruitName = FRUITS[week] || 'small pumpkin';
+  const fruitArticle = /^[aeiou]/i.test(fruitName) ? 'an' : 'a';
+  const fruitLink = `https://www.google.com/search?q=${encodeURIComponent(fruitName + ' dessert recipe')}`;
 
   const weekItems = state.tasks.filter(i => i.week === week && !i.done);
 
   return `
   <div class="card">
-    <span class="eyebrow">${triLabel} · Week ${week} of 40</span>
     <div class="week-hero">
-      <div class="week-num">${week}<span style="font-size:20px;color:var(--sage);">wk</span></div>
+      <div class="week-num">Week ${week}</div>
       <div class="week-meta">
         <div><b>${w.daysLeft}</b> days until your due date</div>
         <div>Due ${w.due.toLocaleDateString(undefined,{month:'long', day:'numeric', year:'numeric'})}</div>
@@ -527,8 +555,7 @@ function overviewHTML(w){
       <div class="vine-fill" style="width:${pct}%"></div>
       ${dots}
     </div>
-    <div class="trimester-row"><span>Week 4</span><span>Week 13</span><span>Week 27</span><span>Week 40</span></div>
-    <div class="fact">Right now, baby is about the size of <b>${FRUITS[week] || 'a small pumpkin'}</b>.</div>
+    <div class="fact">Right now, baby is about the size of ${fruitArticle} <a href="${fruitLink}" target="_blank" rel="noopener" class="fruit-link">${escapeHtml(fruitName)}</a>.</div>
   </div>
   <div class="card">
     <span class="eyebrow">This week's to-dos</span>
@@ -541,11 +568,25 @@ function overviewHTML(w){
           <div class="txt">${escapeHtml(i.text)}</div>
           <span class="tag">${i.cat}</span>
         </div>`).join('')}
-  </div>
+  </div>`;
+}
+
+function settingsHTML(){
+  return `
   <div class="card">
     <span class="eyebrow">Due date</span>
-    <input type="date" id="due-input" value="${state.info.dueDate}" />
-    <button class="btn ghost small" id="due-save" style="margin-top:10px;">Update</button>
+    <h2 style="margin-bottom:14px;">When are you due?</h2>
+    <input type="date" id="due-input" value="${state.info.dueDate || ''}" />
+    <button class="btn ghost small" id="due-save" style="margin-top:10px;">Update due date</button>
+  </div>
+  <div class="card">
+    <span class="eyebrow">Household</span>
+    <h2 style="margin-bottom:14px;">Parent names</h2>
+    <label>Mother's name</label>
+    <input type="text" id="mother-name" value="${escapeHtml(state.info.motherName || '')}" placeholder="e.g. Jamie" />
+    <label>Father's name</label>
+    <input type="text" id="father-name" value="${escapeHtml(state.info.fatherName || '')}" placeholder="e.g. Alex" />
+    <button class="btn small" id="parents-save" style="margin-top:14px;">Save names</button>
   </div>`;
 }
 
@@ -750,7 +791,7 @@ function namesHTML(){
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 function bindTabEvents(){
-  // Overview
+  // Overview / Settings — due date
   const dueSave = document.getElementById('due-save');
   if(dueSave){
     dueSave.onclick = async () => {
@@ -769,6 +810,17 @@ function bindTabEvents(){
       render();
     };
   });
+
+  // Settings — parent names
+  const parentsSave = document.getElementById('parents-save');
+  if(parentsSave){
+    parentsSave.onclick = async () => {
+      state.info.motherName = document.getElementById('mother-name').value.trim();
+      state.info.fatherName = document.getElementById('father-name').value.trim();
+      await saveHousehold('info');
+      render();
+    };
+  }
 
   // Checklist (tasks)
   const catFilter = document.getElementById('task-filter-cat');
