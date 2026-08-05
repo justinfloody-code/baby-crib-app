@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crib — Baby Prep Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ivory: #f4f3f1;
+    --blush: #decebf;
+    --sage: #a1a79e;
+    --terracotta: #b57b66;
+    --evergreen: #68756d;
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--ivory);
+    color: var(--evergreen);
+    font-family: 'Public Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  #root{max-width: 720px; margin: 0 auto; padding: 20px 18px 60px;}
+
+  h1,h2,h3{font-family:'Fraunces', serif; margin:0; color: var(--evergreen); font-weight:600;}
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--terracotta); font-weight: 700; margin-bottom:4px; display:block;
+  }
+  .brand-icon{ color: var(--terracotta); display:inline-flex; vertical-align:-7px; margin-right:6px; }
+
+  /* ---------- Setup screen ---------- */
+  .setup-wrap{ min-height: 80vh; display:flex; align-items:center; justify-content:center; }
+  .setup-card{
+    background: #fff; border:1px solid var(--blush); border-radius: var(--radius);
+    padding: 36px 30px; width:100%; max-width: 420px; box-shadow: 0 2px 0 var(--blush);
+    text-align:center;
+  }
+  .setup-card h1{font-size: 30px; margin-bottom:6px; text-align:left;}
+  .setup-card .eyebrow{ text-align:left; }
+  .setup-card p.sub{color: var(--evergreen); opacity:.8; font-size:14.5px; line-height:1.5; margin: 8px 0 22px; text-align:left;}
+  .setup-card label, .setup-card input, .setup-card .btn, .setup-card .err{ text-align:left; }
+  label{ font-size:12.5px; font-weight:700; color: var(--evergreen); display:block; margin: 14px 0 6px; }
+  input[type=text], input[type=date], input[type=number], select, textarea{
+    width:100%; font-family:'Public Sans',sans-serif; font-size:15px;
+    padding: 10px 12px; border-radius: 9px; border: 1.5px solid var(--blush);
+    background: #fff; color: var(--evergreen);
+  }
+  input:focus, select:focus, textarea:focus{ outline:none; border-color: var(--terracotta); }
+  .btn{
+    font-family:'Public Sans',sans-serif; font-weight:700; font-size:14.5px;
+    border:none; border-radius: 9px; padding: 11px 18px; cursor:pointer;
+    background: var(--terracotta); color: #fff; transition: transform .12s ease, filter .15s ease;
+  }
+  .btn:hover{ filter: brightness(0.92); }
+  .btn:active{ transform: scale(0.97); }
+  .btn.block{ width:100%; margin-top: 20px; }
+  .btn.ghost{ background: transparent; color: var(--terracotta); border:1.5px solid var(--terracotta); }
+  .btn.small{ padding: 6px 12px; font-size: 13px; }
+  .err{ color: var(--terracotta); font-size: 13px; margin-top: 10px; }
+
+  /* ---------- Header / nav ---------- */
+  .topbar{ display:flex; align-items:baseline; justify-content:space-between; padding: 6px 2px 14px; }
+  .topbar h1{ font-size: 22px; display:flex; align-items:center; }
+  .who{ font-family:'JetBrains Mono',monospace; font-size:12px; color: var(--sage); }
+  .who button{ background:none; border:none; color:var(--terracotta); font-family:inherit; cursor:pointer; text-decoration:underline; font-size:12px; padding:0; margin-left:6px;}
+
+  nav.tabs{ display:flex; gap:6px; margin-bottom:20px; overflow-x:auto; }
+  nav.tabs button{
+    font-family:'Public Sans',sans-serif; font-weight:700; font-size:13.5px;
+    background: var(--blush); color: var(--evergreen); border:none; border-radius: 999px;
+    padding: 8px 16px; cursor:pointer; white-space:nowrap;
+  }
+  nav.tabs button.active{ background: var(--terracotta); color:#fff; }
+
+  .card{
+    background: #fff; border: 1px solid var(--blush); border-radius: var(--radius);
+    padding: 22px; margin-bottom: 16px;
+  }
+
+  /* ---------- Overview / vine tracker ---------- */
+  .week-hero{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+  .week-num{ font-family:'Fraunces',serif; font-size: 56px; font-weight:700; color: var(--evergreen); line-height:1; }
+  .week-meta{ font-size: 14px; color: var(--sage); line-height:1.5; }
+  .week-meta b{ color: var(--evergreen); }
+
+  .vine{ position:relative; margin: 26px 4px 6px; height: 54px; }
+  .vine-line{ position:absolute; top: 26px; left:0; right:0; height:3px; background: var(--blush); border-radius:2px; }
+  .vine-fill{ position:absolute; top: 26px; left:0; height:3px; background: var(--evergreen); border-radius:2px; transition: width .4s ease; }
+  .vine-dot{
+    position:absolute; top:18px; width:18px; height:18px; border-radius:50%;
+    background: var(--blush); border:2px solid var(--blush); transform: translateX(-50%);
+  }
+  .vine-dot.done{ background: var(--evergreen); border-color: var(--evergreen); }
+  .vine-dot.now{ background: var(--terracotta); border-color: var(--terracotta); width:22px; height:22px; top:16px; box-shadow: 0 0 0 4px rgba(181,123,102,0.3); }
+  .vine-label{ position:absolute; top: 0px; font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--sage); transform: translateX(-50%); }
+
+  .trimester-row{ display:flex; justify-content:space-between; font-size:11.5px; color: var(--sage); font-family:'JetBrains Mono',monospace; margin-top:4px;}
+
+  .fact{ margin-top:18px; padding-top:16px; border-top:1px dashed var(--blush); font-size:14.5px; line-height:1.55; }
+  .fact b{ color: var(--terracotta); }
+
+  /* ---------- Checklist / Registry ---------- */
+  .cat-heading{ font-family:'Fraunces',serif; font-size:16px; color: var(--evergreen); margin: 18px 0 8px; }
+  .cat-heading:first-child{ margin-top:0; }
+  .item-row{ display:flex; align-items:center; gap:10px; padding: 8px 0; border-bottom: 1px solid var(--blush); }
+  .item-row:last-child{ border-bottom:none; }
+  .item-row input[type=checkbox]{ width:19px; height:19px; accent-color: var(--terracotta); flex-shrink:0; }
+  .item-row .txt{ flex:1; font-size:14.5px; }
+  .item-row.done .txt{ text-decoration: line-through; color: var(--sage); }
+  .item-row .tag{ font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--sage); }
+  .item-row .del{ background:none; border:none; color: var(--sage); cursor:pointer; font-size:16px; padding:0 4px; }
+  .add-row{ display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+  .add-row input{ flex:1; min-width:140px; }
+  .add-row select{ width:130px; flex-shrink:0; }
+  .add-row input.week-input{ width:90px; flex:none; }
+
+  .filter-row{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .filter-row select{ flex:1; min-width:130px; }
+
+  .week-tag{ font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--sage); white-space:nowrap; }
+  .overdue-tag{
+    font-family:'JetBrains Mono',monospace; font-size:9px; color:#fff; background: var(--terracotta);
+    padding:2px 6px; border-radius:999px; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap;
+  }
+  .item-meta{ display:flex; align-items:center; gap:6px; }
+
+  /* ---------- Names ---------- */
+  .subtab-row{ display:flex; gap:6px; margin-bottom:16px; }
+  .subtab-row button{
+    font-family:'Public Sans',sans-serif; font-weight:700; font-size:12.5px;
+    background: var(--blush); color: var(--evergreen); border:none; border-radius:8px;
+    padding: 7px 14px; cursor:pointer;
+  }
+  .subtab-row button.active{ background: var(--terracotta); color:#fff; }
+
+  .name-card{ display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--blush); gap:10px; flex-wrap:wrap;}
+  .name-card:last-child{ border-bottom:none; }
+  .name-left{ display:flex; flex-direction:column; }
+  .name-left .nm{ font-family:'Fraunces',serif; font-size:18px; color: var(--evergreen); }
+  .name-left .meta{ font-size:11px; color: var(--sage); font-family:'JetBrains Mono',monospace; }
+  .rank-controls{ display:flex; align-items:center; gap:6px; }
+  .rank-controls .rank-num{ font-family:'JetBrains Mono',monospace; font-size:12px; color: var(--evergreen); font-weight:700; min-width:22px; text-align:center; }
+  .rank-controls button{
+    background:none; border:1px solid var(--blush); border-radius:6px; width:24px; height:22px;
+    font-size:12px; cursor:pointer; color: var(--evergreen); line-height:1; padding:0;
+  }
+  .rank-controls button:disabled{ opacity:.3; cursor:default; }
+  .unranked-pill{ font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--sage); }
+
+  .top10-grid{ display:grid; grid-template-columns: 1fr; gap:14px; margin-top:8px; }
+  @media(min-width:520px){ .top10-grid{ grid-template-columns: 1fr 1fr; } }
+  .top10-col{ background: var(--blush); border-radius:10px; padding:14px 16px; }
+  .top10-col h4{ font-family:'Fraunces',serif; font-size:14px; color: var(--evergreen); margin:0 0 8px; }
+  .top10-col ol{ margin:0; padding-left:20px; font-size:13.5px; line-height:1.7; color: var(--evergreen); }
+
+  .empty{ color: var(--sage); font-size:13.5px; text-align:center; padding: 20px 0; }
+  ::placeholder{ color: var(--sage); opacity:.8; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+const BRAND = "Crib";
+
+function cribIcon(size){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 9c0-3 3.6-5 8-5s8 2 8 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+    <path d="M3 9h18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+    <path d="M5 9v6.5M19 9v6.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+    <path d="M4 15.5h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+    <path d="M6.5 18.5l-2.2 3M17.5 18.5l2.2 3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+  </svg>`;
+}
+
+const FRUITS = {
+  4:"a poppy seed",5:"a sesame seed",6:"a lentil",7:"a blueberry",8:"a raspberry",
+  9:"a grape",10:"a kumquat",11:"a fig",12:"a lime",13:"a lemon",14:"a peach",
+  15:"an apple",16:"an avocado",17:"a pear",18:"a bell pepper",19:"a heirloom tomato",
+  20:"a banana",21:"a carrot",22:"a papaya",23:"a large mango",24:"an ear of corn",
+  25:"a rutabaga",26:"a scallion bunch",27:"a head of cauliflower",28:"an eggplant",
+  29:"a butternut squash",30:"a cabbage",31:"a coconut",32:"a jicama",33:"a pineapple",
+  34:"a cantaloupe",35:"a honeydew melon",36:"a head of romaine",37:"a bunch of swiss chard",
+  38:"a leek",39:"a mini watermelon",40:"a small pumpkin"
+};
+
+// ---------- Checklist / To-Do (pregnancy prep tasks, tied to a week) ----------
+// Adapted from a standard pregnancy to-do checklist.
+const TASK_CATS = ["Medical","Financial","Logistics"];
+const DEFAULT_TASKS = [
+  // Medical
+  {t:"Confirm pregnancy & schedule first prenatal appointment", cat:"Medical", week:6},
+  {t:"Start prenatal vitamins with folic acid", cat:"Medical", week:4},
+  {t:"Research OB vs. midwife vs. birth center", cat:"Medical", week:6},
+  {t:"Confirm due date with OB/midwife", cat:"Medical", week:8},
+  {t:"Schedule first-trimester screening / NT scan", cat:"Medical", week:11},
+  {t:"Schedule anatomy scan (ultrasound)", cat:"Medical", week:20},
+  {t:"Sign up for childbirth education classes", cat:"Medical", week:24},
+  {t:"Take glucose screening test", cat:"Medical", week:26},
+  {t:"Tour hospital or birth center", cat:"Medical", week:28},
+  {t:"Create a birth plan", cat:"Medical", week:30},
+  {t:"Choose a pediatrician", cat:"Medical", week:32},
+  {t:"Get Tdap / flu vaccines (as recommended)", cat:"Medical", week:32},
+  {t:"Schedule Group B strep test", cat:"Medical", week:36},
+  // Financial
+  {t:"Check insurance coverage for prenatal care & delivery", cat:"Financial", week:6},
+  {t:"Start a shared budget for baby expenses", cat:"Financial", week:8},
+  {t:"Open or update a savings account for baby expenses", cat:"Financial", week:12},
+  {t:"Look into FSA/HSA options for baby expenses", cat:"Financial", week:16},
+  {t:"Research cost of childcare options", cat:"Financial", week:20},
+  {t:"Review & update life insurance and beneficiaries", cat:"Financial", week:24},
+  // Logistics
+  {t:"Tell close family & friends", cat:"Logistics", week:12},
+  {t:"Talk about parental leave with employers", cat:"Logistics", week:14},
+  {t:"Research and join daycare/childcare waitlists", cat:"Logistics", week:16},
+  {t:"Plan nursery layout & shopping list", cat:"Logistics", week:18},
+  {t:"Start baby registry", cat:"Logistics", week:20},
+  {t:"Plan a baby shower", cat:"Logistics", week:26},
+  {t:"Arrange help for the first weeks (family/friends/doula)", cat:"Logistics", week:34},
+  {t:"Set up baby's sleeping area at home", cat:"Logistics", week:34},
+  {t:"Prep and freeze a few meals", cat:"Logistics", week:35},
+  {t:"Pack hospital bag", cat:"Logistics", week:35},
+  {t:"Install car seat & get it inspected", cat:"Logistics", week:36},
+  {t:"Pre-register at hospital", cat:"Logistics", week:36},
+  {t:"Finalize baby name", cat:"Logistics", week:38},
+];
+
+// ---------- Registry / equipment checklist ----------
+// Adapted from a standard baby essentials registry checklist.
+const REGISTRY_CATS = ["Wardrobe","Nursery","Diapering","Bath","Feeding","Health","Gear","Playtime"];
+const DEFAULT_REGISTRY = [
+  // Wardrobe
+  {t:"Onesies/bodysuits — plan for about 4-8", cat:"Wardrobe"},
+  {t:"Footed pajamas or sleepers — about 4-8", cat:"Wardrobe"},
+  {t:"Swaddles or wearable sleep sacks — 2-3", cat:"Wardrobe"},
+  {t:"Socks or soft booties (skip shoes for now)", cat:"Wardrobe"},
+  {t:"Weather-appropriate outer layer (sweater/bunting)", cat:"Wardrobe"},
+  {t:"Gentle, fragrance-free baby laundry detergent", cat:"Wardrobe"},
+  // Nursery & Sleep
+  {t:"Crib, mini crib, or bassinet", cat:"Nursery"},
+  {t:"Firm, flat mattress that fits snugly (safe sleep — no bumpers, no loose bedding)", cat:"Nursery"},
+  {t:"Fitted crib sheets — 2-4", cat:"Nursery"},
+  {t:"Baby monitor", cat:"Nursery"},
+  {t:"Changing pad", cat:"Nursery"},
+  {t:"Rocking chair or glider (optional)", cat:"Nursery"},
+  // Diapering
+  {t:"Newborn diapers (disposable, or cloth diapers + covers)", cat:"Diapering"},
+  {t:"Unscented baby wipes", cat:"Diapering"},
+  {t:"Diaper rash cream", cat:"Diapering"},
+  {t:"Diaper bag (optional)", cat:"Diapering"},
+  // Bath
+  {t:"Baby bathtub", cat:"Bath"},
+  {t:"Baby shampoo/body wash", cat:"Bath"},
+  {t:"Hooded towels & soft washcloths — 2-4", cat:"Bath"},
+  // Feeding
+  {t:"Bottles & nipples — start with a couple styles before buying a full set", cat:"Feeding"},
+  {t:"Bottle brush", cat:"Feeding"},
+  {t:"Formula, if formula feeding", cat:"Feeding"},
+  {t:"Breast pump, milk storage bags & nursing pads, if breastfeeding", cat:"Feeding"},
+  {t:"Burp cloths & bibs", cat:"Feeding"},
+  {t:"Nursing/feeding pillow (optional)", cat:"Feeding"},
+  // Health
+  {t:"Rectal thermometer (most accurate reading for a newborn)", cat:"Health"},
+  {t:"Baby nail clippers or file", cat:"Health"},
+  {t:"First aid kit", cat:"Health"},
+  {t:"Saline spray for baby's nose", cat:"Health"},
+  // Gear
+  {t:"Infant or convertible car seat", cat:"Gear"},
+  {t:"Stroller", cat:"Gear"},
+  {t:"Baby carrier", cat:"Gear"},
+  {t:"Swing or bouncer (optional)", cat:"Gear"},
+  // Playtime
+  {t:"Play mat or gym for tummy time", cat:"Playtime"},
+  {t:"A couple of teething toys", cat:"Playtime"},
+];
+
+const NAME_GENDERS = ["Girl","Boy","Neutral"];
+
+function uid(){ return Math.random().toString(36).slice(2,10); }
+
+function weeksFromDueDate(dueDateStr){
+  const due = new Date(dueDateStr + "T00:00:00");
+  const now = new Date();
+  const msPerWeek = 7*24*60*60*1000;
+  const totalDays = 280; // 40 weeks
+  const conception = new Date(due.getTime() - totalDays*24*60*60*1000);
+  const elapsedMs = now - conception;
+  let week = Math.floor(elapsedMs / msPerWeek);
+  if(week < 4) week = 4;
+  if(week > 40) week = 40;
+  const daysLeft = Math.max(0, Math.round((due - now) / (24*60*60*1000)));
+  return {week, daysLeft, due};
+}
+
+function trimesterOf(week){
+  if(week <= 13) return 1;
+  if(week <= 27) return 2;
+  return 3;
+}
+
+// ---------- Persistence ----------
+// Primary store is localStorage, so login + all household data survive
+// closing and reopening this file. If the hosting environment also exposes
+// a window.storage API (for real cross-device sync), we opportunistically
+// use it too and mirror results into localStorage.
+async function sget(key, shared){
+  try{
+    if(window.storage && window.storage.get){
+      const r = await window.storage.get(key, shared);
+      if(r && r.value != null){
+        try{ localStorage.setItem('crib:'+key, r.value); }catch(e){}
+        return JSON.parse(r.value);
+      }
+    }
+  }catch(e){}
+  try{
+    const raw = localStorage.getItem('crib:'+key);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+async function sset(key, value, shared){
+  const raw = JSON.stringify(value);
+  try{ localStorage.setItem('crib:'+key, raw); }catch(e){}
+  try{
+    if(window.storage && window.storage.set){ await window.storage.set(key, raw, shared); }
+  }catch(e){}
+}
+
+const root = document.getElementById('root');
+let state = {
+  code: null,
+  name: null,
+  info: { dueDate: null },
+  tasks: [],
+  registry: [],
+  names: [],
+  rankings: {},   // { Girl: { [userName]: [nameId,...] }, Boy: {...}, Neutral: {...} }
+  tab: 'overview',
+  namesGender: 'Girl',
+  taskFilterCat: 'All',
+  taskFilterTime: 'All',
+  registryFilterCat: 'All',
+  loading: true,
+};
+
+function currentWeekNum(){
+  if(!state.info.dueDate) return null;
+  return weeksFromDueDate(state.info.dueDate).week;
+}
+
+async function loadPersonal(){
+  const n = await sget('display-name', false);
+  const c = await sget('household-code', false);
+  state.name = n;
+  state.code = c;
+}
+
+async function loadHousehold(){
+  if(!state.code) return;
+  const [info, tasks, registry, names, rankings, oldChecklist] = await Promise.all([
+    sget(`household:${state.code}:info`, true),
+    sget(`household:${state.code}:tasks`, true),
+    sget(`household:${state.code}:registry`, true),
+    sget(`household:${state.code}:names`, true),
+    sget(`household:${state.code}:rankings`, true),
+    sget(`household:${state.code}:checklist`, true),
+  ]);
+  state.info = info || { dueDate: null };
+  state.names = names || [];
+  state.rankings = rankings || {};
+
+  if(tasks){
+    state.tasks = tasks;
+  } else if(oldChecklist){
+    // Migrate legacy unified checklist: split into tasks vs. registry by category.
+    state.tasks = oldChecklist.filter(i => TASK_CATS.includes(i.cat)).map(i => ({...i}));
+    if(state.tasks.length === 0){
+      state.tasks = DEFAULT_TASKS.map(i => ({id:uid(), text:i.t, cat:i.cat, week:i.week, done:false}));
+    }
+    await sset(`household:${state.code}:tasks`, state.tasks, true);
+  } else {
+    state.tasks = DEFAULT_TASKS.map(i => ({id:uid(), text:i.t, cat:i.cat, week:i.week, done:false}));
+    await sset(`household:${state.code}:tasks`, state.tasks, true);
+  }
+
+  if(registry){
+    state.registry = registry;
+  } else if(oldChecklist){
+    state.registry = oldChecklist.filter(i => !TASK_CATS.includes(i.cat)).map(i => ({...i}));
+    if(state.registry.length === 0){
+      state.registry = DEFAULT_REGISTRY.map(i => ({id:uid(), text:i.t, cat:i.cat, done:false}));
+    }
+    await sset(`household:${state.code}:registry`, state.registry, true);
+  } else {
+    state.registry = DEFAULT_REGISTRY.map(i => ({id:uid(), text:i.t, cat:i.cat, done:false}));
+    await sset(`household:${state.code}:registry`, state.registry, true);
+  }
+}
+
+async function saveHousehold(field){
+  await sset(`household:${state.code}:${field}`, state[field], true);
+}
+
+function render(){
+  if(state.loading){
+    root.innerHTML = `<div class="setup-wrap"><div style="color:var(--sage);font-family:'JetBrains Mono',monospace;font-size:13px;">loading…</div></div>`;
+    return;
+  }
+  if(!state.name || !state.code){
+    renderSetup();
+    return;
+  }
+  renderApp();
+}
+
+function renderSetup(){
+  root.innerHTML = `
+  <div class="setup-wrap">
+    <div class="setup-card">
+      <div class="brand-icon" style="margin-bottom:10px;">${cribIcon(34)}</div>
+      <span class="eyebrow">${BRAND}</span>
+      <h1>Let's get set up</h1>
+      <p class="sub">${BRAND} syncs between you and your partner. Pick a shared household code together (anything — like "MorganBaby25") and each enter it on your own phone to link up. You'll only need to do this once — this device will stay signed in.</p>
+      <label>Your name</label>
+      <input type="text" id="in-name" placeholder="e.g. Alex" />
+      <label>Household code</label>
+      <input type="text" id="in-code" placeholder="e.g. MorganBaby25" />
+      <button class="btn block" id="btn-join">Join household</button>
+      <div class="err" id="setup-err"></div>
+    </div>
+  </div>`;
+  document.getElementById('btn-join').onclick = async () => {
+    const name = document.getElementById('in-name').value.trim();
+    const codeRaw = document.getElementById('in-code').value.trim();
+    if(!name || !codeRaw){
+      document.getElementById('setup-err').textContent = 'Enter your name and a household code.';
+      return;
+    }
+    const code = codeRaw.toLowerCase().replace(/\s+/g,'-');
+    state.name = name;
+    state.code = code;
+    await sset('display-name', name, false);
+    await sset('household-code', code, false);
+    state.loading = true; render();
+    await loadHousehold();
+    state.loading = false;
+    render();
+  };
+}
+
+function renderApp(){
+  const w = state.info.dueDate ? weeksFromDueDate(state.info.dueDate) : null;
+
+  root.innerHTML = `
+    <div class="topbar">
+      <h1><span class="brand-icon">${cribIcon(24)}</span>${BRAND}</h1>
+      <div class="who">${state.name} · ${state.code} <button id="switch-btn">switch</button></div>
+    </div>
+    <nav class="tabs">
+      <button data-tab="overview" class="${state.tab==='overview'?'active':''}">Home</button>
+      <button data-tab="checklist" class="${state.tab==='checklist'?'active':''}">Checklist</button>
+      <button data-tab="registry" class="${state.tab==='registry'?'active':''}">Registry</button>
+      <button data-tab="names" class="${state.tab==='names'?'active':''}">Names</button>
+    </nav>
+    <div id="tab-content"></div>
+  `;
+  document.getElementById('switch-btn').onclick = async () => {
+    await sset('display-name', '', false);
+    await sset('household-code', '', false);
+    state.name = null; state.code = null;
+    render();
+  };
+  root.querySelectorAll('nav.tabs button').forEach(b => {
+    b.onclick = () => { state.tab = b.dataset.tab; render(); };
+  });
+
+  const content = document.getElementById('tab-content');
+  if(state.tab === 'overview') content.innerHTML = overviewHTML(w);
+  else if(state.tab === 'checklist') content.innerHTML = tasksHTML();
+  else if(state.tab === 'registry') content.innerHTML = registryHTML();
+  else if(state.tab === 'names') content.innerHTML = namesHTML();
+
+  bindTabEvents();
+}
+
+function overviewHTML(w){
+  if(!w){
+    return `
+    <div class="card">
+      <span class="eyebrow">Due date</span>
+      <h2 style="margin-bottom:14px;">When are you due?</h2>
+      <input type="date" id="due-input" />
+      <button class="btn" id="due-save" style="margin-top:14px;">Save due date</button>
+    </div>`;
+  }
+  const week = w.week;
+  const tri = trimesterOf(week);
+  const pct = ((week-4)/(40-4))*100;
+  const triLabel = tri===1? 'First trimester' : tri===2? 'Second trimester' : 'Third trimester';
+
+  let dots = '';
+  for(let wk=4; wk<=40; wk+=4){
+    const left = ((wk-4)/(40-4))*100;
+    dots += `<div class="vine-dot ${wk<=week?'done':''}" style="left:${left}%"></div>`;
+  }
+  dots += `<div class="vine-dot now" style="left:${pct}%"></div>`;
+
+  const weekItems = state.tasks.filter(i => i.week === week && !i.done);
+
+  return `
+  <div class="card">
+    <span class="eyebrow">${triLabel} · Week ${week} of 40</span>
+    <div class="week-hero">
+      <div class="week-num">${week}<span style="font-size:20px;color:var(--sage);">wk</span></div>
+      <div class="week-meta">
+        <div><b>${w.daysLeft}</b> days until your due date</div>
+        <div>Due ${w.due.toLocaleDateString(undefined,{month:'long', day:'numeric', year:'numeric'})}</div>
+      </div>
+    </div>
+    <div class="vine">
+      <div class="vine-line"></div>
+      <div class="vine-fill" style="width:${pct}%"></div>
+      ${dots}
+    </div>
+    <div class="trimester-row"><span>Week 4</span><span>Week 13</span><span>Week 27</span><span>Week 40</span></div>
+    <div class="fact">Right now, baby is about the size of <b>${FRUITS[week] || 'a small pumpkin'}</b>.</div>
+  </div>
+  <div class="card">
+    <span class="eyebrow">This week's to-dos</span>
+    <h2 style="margin-bottom:14px;">Week ${week} checklist</h2>
+    ${weekItems.length === 0
+      ? `<div class="empty">Nothing scheduled specifically for this week — check the full Checklist tab.</div>`
+      : weekItems.map(i => `
+        <div class="item-row">
+          <input type="checkbox" data-id="${i.id}" class="chk-home" ${i.done?'checked':''}/>
+          <div class="txt">${escapeHtml(i.text)}</div>
+          <span class="tag">${i.cat}</span>
+        </div>`).join('')}
+  </div>
+  <div class="card">
+    <span class="eyebrow">Due date</span>
+    <input type="date" id="due-input" value="${state.info.dueDate}" />
+    <button class="btn ghost small" id="due-save" style="margin-top:10px;">Update</button>
+  </div>`;
+}
+
+function tasksHTML(){
+  const currentWeek = currentWeekNum();
+  const catOptions = ["All", ...TASK_CATS];
+  const timeOptions = ["All","Overdue","This week","Upcoming"];
+
+  let items = state.tasks.slice();
+  if(state.taskFilterCat !== 'All') items = items.filter(i => i.cat === state.taskFilterCat);
+  if(state.taskFilterTime === 'Overdue'){
+    items = items.filter(i => !i.done && currentWeek != null && i.week != null && i.week < currentWeek);
+  } else if(state.taskFilterTime === 'This week'){
+    items = items.filter(i => currentWeek != null && i.week === currentWeek);
+  } else if(state.taskFilterTime === 'Upcoming'){
+    items = items.filter(i => currentWeek != null && i.week != null && i.week > currentWeek);
+  }
+
+  // Sort: overdue (not done, week < currentWeek) first, then by week asc (unscheduled last), then original order.
+  items.sort((a,b) => {
+    const aOverdue = !a.done && currentWeek != null && a.week != null && a.week < currentWeek;
+    const bOverdue = !b.done && currentWeek != null && b.week != null && b.week < currentWeek;
+    if(aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+    const aw = a.week == null ? 999 : a.week;
+    const bw = b.week == null ? 999 : b.week;
+    if(aw !== bw) return aw - bw;
+    return 0;
+  });
+
+  let rows = items.map(i => {
+    const overdue = !i.done && currentWeek != null && i.week != null && i.week < currentWeek;
+    return `
+    <div class="item-row ${i.done?'done':''}">
+      <input type="checkbox" data-id="${i.id}" class="chk" ${i.done?'checked':''}/>
+      <div class="txt">${escapeHtml(i.text)}</div>
+      <div class="item-meta">
+        ${overdue ? `<span class="overdue-tag">Overdue</span>` : ''}
+        ${i.week != null ? `<span class="week-tag">wk ${i.week}</span>` : ''}
+        <span class="tag">${i.cat}</span>
+      </div>
+      <button class="del" data-id="${i.id}">×</button>
+    </div>`;
+  }).join('');
+  if(items.length === 0) rows = `<div class="empty">No checklist items match this filter.</div>`;
+
+  return `
+  <div class="card">
+    <span class="eyebrow">Checklist / To-Do</span>
+    <h2 style="margin-bottom:14px;">Pregnancy prep tasks</h2>
+    <div class="filter-row">
+      <select id="task-filter-cat">
+        ${catOptions.map(c => `<option value="${c}" ${state.taskFilterCat===c?'selected':''}>${c==='All'?'All categories':c}</option>`).join('')}
+      </select>
+      <select id="task-filter-time">
+        ${timeOptions.map(t => `<option value="${t}" ${state.taskFilterTime===t?'selected':''}>${t==='All'?'All timeframes':t}</option>`).join('')}
+      </select>
+    </div>
+    ${rows}
+    <div class="add-row">
+      <input type="text" id="new-task" placeholder="Add a to-do…" />
+      <input type="number" id="new-task-week" class="week-input" placeholder="Week" min="1" max="42" />
+      <select id="new-task-cat">
+        ${TASK_CATS.map(c => `<option>${c}</option>`).join('')}
+      </select>
+      <button class="btn small" id="add-task">Add</button>
+    </div>
+  </div>`;
+}
+
+function registryHTML(){
+  const catOptions = ["All", ...REGISTRY_CATS];
+  let items = state.registry.slice();
+  if(state.registryFilterCat !== 'All') items = items.filter(i => i.cat === state.registryFilterCat);
+
+  let html;
+  if(items.length === 0){
+    html = `<div class="empty">No registry items match this filter.</div>`;
+  } else if(state.registryFilterCat !== 'All'){
+    html = items.map(i => itemRowHTML(i)).join('');
+  } else {
+    html = REGISTRY_CATS.map(cat => {
+      const catItems = items.filter(i => i.cat === cat);
+      if(catItems.length === 0) return '';
+      return `<div class="cat-heading">${cat}</div>` + catItems.map(i => itemRowHTML(i)).join('');
+    }).join('');
+  }
+
+  function itemRowHTML(i){
+    return `
+    <div class="item-row ${i.done?'done':''}">
+      <input type="checkbox" data-id="${i.id}" class="chk-reg" ${i.done?'checked':''}/>
+      <div class="txt">${escapeHtml(i.text)}</div>
+      <span class="tag">${i.cat}</span>
+      <button class="del-reg" data-id="${i.id}">×</button>
+    </div>`;
+  }
+
+  return `
+  <div class="card">
+    <span class="eyebrow">Registry / Equipment</span>
+    <h2 style="margin-bottom:14px;">What to buy or borrow</h2>
+    <div class="filter-row">
+      <select id="reg-filter-cat">
+        ${catOptions.map(c => `<option value="${c}" ${state.registryFilterCat===c?'selected':''}>${c==='All'?'All categories':c}</option>`).join('')}
+      </select>
+    </div>
+    ${html}
+    <div class="add-row">
+      <input type="text" id="new-reg" placeholder="Add a registry item…" />
+      <select id="new-reg-cat">
+        ${REGISTRY_CATS.map(c => `<option>${c}</option>`).join('')}
+      </select>
+      <button class="btn small" id="add-reg">Add</button>
+    </div>
+  </div>`;
+}
+
+// ---- Names / ranked-choice ----
+
+function knownUsersFor(gender){
+  const set = new Set();
+  if(state.name) set.add(state.name);
+  (state.names || []).filter(n => n.gender === gender).forEach(n => { if(n.addedBy) set.add(n.addedBy); });
+  const rk = state.rankings[gender] || {};
+  Object.keys(rk).forEach(u => set.add(u));
+  return Array.from(set);
+}
+
+function orderFor(gender, user){
+  const namesInGender = state.names.filter(n => n.gender === gender).map(n => n.id);
+  const saved = (state.rankings[gender] && state.rankings[gender][user]) || [];
+  const savedValid = saved.filter(id => namesInGender.includes(id));
+  const missing = namesInGender.filter(id => !savedValid.includes(id));
+  return [...savedValid, ...missing];
+}
+
+function nameById(id){ return state.names.find(n => n.id === id); }
+
+function namesHTML(){
+  const gender = state.namesGender;
+  const user = state.name;
+  const order = orderFor(gender, user);
+  const users = knownUsersFor(gender);
+
+  let myList;
+  if(order.length === 0){
+    myList = `<div class="empty">No ${gender.toLowerCase()} names yet — add your first idea below.</div>`;
+  } else {
+    myList = order.map((id, idx) => {
+      const n = nameById(id);
+      if(!n) return '';
+      return `
+      <div class="name-card">
+        <div class="name-left">
+          <div class="nm">${escapeHtml(n.name)}</div>
+          <div class="meta">added by ${escapeHtml(n.addedBy)}</div>
+        </div>
+        <div class="rank-controls">
+          <button class="rank-up" data-id="${id}" ${idx===0?'disabled':''}>▲</button>
+          <span class="rank-num">${idx+1}</span>
+          <button class="rank-down" data-id="${id}" ${idx===order.length-1?'disabled':''}>▼</button>
+        </div>
+        <button class="del-name" data-id="${id}">×</button>
+      </div>`;
+    }).join('');
+  }
+
+  const top10Cols = users.map(u => {
+    const uOrder = orderFor(gender, u).slice(0, 10);
+    const items = uOrder.map(id => {
+      const n = nameById(id);
+      return n ? `<li>${escapeHtml(n.name)}</li>` : '';
+    }).join('');
+    return `
+    <div class="top10-col">
+      <h4>${escapeHtml(u)}'s top ${uOrder.length || 0}</h4>
+      ${uOrder.length ? `<ol>${items}</ol>` : `<div class="empty">No ranked names yet.</div>`}
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="card">
+    <span class="eyebrow">Name ideas</span>
+    <h2 style="margin-bottom:14px;">Rank your favorites</h2>
+    <div class="subtab-row">
+      ${NAME_GENDERS.map(g => `<button data-gender="${g}" class="${gender===g?'active':''}">${g}</button>`).join('')}
+    </div>
+    <div style="font-size:13px;color:var(--sage);margin-bottom:10px;">Use ▲ ▼ to rank in order of preference — #1 is your favorite.</div>
+    ${myList}
+    <div class="add-row">
+      <input type="text" id="n-name" placeholder="Name idea…" />
+      <button class="btn small" id="n-add">Add</button>
+    </div>
+  </div>
+  <div class="card">
+    <span class="eyebrow">Compare</span>
+    <h2 style="margin-bottom:10px;">Each parent's top 10 — ${gender}</h2>
+    <div class="top10-grid">${top10Cols}</div>
+  </div>`;
+}
+
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function bindTabEvents(){
+  // Overview
+  const dueSave = document.getElementById('due-save');
+  if(dueSave){
+    dueSave.onclick = async () => {
+      const v = document.getElementById('due-input').value;
+      if(!v) return;
+      state.info.dueDate = v;
+      await saveHousehold('info');
+      render();
+    };
+  }
+  root.querySelectorAll('.chk-home').forEach(cb => {
+    cb.onchange = async () => {
+      const item = state.tasks.find(i=>i.id===cb.dataset.id);
+      item.done = cb.checked;
+      await saveHousehold('tasks');
+      render();
+    };
+  });
+
+  // Checklist (tasks)
+  const catFilter = document.getElementById('task-filter-cat');
+  if(catFilter){
+    catFilter.onchange = () => { state.taskFilterCat = catFilter.value; render(); };
+  }
+  const timeFilter = document.getElementById('task-filter-time');
+  if(timeFilter){
+    timeFilter.onchange = () => { state.taskFilterTime = timeFilter.value; render(); };
+  }
+  root.querySelectorAll('.chk').forEach(cb => {
+    cb.onchange = async () => {
+      const item = state.tasks.find(i=>i.id===cb.dataset.id);
+      item.done = cb.checked;
+      await saveHousehold('tasks');
+      render();
+    };
+  });
+  const addTaskBtn = document.getElementById('add-task');
+  if(addTaskBtn){
+    addTaskBtn.onclick = async () => {
+      const inp = document.getElementById('new-task');
+      const weekInp = document.getElementById('new-task-week');
+      const cat = document.getElementById('new-task-cat').value;
+      if(!inp.value.trim()) return;
+      const week = weekInp.value ? Number(weekInp.value) : null;
+      state.tasks.push({id:uid(), text:inp.value.trim(), cat, week, done:false});
+      await saveHousehold('tasks');
+      render();
+    };
+  }
+  root.querySelectorAll('.item-row .del').forEach(btn => {
+    btn.onclick = async () => {
+      state.tasks = state.tasks.filter(i=>i.id!==btn.dataset.id);
+      await saveHousehold('tasks');
+      render();
+    };
+  });
+
+  // Registry
+  const regFilter = document.getElementById('reg-filter-cat');
+  if(regFilter){
+    regFilter.onchange = () => { state.registryFilterCat = regFilter.value; render(); };
+  }
+  root.querySelectorAll('.chk-reg').forEach(cb => {
+    cb.onchange = async () => {
+      const item = state.registry.find(i=>i.id===cb.dataset.id);
+      item.done = cb.checked;
+      await saveHousehold('registry');
+      render();
+    };
+  });
+  const addRegBtn = document.getElementById('add-reg');
+  if(addRegBtn){
+    addRegBtn.onclick = async () => {
+      const inp = document.getElementById('new-reg');
+      const cat = document.getElementById('new-reg-cat').value;
+      if(!inp.value.trim()) return;
+      state.registry.push({id:uid(), text:inp.value.trim(), cat, done:false});
+      await saveHousehold('registry');
+      render();
+    };
+  }
+  root.querySelectorAll('.del-reg').forEach(btn => {
+    btn.onclick = async () => {
+      state.registry = state.registry.filter(i=>i.id!==btn.dataset.id);
+      await saveHousehold('registry');
+      render();
+    };
+  });
+
+  // Names
+  root.querySelectorAll('.subtab-row button').forEach(btn => {
+    btn.onclick = () => { state.namesGender = btn.dataset.gender; render(); };
+  });
+  const nAdd = document.getElementById('n-add');
+  if(nAdd){
+    nAdd.onclick = async () => {
+      const name = document.getElementById('n-name').value.trim();
+      if(!name) return;
+      const gender = state.namesGender;
+      const id = uid();
+      state.names.push({id, name, gender, addedBy: state.name});
+      await saveHousehold('names');
+      // Append to the current user's ranking at the end.
+      if(!state.rankings[gender]) state.rankings[gender] = {};
+      const order = orderFor(gender, state.name).filter(x => x !== id);
+      order.push(id);
+      state.rankings[gender][state.name] = order;
+      await saveHousehold('rankings');
+      render();
+    };
+  }
+  root.querySelectorAll('.del-name').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.id;
+      state.names = state.names.filter(n=>n.id!==id);
+      Object.keys(state.rankings).forEach(g => {
+        Object.keys(state.rankings[g]).forEach(u => {
+          state.rankings[g][u] = state.rankings[g][u].filter(x=>x!==id);
+        });
+      });
+      await saveHousehold('names');
+      await saveHousehold('rankings');
+      render();
+    };
+  });
+  root.querySelectorAll('.rank-up, .rank-down').forEach(btn => {
+    btn.onclick = async () => {
+      const gender = state.namesGender;
+      const user = state.name;
+      const order = orderFor(gender, user);
+      const id = btn.dataset.id;
+      const idx = order.indexOf(id);
+      const dir = btn.classList.contains('rank-up') ? -1 : 1;
+      const swapIdx = idx + dir;
+      if(swapIdx < 0 || swapIdx >= order.length) return;
+      [order[idx], order[swapIdx]] = [order[swapIdx], order[idx]];
+      if(!state.rankings[gender]) state.rankings[gender] = {};
+      state.rankings[gender][user] = order;
+      await saveHousehold('rankings');
+      render();
+    };
+  });
+}
+
+(async function init(){
+  render();
+  await loadPersonal();
+  if(state.name && state.code){
+    await loadHousehold();
+  }
+  state.loading = false;
+  render();
+})();
+</script>
+</body>
+</html>
