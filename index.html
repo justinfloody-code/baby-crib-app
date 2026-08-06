@@ -226,6 +226,20 @@
   }
   .hide-completed-toggle input{ width:16px; height:16px; accent-color: var(--terracotta); cursor:pointer; }
 
+  .cat-manage-row{ display:flex; flex-wrap:wrap; gap:7px; margin-bottom:16px; }
+  .cat-manage-chip{
+    display:inline-flex; align-items:center; gap:5px;
+    background: var(--ivory); border:1px solid var(--blush); border-radius:999px;
+    padding:4px 6px 4px 12px; font-family:'JetBrains Mono',monospace; font-size:11px;
+    color: var(--evergreen); font-weight:600;
+  }
+  .cat-rename-btn{
+    background: var(--blush); border:none; border-radius:50%; width:20px; height:20px;
+    font-size:11px; line-height:1; cursor:pointer; color: var(--evergreen);
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .cat-rename-btn:hover{ background: var(--terracotta); color:#fff; }
+
   .week-tag{ font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--sage); white-space:nowrap; }
   .overdue-tag{
     font-family:'JetBrains Mono',monospace; font-size:9px; color:#fff; background: var(--terracotta);
@@ -236,6 +250,11 @@
   .cat-pill{
     font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
     padding:3px 9px; border-radius:6px; white-space:nowrap; flex-shrink:0;
+  }
+  .source-pill{
+    font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+    padding:2px 8px; border-radius:6px; white-space:nowrap; flex-shrink:0;
+    background:#fff; border:1.5px solid; text-transform:uppercase; letter-spacing:.03em;
   }
 
   .week-break{
@@ -268,6 +287,7 @@
   .edit-row .edit-text{ flex:1; min-width:140px; }
   .edit-row .edit-week{ width:90px; flex:none; }
   .edit-row .edit-cat{ width:140px; flex:none; }
+  .edit-row .edit-source{ width:130px; flex:none; }
 
   /* ---------- Names ---------- */
   .gender-tab-row{ display:flex; gap:10px; margin-bottom:18px; }
@@ -460,6 +480,14 @@ const DEFAULT_TASKS = [
 // ---------- Registry / equipment checklist ----------
 // Adapted from a standard baby essentials registry checklist.
 const REGISTRY_CATS = ["Wardrobe","Nursery","Diapering","Bath","Feeding","Health","Gear","Playtime"];
+
+// Secondary classification: where each registry item will come from.
+const SOURCE_OPTIONS = ["Purchase","Borrow","Registry"];
+const SOURCE_COLORS = {
+  Purchase: '#b57b66',
+  Borrow: '#8b9bc0',
+  Registry: '#8aab7c',
+};
 const DEFAULT_REGISTRY = [
   // Wardrobe
   {t:"Onesies/bodysuits — plan for about 4-8", cat:"Wardrobe"},
@@ -689,8 +717,8 @@ function attachLiveSync(){
     if(val.names) state.names = val.names;
     if(val.rankings) state.rankings = val.rankings;
     if(val.journal) state.journal = val.journal;
-    if(val.customTaskCats) state.customTaskCats = val.customTaskCats;
-    if(val.customRegistryCats) state.customRegistryCats = val.customRegistryCats;
+    if(val.taskCatList) state.taskCatList = val.taskCatList;
+    if(val.registryCatList) state.registryCatList = val.registryCatList;
     safeRerenderFromRemote();
   });
 }
@@ -705,8 +733,8 @@ let state = {
   names: [],
   rankings: {},   // { Girl: { [userName]: [nameId,...] }, Boy: {...}, Neutral: {...} }
   journal: [],
-  customTaskCats: [],
-  customRegistryCats: [],
+  taskCatList: [...TASK_CATS],
+  registryCatList: [...REGISTRY_CATS],
   journalFilterVisibility: 'All',
   tab: 'overview',
   namesGender: 'Girl',
@@ -714,6 +742,7 @@ let state = {
   taskFilterTime: 'All',
   taskHideCompleted: false,
   registryFilterCat: 'All',
+  registryFilterSource: 'All',
   loading: true,
   liveAttached: false,
   openMenuId: null,
@@ -734,7 +763,7 @@ async function loadPersonal(){
 async function loadHousehold(){
   if(!state.code) return;
 
-  const fields = ['info','tasks','registry','names','rankings','journal','customTaskCats','customRegistryCats'];
+  const fields = ['info','tasks','registry','names','rankings','journal','customTaskCats','customRegistryCats','taskCatList','registryCatList'];
   const results = {};
   for(const f of fields){
     let r = await fbFetch(f);
@@ -762,8 +791,18 @@ async function loadHousehold(){
   state.names = results.names || [];
   state.rankings = results.rankings || {};
   state.journal = results.journal || [];
-  state.customTaskCats = results.customTaskCats || [];
-  state.customRegistryCats = results.customRegistryCats || [];
+  if(results.taskCatList){
+    state.taskCatList = results.taskCatList;
+  } else {
+    state.taskCatList = [...TASK_CATS, ...(results.customTaskCats || [])];
+    await saveHousehold('taskCatList');
+  }
+  if(results.registryCatList){
+    state.registryCatList = results.registryCatList;
+  } else {
+    state.registryCatList = [...REGISTRY_CATS, ...(results.customRegistryCats || [])];
+    await saveHousehold('registryCatList');
+  }
 
   if(results.tasks){
     state.tasks = results.tasks;
@@ -783,11 +822,11 @@ async function loadHousehold(){
   } else if(oldChecklist){
     state.registry = oldChecklist.filter(i => !TASK_CATS.includes(i.cat)).map(i => ({...i}));
     if(state.registry.length === 0){
-      state.registry = DEFAULT_REGISTRY.map(i => ({id:uid(), text:i.t, cat:i.cat, done:false}));
+      state.registry = DEFAULT_REGISTRY.map(i => ({id:uid(), text:i.t, cat:i.cat, source:null, done:false}));
     }
     await saveHousehold('registry');
   } else {
-    state.registry = DEFAULT_REGISTRY.map(i => ({id:uid(), text:i.t, cat:i.cat, done:false}));
+    state.registry = DEFAULT_REGISTRY.map(i => ({id:uid(), text:i.t, cat:i.cat, source:null, done:false}));
     await saveHousehold('registry');
   }
 
@@ -1014,9 +1053,20 @@ function settingsHTML(){
   </div>`;
 }
 
+function catManageRowHTML(list, scope){
+  return `
+  <div class="cat-manage-row">
+    ${list.map(c => `
+    <span class="cat-manage-chip">
+      ${escapeHtml(c)}
+      <button type="button" class="cat-rename-btn" data-old="${escapeHtml(c)}" data-scope="${scope}" title="Rename category">✎</button>
+    </span>`).join('')}
+  </div>`;
+}
+
 function tasksHTML(){
   const currentWeek = currentWeekNum();
-  const allCats = [...TASK_CATS, ...(state.customTaskCats||[])];
+  const allCats = state.taskCatList && state.taskCatList.length ? state.taskCatList : TASK_CATS;
   const catOptions = ["All", ...allCats];
   const timeOptions = ["All","Overdue","This week","Upcoming"];
 
@@ -1112,15 +1162,18 @@ function tasksHTML(){
       <input type="text" id="new-cat-name" placeholder="New category…" class="new-cat-input" />
       <button class="btn ghost small" id="add-cat">Add category</button>
     </div>
+    ${catManageRowHTML(allCats, 'task')}
     ${rows}
   </div>`;
 }
 
 function registryHTML(){
-  const allRegCats = [...REGISTRY_CATS, ...(state.customRegistryCats||[])];
+  const allRegCats = state.registryCatList && state.registryCatList.length ? state.registryCatList : REGISTRY_CATS;
   const catOptions = ["All", ...allRegCats];
+  const sourceOptions = ["All", ...SOURCE_OPTIONS];
   let items = state.registry.slice();
   if(state.registryFilterCat !== 'All') items = items.filter(i => i.cat === state.registryFilterCat);
+  if(state.registryFilterSource !== 'All') items = items.filter(i => i.source === state.registryFilterSource);
 
   function regEditRow(i){
     return `
@@ -1128,6 +1181,10 @@ function registryHTML(){
       <input type="text" class="edit-text" value="${escapeHtml(i.text)}" />
       <select class="edit-cat">
         ${allRegCats.map(c => `<option ${c===i.cat?'selected':''}>${c}</option>`).join('')}
+      </select>
+      <select class="edit-source">
+        <option value="" ${!i.source?'selected':''}>Source…</option>
+        ${SOURCE_OPTIONS.map(s => `<option ${s===i.source?'selected':''}>${s}</option>`).join('')}
       </select>
       <button class="btn small edit-save" data-id="${i.id}" data-kind="registry">Save</button>
       <button class="btn ghost small edit-cancel">Cancel</button>
@@ -1137,10 +1194,12 @@ function registryHTML(){
   function itemRowHTML(i){
     if(state.editingId === i.id) return regEditRow(i);
     const {bg, text} = catStyle(i.cat);
+    const sourceColor = i.source ? (SOURCE_COLORS[i.source] || 'var(--sage)') : null;
     return `
     <div class="item-row ${i.done?'done':''}">
       <input type="checkbox" data-id="${i.id}" class="chk-reg" ${i.done?'checked':''}/>
       <div class="txt">${escapeHtml(i.text)}</div>
+      ${i.source ? `<span class="source-pill" style="border-color:${sourceColor};color:${sourceColor};">${i.source}</span>` : ''}
       <span class="cat-pill" style="background:${bg};color:${text};">${i.cat}</span>
       <div class="row-menu">
         <button class="row-menu-btn" data-id="${i.id}">▾</button>
@@ -1174,15 +1233,23 @@ function registryHTML(){
       <select id="new-reg-cat">
         ${allRegCats.map(c => `<option>${c}</option>`).join('')}
       </select>
+      <select id="new-reg-source">
+        <option value="">Source…</option>
+        ${SOURCE_OPTIONS.map(s => `<option>${s}</option>`).join('')}
+      </select>
       <button class="btn small" id="add-reg">Add</button>
     </div>
     <div class="filter-row">
       <select id="reg-filter-cat">
         ${catOptions.map(c => `<option value="${c}" ${state.registryFilterCat===c?'selected':''}>${c==='All'?'All categories':c}</option>`).join('')}
       </select>
+      <select id="reg-filter-source">
+        ${sourceOptions.map(s => `<option value="${s}" ${state.registryFilterSource===s?'selected':''}>${s==='All'?'All sources':s}</option>`).join('')}
+      </select>
       <input type="text" id="new-reg-cat-name" placeholder="New category…" class="new-cat-input" />
       <button class="btn ghost small" id="add-reg-cat">Add category</button>
     </div>
+    ${catManageRowHTML(allRegCats, 'registry')}
     ${html}
   </div>`;
 }
@@ -1625,14 +1692,32 @@ function bindTabEvents(){
       const inp = document.getElementById('new-cat-name');
       const name = inp.value.trim();
       if(!name) return;
-      const existing = [...TASK_CATS, ...(state.customTaskCats||[])].map(c => c.toLowerCase());
-      if(!existing.includes(name.toLowerCase())){
-        state.customTaskCats = [...(state.customTaskCats||[]), name];
-        await saveHousehold('customTaskCats');
+      const list = state.taskCatList || [...TASK_CATS];
+      if(!list.some(c => c.toLowerCase() === name.toLowerCase())){
+        state.taskCatList = [...list, name];
+        await saveHousehold('taskCatList');
       }
       render();
     };
   }
+  root.querySelectorAll('.cat-rename-btn[data-scope="task"]').forEach(btn => {
+    btn.onclick = async () => {
+      const oldName = btn.dataset.old;
+      const newName = (prompt(`Rename category "${oldName}" to:`, oldName) || '').trim();
+      if(!newName || newName === oldName) return;
+      const list = state.taskCatList || [...TASK_CATS];
+      if(list.some(c => c.toLowerCase() === newName.toLowerCase())){
+        alert(`A category named "${newName}" already exists.`);
+        return;
+      }
+      state.taskCatList = list.map(c => c === oldName ? newName : c);
+      state.tasks.forEach(i => { if(i.cat === oldName) i.cat = newName; });
+      if(state.taskFilterCat === oldName) state.taskFilterCat = newName;
+      await saveHousehold('taskCatList');
+      await saveHousehold('tasks');
+      render();
+    };
+  });
   root.querySelectorAll('.chk').forEach(cb => {
     cb.onchange = async () => {
       const item = state.tasks.find(i=>i.id===cb.dataset.id);
@@ -1659,6 +1744,10 @@ function bindTabEvents(){
   if(regFilter){
     regFilter.onchange = () => { state.registryFilterCat = regFilter.value; render(); };
   }
+  const regFilterSource = document.getElementById('reg-filter-source');
+  if(regFilterSource){
+    regFilterSource.onchange = () => { state.registryFilterSource = regFilterSource.value; render(); };
+  }
   root.querySelectorAll('.chk-reg').forEach(cb => {
     cb.onchange = async () => {
       const item = state.registry.find(i=>i.id===cb.dataset.id);
@@ -1672,8 +1761,9 @@ function bindTabEvents(){
     addRegBtn.onclick = async () => {
       const inp = document.getElementById('new-reg');
       const cat = document.getElementById('new-reg-cat').value;
+      const source = document.getElementById('new-reg-source').value || null;
       if(!inp.value.trim()) return;
-      state.registry.push({id:uid(), text:inp.value.trim(), cat, done:false});
+      state.registry.push({id:uid(), text:inp.value.trim(), cat, source, done:false});
       await saveHousehold('registry');
       render();
     };
@@ -1684,14 +1774,32 @@ function bindTabEvents(){
       const inp = document.getElementById('new-reg-cat-name');
       const name = inp.value.trim();
       if(!name) return;
-      const existing = [...REGISTRY_CATS, ...(state.customRegistryCats||[])].map(c => c.toLowerCase());
-      if(!existing.includes(name.toLowerCase())){
-        state.customRegistryCats = [...(state.customRegistryCats||[]), name];
-        await saveHousehold('customRegistryCats');
+      const list = state.registryCatList || [...REGISTRY_CATS];
+      if(!list.some(c => c.toLowerCase() === name.toLowerCase())){
+        state.registryCatList = [...list, name];
+        await saveHousehold('registryCatList');
       }
       render();
     };
   }
+  root.querySelectorAll('.cat-rename-btn[data-scope="registry"]').forEach(btn => {
+    btn.onclick = async () => {
+      const oldName = btn.dataset.old;
+      const newName = (prompt(`Rename category "${oldName}" to:`, oldName) || '').trim();
+      if(!newName || newName === oldName) return;
+      const list = state.registryCatList || [...REGISTRY_CATS];
+      if(list.some(c => c.toLowerCase() === newName.toLowerCase())){
+        alert(`A category named "${newName}" already exists.`);
+        return;
+      }
+      state.registryCatList = list.map(c => c === oldName ? newName : c);
+      state.registry.forEach(i => { if(i.cat === oldName) i.cat = newName; });
+      if(state.registryFilterCat === oldName) state.registryFilterCat = newName;
+      await saveHousehold('registryCatList');
+      await saveHousehold('registry');
+      render();
+    };
+  });
 
   // Row menus (task + registry rows): open/close dropdown, edit, delete
   root.querySelectorAll('.row-menu-btn').forEach(btn => {
@@ -1754,8 +1862,10 @@ function bindTabEvents(){
         await saveHousehold('tasks');
       } else {
         const item = state.registry.find(i=>i.id===id);
+        const sourceSel = row.querySelector('.edit-source');
         item.text = text;
         item.cat = cat;
+        item.source = sourceSel && sourceSel.value ? sourceSel.value : null;
         state.editingId = null;
         await saveHousehold('registry');
       }
