@@ -189,7 +189,19 @@
   }
   .visibility-pill.private{ background: var(--blush); color: var(--evergreen); }
   .visibility-pill.public{ background: var(--evergreen); color:#fff; }
-  .journal-entry-text{ font-size:14.5px; line-height:1.6; white-space:pre-wrap; color: var(--evergreen); }
+  .journal-entry-text{ font-size:14.5px; line-height:1.6; color: var(--evergreen); }
+  .journal-entry-text ul{ margin:4px 0; padding-left:20px; }
+  .journal-entry-text li{ margin-bottom:2px; }
+
+  .journal-editor{ display:flex; flex-direction:column; }
+  .journal-editor textarea{ resize:vertical; }
+  .format-toolbar{ display:flex; gap:5px; margin-bottom:7px; }
+  .fmt-btn{
+    background: var(--blush); border:none; border-radius:6px; width:30px; height:28px;
+    font-family:'Public Sans',sans-serif; font-size:13px; color: var(--evergreen); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .fmt-btn:hover{ background: var(--terracotta); color:#fff; }
 
   /* ---------- Checklist / Registry ---------- */
   .cat-heading{ font-family:'Public Sans',sans-serif; font-size:16px; color: var(--evergreen); margin: 18px 0 8px; }
@@ -524,8 +536,18 @@ function relLuminance(hex){
   });
   return 0.2126*a[0]+0.7152*a[1]+0.0722*a[2];
 }
+// Pastel colors handed out to custom (user-created) categories that aren't in CAT_COLORS,
+// picked deterministically per category name so each one stays a consistent color.
+const FALLBACK_CAT_COLORS = [
+  '#b7a8d9', '#8fbfa0', '#e0b3a3', '#a3c9d9', '#d9a3c4', '#c4d9a3',
+  '#d9c7a3', '#a3d9cf', '#c9a3d9', '#d9b3a3', '#a3b3d9', '#bcd9a3',
+];
 function catStyle(cat){
-  const bg = CAT_COLORS[cat] || '#a1a79e';
+  let bg = CAT_COLORS[cat];
+  if(!bg){
+    const idx = Math.abs(hashString(cat)) % FALLBACK_CAT_COLORS.length;
+    bg = FALLBACK_CAT_COLORS[idx];
+  }
   const text = relLuminance(bg) > 0.4 ? '#3a332c' : '#ffffff';
   return { bg, text };
 }
@@ -685,6 +707,7 @@ let state = {
   journal: [],
   customTaskCats: [],
   customRegistryCats: [],
+  journalFilterVisibility: 'All',
   tab: 'overview',
   namesGender: 'Girl',
   taskFilterCat: 'All',
@@ -1293,6 +1316,70 @@ function journalHomeHTML(){
 }
 
 // ---- Journal Entries tab ----
+// Lightweight markdown-style formatting: **bold**, *italic*, __underline__, "- " bullet lines.
+// Kept as plain-text markup (not raw HTML) so it's safe to store/sync and easy to re-edit.
+
+function formatToolbarHTML(){
+  return `
+  <div class="format-toolbar">
+    <button type="button" class="fmt-btn" data-fmt="bold" title="Bold"><strong>B</strong></button>
+    <button type="button" class="fmt-btn" data-fmt="italic" title="Italic"><em>I</em></button>
+    <button type="button" class="fmt-btn" data-fmt="underline" title="Underline"><u>U</u></button>
+    <button type="button" class="fmt-btn" data-fmt="bullet" title="Bulleted list">☰</button>
+  </div>`;
+}
+
+function applyFormat(ta, kind){
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  const value = ta.value;
+  const selected = value.slice(start, end);
+  let newStart, newEnd;
+
+  if(kind === 'bold' || kind === 'italic' || kind === 'underline'){
+    const marker = kind === 'bold' ? '**' : kind === 'italic' ? '*' : '__';
+    const wrapped = marker + selected + marker;
+    ta.value = value.slice(0, start) + wrapped + value.slice(end);
+    newStart = start + marker.length;
+    newEnd = newStart + selected.length;
+  } else if(kind === 'bullet'){
+    let lineStart = value.lastIndexOf('\n', start - 1) + 1;
+    let lineEnd = value.indexOf('\n', end);
+    if(lineEnd === -1) lineEnd = value.length;
+    const block = value.slice(lineStart, lineEnd);
+    const lines = block.split('\n');
+    const allBulleted = lines.every(l => l.trim() === '' || l.startsWith('- '));
+    const newLines = lines.map(l => {
+      if(l.trim() === '') return l;
+      return allBulleted ? l.replace(/^- /, '') : (l.startsWith('- ') ? l : '- ' + l);
+    });
+    const newBlock = newLines.join('\n');
+    ta.value = value.slice(0, lineStart) + newBlock + value.slice(lineEnd);
+    newStart = lineStart;
+    newEnd = lineStart + newBlock.length;
+  }
+
+  ta.focus();
+  ta.setSelectionRange(newStart, newEnd);
+}
+
+function formatJournalText(raw){
+  const lines = (raw || '').split('\n');
+  let html = '';
+  let inList = false;
+  lines.forEach(line => {
+    const isBullet = /^- /.test(line);
+    if(isBullet && !inList){ html += '<ul>'; inList = true; }
+    if(!isBullet && inList){ html += '</ul>'; inList = false; }
+    let content = escapeHtml(isBullet ? line.slice(2) : line);
+    content = content.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    content = content.replace(/__(.+?)__/g, '<u>$1</u>');
+    content = content.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html += isBullet ? `<li>${content}</li>` : content + '<br>';
+  });
+  if(inList) html += '</ul>';
+  return html;
+}
 
 function journalEntryRow(e){
   const isEditing = state.editingId === e.id;
@@ -1304,7 +1391,10 @@ function journalEntryRow(e){
   if(isEditing){
     return `
     <div class="journal-entry editing">
-      <textarea class="journal-edit-text" rows="4">${escapeHtml(e.text)}</textarea>
+      <div class="journal-editor">
+        ${formatToolbarHTML()}
+        <textarea class="journal-edit-text" rows="4">${escapeHtml(e.text)}</textarea>
+      </div>
       <div class="journal-controls">
         <select class="journal-edit-visibility">
           <option value="private" ${e.visibility==='private'?'selected':''}>Private — just for me</option>
@@ -1334,24 +1424,28 @@ function journalEntryRow(e){
         </div>` : ''}
       </div>` : ''}
     </div>
-    <div class="journal-entry-text">${escapeHtml(e.text)}</div>
+    <div class="journal-entry-text">${formatJournalText(e.text)}</div>
   </div>`;
 }
 
 function journalHTML(){
-  const visible = (state.journal || [])
-    .filter(e => e.visibility === 'public' || e.authorName === state.name)
-    .slice()
-    .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  let visible = (state.journal || [])
+    .filter(e => e.visibility === 'public' || e.authorName === state.name);
+  if(state.journalFilterVisibility === 'Private') visible = visible.filter(e => e.visibility === 'private');
+  else if(state.journalFilterVisibility === 'Shared') visible = visible.filter(e => e.visibility === 'public');
+  visible = visible.slice().sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const list = visible.length === 0
-    ? `<div class="empty">No journal entries yet — write your first one above.</div>`
+    ? `<div class="empty">No journal entries match this filter.</div>`
     : visible.map(e => journalEntryRow(e)).join('');
 
   return `
   <div class="card">
     <h2 style="margin-bottom:14px;">New entry</h2>
-    <textarea id="journal-new-text" rows="4" placeholder="How are you feeling today?"></textarea>
+    <div class="journal-editor">
+      ${formatToolbarHTML()}
+      <textarea id="journal-new-text" rows="4" placeholder="How are you feeling today?"></textarea>
+    </div>
     <div class="journal-controls">
       <select id="journal-new-visibility">
         <option value="private">Private — just for me</option>
@@ -1362,6 +1456,13 @@ function journalHTML(){
   </div>
   <div class="card">
     <h2 style="margin-bottom:14px;">Journal entries</h2>
+    <div class="filter-row">
+      <select id="journal-filter-visibility">
+        <option value="All" ${state.journalFilterVisibility==='All'?'selected':''}>All entries</option>
+        <option value="Private" ${state.journalFilterVisibility==='Private'?'selected':''}>Private only</option>
+        <option value="Shared" ${state.journalFilterVisibility==='Shared'?'selected':''}>Shared only</option>
+      </select>
+    </div>
     ${list}
   </div>`;
 }
@@ -1440,6 +1541,18 @@ function bindTabEvents(){
       render();
     };
   }
+  const journalFilterVis = document.getElementById('journal-filter-visibility');
+  if(journalFilterVis){
+    journalFilterVis.onchange = () => { state.journalFilterVisibility = journalFilterVis.value; render(); };
+  }
+  root.querySelectorAll('.fmt-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      const wrap = btn.closest('.journal-editor');
+      const ta = wrap ? wrap.querySelector('textarea') : null;
+      if(ta) applyFormat(ta, btn.dataset.fmt);
+    };
+  });
   root.querySelectorAll('.journal-menu-edit').forEach(btn => {
     btn.onclick = () => { state.editingId = btn.dataset.id; state.openMenuId = null; render(); };
   });
