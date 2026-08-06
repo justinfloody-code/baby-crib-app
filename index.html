@@ -207,6 +207,7 @@
 
   .filter-row{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
   .filter-row select{ flex:1; min-width:130px; }
+  .filter-row .new-cat-input{ flex:1; min-width:130px; width:auto; }
   .hide-completed-toggle{
     display:flex; align-items:center; gap:7px; font-size:13px; font-weight:600;
     color: var(--evergreen); font-family:'Public Sans',sans-serif; white-space:nowrap; cursor:pointer;
@@ -269,7 +270,8 @@
   .gender-tab.boy{ background:#d2e3f6; color:#3f5f80; }
   .gender-tab.boy.active{ background:#9cc0e8; color:#1f3c58; }
 
-  .name-card{ display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--blush); gap:10px; flex-wrap:wrap;}
+  .name-card{ display:flex; align-items:center; padding:10px 0; border-bottom:1px solid var(--blush); gap:10px; flex-wrap:wrap;}
+  .name-card .row-menu{ margin-left:auto; }
   .name-card:last-child{ border-bottom:none; }
   .name-card.editing{ gap:8px; }
   .name-card.editing .edit-name-text{ flex:1; min-width:140px; }
@@ -666,6 +668,7 @@ function attachLiveSync(){
     if(val.rankings) state.rankings = val.rankings;
     if(val.journal) state.journal = val.journal;
     if(val.customTaskCats) state.customTaskCats = val.customTaskCats;
+    if(val.customRegistryCats) state.customRegistryCats = val.customRegistryCats;
     safeRerenderFromRemote();
   });
 }
@@ -681,6 +684,7 @@ let state = {
   rankings: {},   // { Girl: { [userName]: [nameId,...] }, Boy: {...}, Neutral: {...} }
   journal: [],
   customTaskCats: [],
+  customRegistryCats: [],
   tab: 'overview',
   namesGender: 'Girl',
   taskFilterCat: 'All',
@@ -707,7 +711,7 @@ async function loadPersonal(){
 async function loadHousehold(){
   if(!state.code) return;
 
-  const fields = ['info','tasks','registry','names','rankings','journal','customTaskCats'];
+  const fields = ['info','tasks','registry','names','rankings','journal','customTaskCats','customRegistryCats'];
   const results = {};
   for(const f of fields){
     let r = await fbFetch(f);
@@ -736,6 +740,7 @@ async function loadHousehold(){
   state.rankings = results.rankings || {};
   state.journal = results.journal || [];
   state.customTaskCats = results.customTaskCats || [];
+  state.customRegistryCats = results.customRegistryCats || [];
 
   if(results.tasks){
     state.tasks = results.tasks;
@@ -1070,10 +1075,6 @@ function tasksHTML(){
       </select>
       <button class="btn small" id="add-task">Add</button>
     </div>
-    <div class="add-row">
-      <input type="text" id="new-cat-name" placeholder="Add a new category…" />
-      <button class="btn ghost small" id="add-cat">Add category</button>
-    </div>
     <div class="filter-row">
       <select id="task-filter-cat">
         ${catOptions.map(c => `<option value="${c}" ${state.taskFilterCat===c?'selected':''}>${c==='All'?'All categories':c}</option>`).join('')}
@@ -1085,13 +1086,16 @@ function tasksHTML(){
         <input type="checkbox" id="task-hide-completed" ${state.taskHideCompleted ? 'checked' : ''}/>
         Hide completed
       </label>
+      <input type="text" id="new-cat-name" placeholder="New category…" class="new-cat-input" />
+      <button class="btn ghost small" id="add-cat">Add category</button>
     </div>
     ${rows}
   </div>`;
 }
 
 function registryHTML(){
-  const catOptions = ["All", ...REGISTRY_CATS];
+  const allRegCats = [...REGISTRY_CATS, ...(state.customRegistryCats||[])];
+  const catOptions = ["All", ...allRegCats];
   let items = state.registry.slice();
   if(state.registryFilterCat !== 'All') items = items.filter(i => i.cat === state.registryFilterCat);
 
@@ -1100,7 +1104,7 @@ function registryHTML(){
     <div class="item-row edit-row">
       <input type="text" class="edit-text" value="${escapeHtml(i.text)}" />
       <select class="edit-cat">
-        ${REGISTRY_CATS.map(c => `<option ${c===i.cat?'selected':''}>${c}</option>`).join('')}
+        ${allRegCats.map(c => `<option ${c===i.cat?'selected':''}>${c}</option>`).join('')}
       </select>
       <button class="btn small edit-save" data-id="${i.id}" data-kind="registry">Save</button>
       <button class="btn ghost small edit-cancel">Cancel</button>
@@ -1132,7 +1136,7 @@ function registryHTML(){
   } else if(state.registryFilterCat !== 'All'){
     html = items.map(i => itemRowHTML(i)).join('');
   } else {
-    html = REGISTRY_CATS.map(cat => {
+    html = allRegCats.map(cat => {
       const catItems = items.filter(i => i.cat === cat);
       if(catItems.length === 0) return '';
       return `<div class="cat-heading">${cat}</div>` + catItems.map(i => itemRowHTML(i)).join('');
@@ -1145,7 +1149,7 @@ function registryHTML(){
     <div class="add-row">
       <input type="text" id="new-reg" placeholder="Add a registry item…" />
       <select id="new-reg-cat">
-        ${REGISTRY_CATS.map(c => `<option>${c}</option>`).join('')}
+        ${allRegCats.map(c => `<option>${c}</option>`).join('')}
       </select>
       <button class="btn small" id="add-reg">Add</button>
     </div>
@@ -1153,6 +1157,8 @@ function registryHTML(){
       <select id="reg-filter-cat">
         ${catOptions.map(c => `<option value="${c}" ${state.registryFilterCat===c?'selected':''}>${c==='All'?'All categories':c}</option>`).join('')}
       </select>
+      <input type="text" id="new-reg-cat-name" placeholder="New category…" class="new-cat-input" />
+      <button class="btn ghost small" id="add-reg-cat">Add category</button>
     </div>
     ${html}
   </div>`;
@@ -1241,17 +1247,17 @@ function namesHTML(){
     ${NAME_GENDERS.map(g => `<button data-gender="${g}" class="gender-tab ${g.toLowerCase()} ${gender===g?'active':''}">${g}</button>`).join('')}
   </div>
   <div class="card">
-    <h2 style="margin-bottom:10px;">Each parent's top 10 — ${gender}</h2>
+    <h2 style="margin-bottom:10px;">Favorite names — ${gender}</h2>
     <div class="top10-grid">${top10Cols}</div>
   </div>
   <div class="card">
     <h2 style="margin-bottom:14px;">Rank your favorites</h2>
-    <div style="font-size:13px;color:var(--sage);margin-bottom:10px;">Use ▲ ▼ to rank in order of preference — #1 is your favorite.</div>
-    ${myList}
     <div class="add-row">
       <input type="text" id="n-name" placeholder="Name idea…" />
       <button class="btn small" id="n-add">Add</button>
     </div>
+    <div style="font-size:13px;color:var(--sage);margin-bottom:10px;">Use ▲ ▼ to rank in order of preference — #1 is your favorite.</div>
+    ${myList}
   </div>`;
 }
 
@@ -1507,9 +1513,10 @@ function bindTabEvents(){
       const name = inp.value.trim();
       if(!name) return;
       const existing = [...TASK_CATS, ...(state.customTaskCats||[])].map(c => c.toLowerCase());
-      if(existing.includes(name.toLowerCase())) return;
-      state.customTaskCats = [...(state.customTaskCats||[]), name];
-      await saveHousehold('customTaskCats');
+      if(!existing.includes(name.toLowerCase())){
+        state.customTaskCats = [...(state.customTaskCats||[]), name];
+        await saveHousehold('customTaskCats');
+      }
       render();
     };
   }
@@ -1555,6 +1562,20 @@ function bindTabEvents(){
       if(!inp.value.trim()) return;
       state.registry.push({id:uid(), text:inp.value.trim(), cat, done:false});
       await saveHousehold('registry');
+      render();
+    };
+  }
+  const addRegCatBtn = document.getElementById('add-reg-cat');
+  if(addRegCatBtn){
+    addRegCatBtn.onclick = async () => {
+      const inp = document.getElementById('new-reg-cat-name');
+      const name = inp.value.trim();
+      if(!name) return;
+      const existing = [...REGISTRY_CATS, ...(state.customRegistryCats||[])].map(c => c.toLowerCase());
+      if(!existing.includes(name.toLowerCase())){
+        state.customRegistryCats = [...(state.customRegistryCats||[]), name];
+        await saveHousehold('customRegistryCats');
+      }
       render();
     };
   }
