@@ -242,6 +242,7 @@
     display:flex; align-items:center; justify-content:center; padding:0;
   }
   .fmt-btn:hover{ background: var(--terracotta); color:#fff; }
+  .fmt-btn.active{ background: var(--evergreen); color:#fff; }
 
   /* ---------- Checklist / Registry ---------- */
   .cat-heading{ font-family:'Public Sans',sans-serif; font-size:16px; color: var(--evergreen); margin: 18px 0 8px; }
@@ -1540,6 +1541,26 @@ function formatToolbarHTML(){
   </div>`;
 }
 
+const JOURNAL_FMT_COMMANDS = { bold: 'bold', italic: 'italic', underline: 'underline', bullet: 'insertUnorderedList' };
+
+// Lights up each toolbar button (bold/italic/underline/bullet) when the current cursor
+// position or selection already has that formatting, like a normal rich-text editor.
+function updateJournalFmtButtons(){
+  document.querySelectorAll('.journal-rich-input').forEach(box => {
+    const wrap = box.closest('.journal-editor');
+    if(!wrap) return;
+    const focused = document.activeElement === box;
+    wrap.querySelectorAll('.fmt-btn').forEach(btn => {
+      let isActive = false;
+      if(focused){
+        try{ isActive = document.queryCommandState(JOURNAL_FMT_COMMANDS[btn.dataset.fmt]); }catch(e){ isActive = false; }
+      }
+      btn.classList.toggle('active', isActive);
+    });
+  });
+}
+document.onselectionchange = updateJournalFmtButtons;
+
 const JOURNAL_ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','UL','OL','LI','BR','DIV']);
 function sanitizeJournalHTML(html){
   const tmp = document.createElement('div');
@@ -1749,7 +1770,6 @@ function bindTabEvents(){
   if(journalFilterVis){
     journalFilterVis.onchange = () => { state.journalFilterVisibility = journalFilterVis.value; render(); };
   }
-  const fmtCommand = { bold: 'bold', italic: 'italic', underline: 'underline', bullet: 'insertUnorderedList' };
   root.querySelectorAll('.fmt-btn').forEach(btn => {
     // preventDefault on mousedown (not just click) so the browser doesn't clear the
     // contenteditable selection before execCommand runs.
@@ -1760,8 +1780,17 @@ function bindTabEvents(){
       const box = wrap ? wrap.querySelector('.journal-rich-input') : null;
       if(!box) return;
       box.focus();
-      document.execCommand(fmtCommand[btn.dataset.fmt], false, null);
+      document.execCommand(JOURNAL_FMT_COMMANDS[btn.dataset.fmt], false, null);
+      updateJournalFmtButtons();
     };
+  });
+  root.querySelectorAll('.journal-rich-input').forEach(box => {
+    // Selection can move by click/keyboard within the box without a selectionchange
+    // firing in every browser, so keep the toolbar state in sync on these too.
+    box.addEventListener('keyup', updateJournalFmtButtons);
+    box.addEventListener('mouseup', updateJournalFmtButtons);
+    box.addEventListener('focus', updateJournalFmtButtons);
+    box.addEventListener('blur', updateJournalFmtButtons);
   });
   root.querySelectorAll('.journal-menu-edit').forEach(btn => {
     btn.onclick = () => { state.editingId = btn.dataset.id; state.openMenuId = null; render(); };
