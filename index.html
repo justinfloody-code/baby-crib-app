@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Crib — Baby Prep Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --ivory: #f4f3f1;
@@ -31,7 +31,7 @@
   #root{max-width: 1100px; margin: 0 auto; padding: 20px 32px 60px;}
   @media(max-width: 700px){ #root{ padding: 20px 18px 60px; } }
 
-  h1,h2,h3{font-family:'Fraunces', serif; margin:0; color: var(--evergreen); font-weight:600;}
+  h1,h2,h3{font-family:'Public Sans', sans-serif; margin:0; color: var(--evergreen); font-weight:700;}
   .eyebrow{
     font-family:'JetBrains Mono', monospace;
     font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
@@ -57,6 +57,14 @@
     background: #fff; color: var(--evergreen);
   }
   input:focus, select:focus, textarea:focus{ outline:none; border-color: var(--terracotta); }
+  select{
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    padding-right: 30px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2368756d' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 10px 6px;
+  }
   .btn{
     font-family:'Public Sans',sans-serif; font-weight:700; font-size:14.5px;
     border:none; border-radius: 9px; padding: 11px 18px; cursor:pointer;
@@ -98,7 +106,7 @@
 
   /* ---------- Overview / timeline ---------- */
   .week-hero{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
-  .week-num{ font-family:'Fraunces',serif; font-size: 36px; font-weight:700; color: var(--evergreen); line-height:1; }
+  .week-num{ font-family:'Public Sans',sans-serif; font-size: 36px; font-weight:700; color: var(--evergreen); line-height:1; }
   .week-meta{ font-size: 14px; color: var(--sage); line-height:1.5; }
   .week-meta b{ color: var(--evergreen); }
 
@@ -119,10 +127,23 @@
     width:40px; height:40px; top:14px; font-size:14px;
     box-shadow: 0 0 0 3px #fff, 0 0 0 6px rgba(104,117,109,0.25);
   }
+  .vine-dot.current::after{
+    content:''; position:absolute; top:50%; left:50%; width:100%; height:100%;
+    border-radius:50%; background: var(--evergreen);
+    transform: translate(-50%, -50%) scale(1); opacity:0.55;
+    animation: vine-ripple 2.8s ease-out infinite; pointer-events:none;
+  }
+  @keyframes vine-ripple{
+    0% { transform: translate(-50%, -50%) scale(1); opacity:0.55; }
+    100% { transform: translate(-50%, -50%) scale(2.4); opacity:0; }
+  }
+  .vine-dot.selected{ filter: invert(1); }
 
   .overview-row{ display:grid; grid-template-columns: 3fr 1fr; gap:16px; align-items:stretch; }
   @media(max-width: 700px){ .overview-row{ grid-template-columns: 1fr; } }
   .timeline-card{ display:flex; flex-direction:column; }
+  .vine-dot.clickable{ cursor:pointer; }
+  .vine-dot.clickable:hover{ transform: translateX(-50%) scale(1.12); }
   .fruit-card{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
   .fruit-visual{ flex:1; display:flex; align-items:center; justify-content:center; width:100%; }
   .fruit-visual img.fruit-img{ width:75%; max-width:140px; height:auto; }
@@ -142,11 +163,13 @@
   }
   .dev-highlights ul{ margin:0; padding-left:18px; font-size:13.5px; line-height:1.6; color: var(--evergreen); }
   .dev-highlights li{ margin-bottom:4px; }
+  .dev-highlights.split{ display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
+  .dev-highlights.split .dev-col-month{ padding-left:20px; border-left:1px dashed var(--blush); }
 
   .name-of-day-row{ display:grid; grid-template-columns: 2fr 3fr; gap:16px; align-items:stretch; }
   @media(max-width: 700px){ .name-of-day-row{ grid-template-columns: 1fr; } }
   .name-of-day-card{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
-  .notd-name{ font-family:'Fraunces',serif; font-size:30px; font-weight:700; color: var(--evergreen); margin-top:8px; }
+  .notd-name{ font-family:'Public Sans',sans-serif; font-size:30px; font-weight:700; color: var(--evergreen); margin-top:8px; }
   .notd-gender{ font-family:'JetBrains Mono',monospace; font-size:11px; color: var(--sage); text-transform:uppercase; letter-spacing:.06em; margin-top:4px; }
 
   .journal-card{ display:flex; flex-direction:column; }
@@ -158,7 +181,7 @@
   .journal-entry:last-child{ border-bottom:none; }
   .journal-entry-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; flex-wrap:wrap; }
   .journal-entry-meta{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-  .journal-author{ font-family:'Fraunces',serif; font-size:14px; color: var(--evergreen); font-weight:600; }
+  .journal-author{ font-family:'Public Sans',sans-serif; font-size:14px; color: var(--evergreen); font-weight:600; }
   .journal-date{ font-family:'JetBrains Mono',monospace; font-size:11px; color: var(--sage); }
   .visibility-pill{
     font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; text-transform:uppercase;
@@ -169,7 +192,7 @@
   .journal-entry-text{ font-size:14.5px; line-height:1.6; white-space:pre-wrap; color: var(--evergreen); }
 
   /* ---------- Checklist / Registry ---------- */
-  .cat-heading{ font-family:'Fraunces',serif; font-size:16px; color: var(--evergreen); margin: 18px 0 8px; }
+  .cat-heading{ font-family:'Public Sans',sans-serif; font-size:16px; color: var(--evergreen); margin: 18px 0 8px; }
   .cat-heading:first-child{ margin-top:0; }
   .item-row{ display:flex; align-items:center; gap:10px; padding: 8px 0; border-bottom: 1px solid var(--blush); }
   .item-row:last-child{ border-bottom:none; }
@@ -203,11 +226,12 @@
   }
 
   .week-break{
+    display:flex; align-items:center; gap:10px; margin: 16px 0 10px;
     font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color: var(--sage);
-    text-transform:uppercase; letter-spacing:.06em; margin: 16px 0 6px; padding-top:12px;
-    border-top:1px dashed var(--blush); display:flex; align-items:center; gap:8px;
+    text-transform:uppercase; letter-spacing:.06em;
   }
-  .week-break:first-child{ margin-top:0; padding-top:0; border-top:none; }
+  .week-break:first-child{ margin-top:0; }
+  .week-break-line{ flex:1; height:0; border-top:1px dashed var(--blush); }
 
   .row-menu{ position:relative; flex-shrink:0; }
   .row-menu-btn{
@@ -233,18 +257,24 @@
   .edit-row .edit-cat{ width:140px; flex:none; }
 
   /* ---------- Names ---------- */
-  .subtab-row{ display:flex; gap:6px; margin-bottom:16px; }
-  .subtab-row button{
-    font-family:'Public Sans',sans-serif; font-weight:700; font-size:12.5px;
-    background: var(--blush); color: var(--evergreen); border:none; border-radius:8px;
-    padding: 7px 14px; cursor:pointer;
+  .gender-tab-row{ display:flex; gap:10px; margin-bottom:18px; }
+  .gender-tab{
+    flex:1; font-family:'Public Sans',sans-serif; font-weight:700; font-size:14px;
+    border:none; border-radius:12px; padding:12px 18px; cursor:pointer;
+    transition: filter .15s ease, transform .12s ease;
   }
-  .subtab-row button.active{ background: var(--terracotta); color:#fff; }
+  .gender-tab:active{ transform: scale(0.98); }
+  .gender-tab.girl{ background:#f6d3de; color:#8a4a5e; }
+  .gender-tab.girl.active{ background:#ef9fb5; color:#5c2438; }
+  .gender-tab.boy{ background:#d2e3f6; color:#3f5f80; }
+  .gender-tab.boy.active{ background:#9cc0e8; color:#1f3c58; }
 
   .name-card{ display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--blush); gap:10px; flex-wrap:wrap;}
   .name-card:last-child{ border-bottom:none; }
+  .name-card.editing{ gap:8px; }
+  .name-card.editing .edit-name-text{ flex:1; min-width:140px; }
   .name-left{ display:flex; flex-direction:column; }
-  .name-left .nm{ font-family:'Fraunces',serif; font-size:18px; color: var(--evergreen); }
+  .name-left .nm{ font-family:'Public Sans',sans-serif; font-size:18px; color: var(--evergreen); }
   .name-left .meta{ font-size:11px; color: var(--sage); font-family:'JetBrains Mono',monospace; }
   .rank-controls{ display:flex; align-items:center; gap:6px; }
   .rank-controls .rank-num{ font-family:'JetBrains Mono',monospace; font-size:12px; color: var(--evergreen); font-weight:700; min-width:22px; text-align:center; }
@@ -258,7 +288,7 @@
   .top10-grid{ display:grid; grid-template-columns: 1fr; gap:14px; margin-top:8px; }
   @media(min-width:520px){ .top10-grid{ grid-template-columns: 1fr 1fr; } }
   .top10-col{ background: var(--blush); border-radius:10px; padding:14px 16px; }
-  .top10-col h4{ font-family:'Fraunces',serif; font-size:14px; color: var(--evergreen); margin:0 0 8px; }
+  .top10-col h4{ font-family:'Public Sans',sans-serif; font-size:14px; color: var(--evergreen); margin:0 0 8px; }
   .top10-col ol{ margin:0; padding-left:20px; font-size:13.5px; line-height:1.7; color: var(--evergreen); }
 
   .empty{ color: var(--sage); font-size:13.5px; text-align:center; padding: 20px 0; }
@@ -498,7 +528,7 @@ function catStyle(cat){
   return { bg, text };
 }
 
-const NAME_GENDERS = ["Girl","Boy","Neutral"];
+const NAME_GENDERS = ["Girl","Boy"];
 
 // ---------- Baby name of the day ----------
 const NAME_SUGGESTIONS = {
@@ -531,8 +561,19 @@ function todayKey(){
   return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
 }
 function nameOfTheDay(){
-  const dayIdx = Math.floor(Date.now() / 86400000);
-  const gender = dayIdx % 2 === 0 ? 'Boy' : 'Girl';
+  // Force a genuine day-over-day alternation by remembering what gender was last
+  // shown on this device, rather than relying purely on date-math parity.
+  const today = todayKey();
+  const lastDate = personalGet('notd-last-date');
+  const lastGender = personalGet('notd-last-gender');
+  let gender;
+  if(lastDate === today && lastGender){
+    gender = lastGender;
+  } else {
+    gender = lastGender === 'Boy' ? 'Girl' : 'Boy';
+    personalSet('notd-last-date', today);
+    personalSet('notd-last-gender', gender);
+  }
   const usedLower = new Set((state.names||[]).map(n => n.name.trim().toLowerCase()));
   const pool = NAME_SUGGESTIONS[gender].filter(n => !usedLower.has(n.toLowerCase()));
   if(pool.length === 0) return { gender, name: null };
@@ -624,6 +665,7 @@ function attachLiveSync(){
     if(val.names) state.names = val.names;
     if(val.rankings) state.rankings = val.rankings;
     if(val.journal) state.journal = val.journal;
+    if(val.customTaskCats) state.customTaskCats = val.customTaskCats;
     safeRerenderFromRemote();
   });
 }
@@ -638,6 +680,7 @@ let state = {
   names: [],
   rankings: {},   // { Girl: { [userName]: [nameId,...] }, Boy: {...}, Neutral: {...} }
   journal: [],
+  customTaskCats: [],
   tab: 'overview',
   namesGender: 'Girl',
   taskFilterCat: 'All',
@@ -648,6 +691,7 @@ let state = {
   liveAttached: false,
   openMenuId: null,
   editingId: null,
+  timelinePopupIdx: null,
 };
 
 function currentWeekNum(){
@@ -663,7 +707,7 @@ async function loadPersonal(){
 async function loadHousehold(){
   if(!state.code) return;
 
-  const fields = ['info','tasks','registry','names','rankings','journal'];
+  const fields = ['info','tasks','registry','names','rankings','journal','customTaskCats'];
   const results = {};
   for(const f of fields){
     let r = await fbFetch(f);
@@ -691,6 +735,7 @@ async function loadHousehold(){
   state.names = results.names || [];
   state.rankings = results.rankings || {};
   state.journal = results.journal || [];
+  state.customTaskCats = results.customTaskCats || [];
 
   if(results.tasks){
     state.tasks = results.tasks;
@@ -793,7 +838,7 @@ function renderApp(){
     render();
   };
   root.querySelectorAll('nav.tabs button').forEach(b => {
-    b.onclick = () => { state.tab = b.dataset.tab; state.openMenuId = null; state.editingId = null; render(); };
+    b.onclick = () => { state.tab = b.dataset.tab; state.openMenuId = null; state.editingId = null; state.timelinePopupIdx = null; render(); };
   });
 
   const content = document.getElementById('tab-content');
@@ -824,9 +869,23 @@ function overviewHTML(w){
   let dots = '';
   for(let i=0; i<=9; i++){
     const left = (i/9)*100;
-    const stateClass = i === currentMonthIdx ? 'current' : '';
+    const isCurrent = i === currentMonthIdx;
+    const stateClass = isCurrent ? 'current' : 'clickable';
+    const selectedClass = state.timelinePopupIdx === i ? 'selected' : '';
     const tri = i === 0 ? 0 : (i <= 3 ? 1 : (i <= 6 ? 2 : 3));
-    dots += `<div class="vine-dot tri-${tri} ${stateClass}" style="left:${left}%">${i}</div>`;
+    dots += `<div class="vine-dot tri-${tri} ${stateClass} ${selectedClass}" data-idx="${i}" style="left:${left}%">${i}</div>`;
+  }
+
+  let monthCol = '';
+  if(state.timelinePopupIdx !== null && state.timelinePopupIdx !== currentMonthIdx){
+    const pIdx = state.timelinePopupIdx;
+    const pWeek = Math.min(40, 4 + pIdx*4);
+    const pHighlights = WEEK_HIGHLIGHTS[pWeek] || [];
+    monthCol = `
+    <div class="dev-col dev-col-month">
+      <div class="dev-heading">This month (Month ${pIdx}), baby is...</div>
+      ${pHighlights.length ? `<ul>${pHighlights.map(h => `<li>${escapeHtml(h)}</li>`).join('')}</ul>` : `<div class="empty">No details for this month.</div>`}
+    </div>`;
   }
 
   const fruitName = FRUITS[week] || 'small pumpkin';
@@ -879,10 +938,14 @@ function overviewHTML(w){
         <div class="vine-fill" style="width:${pct}%"></div>
         ${dots}
       </div>
-      ${highlights.length ? `
-      <div class="dev-highlights">
-        <div class="dev-heading">This week, baby is...</div>
-        <ul>${highlights.map(h => `<li>${escapeHtml(h)}</li>`).join('')}</ul>
+      ${(highlights.length || monthCol) ? `
+      <div class="dev-highlights ${monthCol ? 'split' : ''}">
+        ${highlights.length ? `
+        <div class="dev-col">
+          <div class="dev-heading">This week, baby is...</div>
+          <ul>${highlights.map(h => `<li>${escapeHtml(h)}</li>`).join('')}</ul>
+        </div>` : ''}
+        ${monthCol}
       </div>` : ''}
     </div>
     <div class="card fruit-card">
@@ -905,13 +968,11 @@ function overviewHTML(w){
 function settingsHTML(){
   return `
   <div class="card">
-    <span class="eyebrow">Due date</span>
     <h2 style="margin-bottom:14px;">When are you due?</h2>
     <input type="date" id="due-input" value="${state.info.dueDate || ''}" />
     <button class="btn ghost small" id="due-save" style="margin-top:10px;">Update due date</button>
   </div>
   <div class="card">
-    <span class="eyebrow">Household</span>
     <h2 style="margin-bottom:14px;">Parent names</h2>
     <label>Mother's name</label>
     <input type="text" id="mother-name" value="${escapeHtml(state.info.motherName || '')}" placeholder="e.g. Jamie" />
@@ -920,7 +981,6 @@ function settingsHTML(){
     <button class="btn small" id="parents-save" style="margin-top:14px;">Save names</button>
   </div>
   <div class="card">
-    <span class="eyebrow">Household</span>
     <h2 style="margin-bottom:14px;">Start fresh</h2>
     <button class="btn ghost small" id="switch-btn">Make a new baby</button>
   </div>`;
@@ -928,7 +988,8 @@ function settingsHTML(){
 
 function tasksHTML(){
   const currentWeek = currentWeekNum();
-  const catOptions = ["All", ...TASK_CATS];
+  const allCats = [...TASK_CATS, ...(state.customTaskCats||[])];
+  const catOptions = ["All", ...allCats];
   const timeOptions = ["All","Overdue","This week","Upcoming"];
 
   let items = state.tasks.slice();
@@ -959,7 +1020,7 @@ function tasksHTML(){
       <input type="text" class="edit-text" value="${escapeHtml(i.text)}" />
       <input type="number" class="edit-week" value="${i.week != null ? i.week : ''}" placeholder="Week" min="1" max="42" />
       <select class="edit-cat">
-        ${TASK_CATS.map(c => `<option ${c===i.cat?'selected':''}>${c}</option>`).join('')}
+        ${allCats.map(c => `<option ${c===i.cat?'selected':''}>${c}</option>`).join('')}
       </select>
       <button class="btn small edit-save" data-id="${i.id}" data-kind="task">Save</button>
       <button class="btn ghost small edit-cancel">Cancel</button>
@@ -974,7 +1035,7 @@ function tasksHTML(){
       lastWeek = i.week;
       opened = true;
       const label = i.week != null ? `Week ${i.week}` : 'No week set';
-      rows += `<div class="week-break">${label}${overdue ? ` <span class="overdue-tag">Overdue</span>` : ''}</div>`;
+      rows += `<div class="week-break"><span>${label}${overdue ? ` <span class="overdue-tag">Overdue</span>` : ''}</span><span class="week-break-line"></span></div>`;
     }
     if(state.editingId === i.id){
       rows += taskEditRow(i);
@@ -1005,9 +1066,13 @@ function tasksHTML(){
       <input type="text" id="new-task" placeholder="Add a to-do…" />
       <input type="number" id="new-task-week" class="week-input" placeholder="Week" min="1" max="42" />
       <select id="new-task-cat">
-        ${TASK_CATS.map(c => `<option>${c}</option>`).join('')}
+        ${allCats.map(c => `<option>${c}</option>`).join('')}
       </select>
       <button class="btn small" id="add-task">Add</button>
+    </div>
+    <div class="add-row">
+      <input type="text" id="new-cat-name" placeholder="Add a new category…" />
+      <button class="btn ghost small" id="add-cat">Add category</button>
     </div>
     <div class="filter-row">
       <select id="task-filter-cat">
@@ -1127,18 +1192,33 @@ function namesHTML(){
     myList = order.map((id, idx) => {
       const n = nameById(id);
       if(!n) return '';
+      if(state.editingId === id){
+        return `
+        <div class="name-card editing">
+          <input type="text" class="edit-name-text" value="${escapeHtml(n.name)}" />
+          <button class="btn small edit-name-save" data-id="${id}">Save</button>
+          <button class="btn ghost small edit-name-cancel">Cancel</button>
+        </div>`;
+      }
       return `
       <div class="name-card">
-        <div class="name-left">
-          <div class="nm">${escapeHtml(n.name)}</div>
-          <div class="meta">added by ${escapeHtml(n.addedBy)}</div>
-        </div>
         <div class="rank-controls">
           <button class="rank-up" data-id="${id}" ${idx===0?'disabled':''}>▲</button>
           <span class="rank-num">${idx+1}</span>
           <button class="rank-down" data-id="${id}" ${idx===order.length-1?'disabled':''}>▼</button>
         </div>
-        <button class="del-name" data-id="${id}">×</button>
+        <div class="name-left">
+          <div class="nm">${escapeHtml(n.name)}</div>
+          <div class="meta">added by ${escapeHtml(n.addedBy)}</div>
+        </div>
+        <div class="row-menu">
+          <button class="row-menu-btn" data-id="${id}">▾</button>
+          ${state.openMenuId === id ? `
+          <div class="row-menu-dropdown">
+            <button class="menu-edit" data-id="${id}" data-kind="name">Edit</button>
+            <button class="menu-delete" data-id="${id}" data-kind="name">Delete</button>
+          </div>` : ''}
+        </div>
       </div>`;
     }).join('');
   }
@@ -1157,23 +1237,21 @@ function namesHTML(){
   }).join('');
 
   return `
+  <div class="gender-tab-row">
+    ${NAME_GENDERS.map(g => `<button data-gender="${g}" class="gender-tab ${g.toLowerCase()} ${gender===g?'active':''}">${g}</button>`).join('')}
+  </div>
   <div class="card">
-    <span class="eyebrow">Name ideas</span>
+    <h2 style="margin-bottom:10px;">Each parent's top 10 — ${gender}</h2>
+    <div class="top10-grid">${top10Cols}</div>
+  </div>
+  <div class="card">
     <h2 style="margin-bottom:14px;">Rank your favorites</h2>
-    <div class="subtab-row">
-      ${NAME_GENDERS.map(g => `<button data-gender="${g}" class="${gender===g?'active':''}">${g}</button>`).join('')}
-    </div>
     <div style="font-size:13px;color:var(--sage);margin-bottom:10px;">Use ▲ ▼ to rank in order of preference — #1 is your favorite.</div>
     ${myList}
     <div class="add-row">
       <input type="text" id="n-name" placeholder="Name idea…" />
       <button class="btn small" id="n-add">Add</button>
     </div>
-  </div>
-  <div class="card">
-    <span class="eyebrow">Compare</span>
-    <h2 style="margin-bottom:10px;">Each parent's top 10 — ${gender}</h2>
-    <div class="top10-grid">${top10Cols}</div>
   </div>`;
 }
 
@@ -1305,6 +1383,14 @@ function bindTabEvents(){
     };
   });
 
+  // Home — timeline: click a non-active month to see its development highlights
+  root.querySelectorAll('.vine-dot.clickable').forEach(dot => {
+    dot.onclick = () => {
+      const idx = Number(dot.dataset.idx);
+      state.timelinePopupIdx = state.timelinePopupIdx === idx ? null : idx;
+      render();
+    };
+  });
   // Home — baby name of the day
   const notdAdd = document.getElementById('notd-add');
   if(notdAdd){
@@ -1414,6 +1500,19 @@ function bindTabEvents(){
   if(hideCompleted){
     hideCompleted.onchange = () => { state.taskHideCompleted = hideCompleted.checked; render(); };
   }
+  const addCatBtn = document.getElementById('add-cat');
+  if(addCatBtn){
+    addCatBtn.onclick = async () => {
+      const inp = document.getElementById('new-cat-name');
+      const name = inp.value.trim();
+      if(!name) return;
+      const existing = [...TASK_CATS, ...(state.customTaskCats||[])].map(c => c.toLowerCase());
+      if(existing.includes(name.toLowerCase())) return;
+      state.customTaskCats = [...(state.customTaskCats||[]), name];
+      await saveHousehold('customTaskCats');
+      render();
+    };
+  }
   root.querySelectorAll('.chk').forEach(cb => {
     cb.onchange = async () => {
       const item = state.tasks.find(i=>i.id===cb.dataset.id);
@@ -1483,9 +1582,18 @@ function bindTabEvents(){
       if(kind === 'task'){
         state.tasks = state.tasks.filter(i=>i.id!==id);
         await saveHousehold('tasks');
-      } else {
+      } else if(kind === 'registry'){
         state.registry = state.registry.filter(i=>i.id!==id);
         await saveHousehold('registry');
+      } else if(kind === 'name'){
+        state.names = state.names.filter(n=>n.id!==id);
+        Object.keys(state.rankings).forEach(g => {
+          Object.keys(state.rankings[g]).forEach(u => {
+            state.rankings[g][u] = state.rankings[g][u].filter(x=>x!==id);
+          });
+        });
+        await saveHousehold('names');
+        await saveHousehold('rankings');
       }
       state.openMenuId = null;
       render();
@@ -1522,7 +1630,7 @@ function bindTabEvents(){
   });
 
   // Names
-  root.querySelectorAll('.subtab-row button').forEach(btn => {
+  root.querySelectorAll('.gender-tab-row button').forEach(btn => {
     btn.onclick = () => { state.namesGender = btn.dataset.gender; render(); };
   });
   const nAdd = document.getElementById('n-add');
@@ -1543,17 +1651,19 @@ function bindTabEvents(){
       render();
     };
   }
-  root.querySelectorAll('.del-name').forEach(btn => {
+  root.querySelectorAll('.edit-name-cancel').forEach(btn => {
+    btn.onclick = () => { state.editingId = null; render(); };
+  });
+  root.querySelectorAll('.edit-name-save').forEach(btn => {
     btn.onclick = async () => {
       const id = btn.dataset.id;
-      state.names = state.names.filter(n=>n.id!==id);
-      Object.keys(state.rankings).forEach(g => {
-        Object.keys(state.rankings[g]).forEach(u => {
-          state.rankings[g][u] = state.rankings[g][u].filter(x=>x!==id);
-        });
-      });
+      const wrap = btn.closest('.name-card');
+      const text = wrap.querySelector('.edit-name-text').value.trim();
+      if(!text) return;
+      const n = nameById(id);
+      if(n) n.name = text;
+      state.editingId = null;
       await saveHousehold('names');
-      await saveHousehold('rankings');
       render();
     };
   });
