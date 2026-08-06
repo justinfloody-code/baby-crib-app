@@ -104,6 +104,37 @@
     box-shadow: 0 3px 10px rgba(104,117,109,0.10);
   }
 
+  .card-header-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .settings-icon-btn{
+    background: none; border: 1.5px solid var(--blush); border-radius:8px;
+    width:34px; height:34px; flex-shrink:0; cursor:pointer; color: var(--evergreen);
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .settings-icon-btn svg{ width:19px; height:19px; }
+  .settings-icon-btn:hover{ border-color: var(--terracotta); color: var(--terracotta); }
+
+  .modal-overlay{
+    position:fixed; inset:0; background: rgba(58,51,44,0.35);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px; z-index:100;
+  }
+  .modal-panel{
+    background:#fff; border-radius: var(--radius); width:100%; max-width:480px;
+    max-height:85vh; overflow-y:auto; box-shadow: 0 10px 30px rgba(58,51,44,0.25);
+  }
+  .modal-header{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:20px 22px; border-bottom:1px solid var(--blush);
+  }
+  .modal-close-btn{
+    background: var(--blush); border:none; border-radius:50%; width:26px; height:26px;
+    font-size:13px; line-height:1; cursor:pointer; color: var(--evergreen);
+    display:flex; align-items:center; justify-content:center; padding:0; flex-shrink:0;
+  }
+  .modal-close-btn:hover{ background: var(--terracotta); color:#fff; }
+  .modal-body{ padding:20px 22px 22px; }
+  .modal-section{ margin-top:22px; padding-top:22px; border-top:1px solid var(--blush); }
+
   /* ---------- Overview / timeline ---------- */
   .week-hero{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
   .week-num{ font-family:'Public Sans',sans-serif; font-size: 36px; font-weight:700; color: var(--evergreen); line-height:1; }
@@ -194,7 +225,16 @@
   .journal-entry-text li{ margin-bottom:2px; }
 
   .journal-editor{ display:flex; flex-direction:column; }
-  .journal-editor textarea{ resize:vertical; }
+  .journal-rich-input{
+    width:100%; min-height:88px; max-height:340px; overflow-y:auto;
+    font-family:'Public Sans',sans-serif; font-size:15px; line-height:1.5;
+    padding:10px 12px; border-radius:9px; border:1.5px solid var(--blush);
+    background:#fff; color: var(--evergreen);
+  }
+  .journal-rich-input:focus{ outline:none; border-color: var(--terracotta); }
+  .journal-rich-input:empty:before{ content: attr(data-placeholder); color: var(--sage); opacity:.75; }
+  .journal-rich-input ul{ margin:4px 0; padding-left:20px; }
+  .journal-rich-input li{ margin-bottom:2px; }
   .format-toolbar{ display:flex; gap:5px; margin-bottom:7px; }
   .fmt-btn{
     background: var(--blush); border:none; border-radius:6px; width:30px; height:28px;
@@ -239,6 +279,13 @@
     display:flex; align-items:center; justify-content:center; padding:0;
   }
   .cat-rename-btn:hover{ background: var(--terracotta); color:#fff; }
+  .cat-color-input{
+    -webkit-appearance:none; appearance:none; width:16px; height:16px; padding:0;
+    border:1px solid rgba(0,0,0,.15); border-radius:50%; cursor:pointer; background:none; flex-shrink:0;
+  }
+  .cat-color-input::-webkit-color-swatch-wrapper{ padding:0; border-radius:50%; }
+  .cat-color-input::-webkit-color-swatch{ border:none; border-radius:50%; }
+  .cat-color-input::-moz-color-swatch{ border:none; border-radius:50%; }
 
   .week-tag{ font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--sage); white-space:nowrap; }
   .overdue-tag{
@@ -571,13 +618,25 @@ const FALLBACK_CAT_COLORS = [
   '#d9c7a3', '#a3d9cf', '#c9a3d9', '#d9b3a3', '#a3b3d9', '#bcd9a3',
 ];
 function catStyle(cat){
-  let bg = CAT_COLORS[cat];
+  let bg = (state.catColors && state.catColors[cat]) || CAT_COLORS[cat];
   if(!bg){
     const idx = Math.abs(hashString(cat)) % FALLBACK_CAT_COLORS.length;
     bg = FALLBACK_CAT_COLORS[idx];
   }
   const text = relLuminance(bg) > 0.4 ? '#3a332c' : '#ffffff';
   return { bg, text };
+}
+
+// Registry "Source" pills are outlined (border + text color only, no fill), so this just
+// resolves to a single hex color — custom color first, then the built-in default, then a
+// deterministic fallback shade for any source the user adds themselves.
+function sourceStyle(source){
+  let color = (state.sourceColors && state.sourceColors[source]) || SOURCE_COLORS[source];
+  if(!color){
+    const idx = Math.abs(hashString(source)) % FALLBACK_CAT_COLORS.length;
+    color = FALLBACK_CAT_COLORS[idx];
+  }
+  return color;
 }
 
 const NAME_GENDERS = ["Girl","Boy"];
@@ -695,10 +754,28 @@ async function saveHousehold(field){
   }
 }
 
+// Saves several fields together as a single atomic Firebase update. Use this whenever one
+// user action needs to change two related fields at once (e.g. renaming a category also
+// updates the items that reference it) — writing them as two separate saveHousehold() calls
+// leaves a moment where Firebase has the new category list but the old items, and the live-sync
+// listener can catch that half-written moment and clobber the in-progress local change.
+async function saveHouseholdFields(fieldsObj){
+  Object.keys(fieldsObj).forEach(field => {
+    try{ localStorage.setItem(`crib:household:${state.code}:${field}`, JSON.stringify(fieldsObj[field])); }catch(e){}
+  });
+  if(fbDb){
+    try{
+      const updates = {};
+      Object.keys(fieldsObj).forEach(field => { updates[field] = fieldsObj[field] === undefined ? null : fieldsObj[field]; });
+      await fbDb.ref(`households/${state.code}`).update(updates);
+    }catch(e){ console.error('Firebase multi-field write failed', e); }
+  }
+}
+
 function safeRerenderFromRemote(){
   const contentEl = document.getElementById('tab-content');
   const active = document.activeElement;
-  const typing = active && contentEl && contentEl.contains(active) && ['INPUT','TEXTAREA','SELECT'].includes(active.tagName);
+  const typing = active && contentEl && contentEl.contains(active) && (['INPUT','TEXTAREA','SELECT'].includes(active.tagName) || active.isContentEditable);
   if(typing) return;
   render();
 }
@@ -719,6 +796,9 @@ function attachLiveSync(){
     if(val.journal) state.journal = val.journal;
     if(val.taskCatList) state.taskCatList = val.taskCatList;
     if(val.registryCatList) state.registryCatList = val.registryCatList;
+    if(val.catColors) state.catColors = val.catColors;
+    if(val.sourceList) state.sourceList = val.sourceList;
+    if(val.sourceColors) state.sourceColors = val.sourceColors;
     safeRerenderFromRemote();
   });
 }
@@ -735,6 +815,9 @@ let state = {
   journal: [],
   taskCatList: [...TASK_CATS],
   registryCatList: [...REGISTRY_CATS],
+  catColors: {},
+  sourceList: [...SOURCE_OPTIONS],
+  sourceColors: {},
   journalFilterVisibility: 'All',
   tab: 'overview',
   namesGender: 'Girl',
@@ -748,6 +831,7 @@ let state = {
   openMenuId: null,
   editingId: null,
   timelinePopupIdx: null,
+  showCatSettings: false,
 };
 
 function currentWeekNum(){
@@ -763,7 +847,7 @@ async function loadPersonal(){
 async function loadHousehold(){
   if(!state.code) return;
 
-  const fields = ['info','tasks','registry','names','rankings','journal','customTaskCats','customRegistryCats','taskCatList','registryCatList'];
+  const fields = ['info','tasks','registry','names','rankings','journal','customTaskCats','customRegistryCats','taskCatList','registryCatList','catColors','sourceList','sourceColors'];
   const results = {};
   for(const f of fields){
     let r = await fbFetch(f);
@@ -803,6 +887,14 @@ async function loadHousehold(){
     state.registryCatList = [...REGISTRY_CATS, ...(results.customRegistryCats || [])];
     await saveHousehold('registryCatList');
   }
+  state.catColors = results.catColors || {};
+  if(results.sourceList){
+    state.sourceList = results.sourceList;
+  } else {
+    state.sourceList = [...SOURCE_OPTIONS];
+    await saveHousehold('sourceList');
+  }
+  state.sourceColors = results.sourceColors || {};
 
   if(results.tasks){
     state.tasks = results.tasks;
@@ -905,7 +997,7 @@ function renderApp(){
     render();
   };
   root.querySelectorAll('nav.tabs button').forEach(b => {
-    b.onclick = () => { state.tab = b.dataset.tab; state.openMenuId = null; state.editingId = null; state.timelinePopupIdx = null; render(); };
+    b.onclick = () => { state.tab = b.dataset.tab; state.openMenuId = null; state.editingId = null; state.timelinePopupIdx = null; state.showCatSettings = false; render(); };
   });
 
   const content = document.getElementById('tab-content');
@@ -1053,13 +1145,56 @@ function settingsHTML(){
   </div>`;
 }
 
+// Small wireframe lego-block icon used for the category settings button — an isometric cube
+// (top, left and right faces) with 4 studs on the top face, stroke only so it picks up
+// currentColor and matches the button's hover state.
+function legoIconSVG(){
+  return `
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2.5 L20.5 7.25 L12 12 L3.5 7.25 Z"/>
+    <path d="M3.5 7.25 L3.5 16.75 L12 21.5 L12 12 Z"/>
+    <path d="M20.5 7.25 L20.5 16.75 L12 21.5 L12 12 Z"/>
+    <ellipse cx="12" cy="4.7" rx="1.35" ry="0.85"/>
+    <ellipse cx="16.5" cy="7.25" rx="1.35" ry="0.85"/>
+    <ellipse cx="12" cy="9.8" rx="1.35" ry="0.85"/>
+    <ellipse cx="7.5" cy="7.25" rx="1.35" ry="0.85"/>
+  </svg>`;
+}
+
+// sections: [{ list, scope, addLabel, placeholder, manageLabel }]
+function catSettingsModalHTML(sections, title){
+  return `
+  <div class="modal-overlay" id="cat-modal-overlay">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2 style="margin:0;">${escapeHtml(title)}</h2>
+        <button type="button" class="modal-close-btn" id="cat-modal-close" title="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        ${sections.map((sec, idx) => `
+        <div ${idx > 0 ? 'class="modal-section"' : ''}>
+          <label>Add a new ${sec.singular}</label>
+          <div class="add-row" style="margin-top:6px;margin-bottom:0;">
+            <input type="text" placeholder="${escapeHtml(sec.placeholder)}" class="new-cat-input add-cat-modal-input" data-scope="${sec.scope}" />
+            <button type="button" class="btn ghost small add-cat-modal-btn" data-scope="${sec.scope}">${escapeHtml(sec.addLabel)}</button>
+          </div>
+          <label style="margin-top:18px;">Rename or recolor ${sec.pluralLower}</label>
+          ${catManageRowHTML(sec.list, sec.scope)}
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
 function catManageRowHTML(list, scope){
+  const isSource = scope === 'source';
   return `
   <div class="cat-manage-row">
     ${list.map(c => `
     <span class="cat-manage-chip">
+      <input type="color" class="cat-color-input" value="${isSource ? sourceStyle(c) : catStyle(c).bg}" data-cat="${escapeHtml(c)}" data-scope="${scope}" title="${isSource ? 'Source' : 'Category'} color" />
       ${escapeHtml(c)}
-      <button type="button" class="cat-rename-btn" data-old="${escapeHtml(c)}" data-scope="${scope}" title="Rename category">✎</button>
+      <button type="button" class="cat-rename-btn" data-old="${escapeHtml(c)}" data-scope="${scope}" title="Rename">✎</button>
     </span>`).join('')}
   </div>`;
 }
@@ -1139,8 +1274,11 @@ function tasksHTML(){
 
   return `
   <div class="card">
-    <h2 style="margin-bottom:14px;">Pregnancy prep tasks</h2>
-    <div class="add-row">
+    <div class="card-header-row">
+      <h2 style="margin-bottom:0;">Pregnancy prep tasks</h2>
+      <button type="button" class="settings-icon-btn" id="cat-settings-btn" title="Manage categories">${legoIconSVG()}</button>
+    </div>
+    <div class="add-row" style="margin-top:14px;">
       <input type="text" id="new-task" placeholder="Add a to-do…" />
       <input type="number" id="new-task-week" class="week-input" placeholder="Week" min="1" max="42" />
       <select id="new-task-cat">
@@ -1159,18 +1297,19 @@ function tasksHTML(){
         <input type="checkbox" id="task-hide-completed" ${state.taskHideCompleted ? 'checked' : ''}/>
         Hide completed
       </label>
-      <input type="text" id="new-cat-name" placeholder="New category…" class="new-cat-input" />
-      <button class="btn ghost small" id="add-cat">Add category</button>
     </div>
-    ${catManageRowHTML(allCats, 'task')}
     ${rows}
-  </div>`;
+  </div>
+  ${state.showCatSettings ? catSettingsModalHTML([
+    { list: allCats, scope: 'task', singular: 'category', placeholder: 'New category…', addLabel: 'Add category', pluralLower: 'categories' },
+  ], 'Manage task categories') : ''}`;
 }
 
 function registryHTML(){
   const allRegCats = state.registryCatList && state.registryCatList.length ? state.registryCatList : REGISTRY_CATS;
   const catOptions = ["All", ...allRegCats];
-  const sourceOptions = ["All", ...SOURCE_OPTIONS];
+  const allSources = state.sourceList && state.sourceList.length ? state.sourceList : SOURCE_OPTIONS;
+  const sourceOptions = ["All", ...allSources];
   let items = state.registry.slice();
   if(state.registryFilterCat !== 'All') items = items.filter(i => i.cat === state.registryFilterCat);
   if(state.registryFilterSource !== 'All') items = items.filter(i => i.source === state.registryFilterSource);
@@ -1184,7 +1323,7 @@ function registryHTML(){
       </select>
       <select class="edit-source">
         <option value="" ${!i.source?'selected':''}>Source…</option>
-        ${SOURCE_OPTIONS.map(s => `<option ${s===i.source?'selected':''}>${s}</option>`).join('')}
+        ${allSources.map(s => `<option ${s===i.source?'selected':''}>${s}</option>`).join('')}
       </select>
       <button class="btn small edit-save" data-id="${i.id}" data-kind="registry">Save</button>
       <button class="btn ghost small edit-cancel">Cancel</button>
@@ -1194,7 +1333,7 @@ function registryHTML(){
   function itemRowHTML(i){
     if(state.editingId === i.id) return regEditRow(i);
     const {bg, text} = catStyle(i.cat);
-    const sourceColor = i.source ? (SOURCE_COLORS[i.source] || 'var(--sage)') : null;
+    const sourceColor = i.source ? sourceStyle(i.source) : null;
     return `
     <div class="item-row ${i.done?'done':''}">
       <input type="checkbox" data-id="${i.id}" class="chk-reg" ${i.done?'checked':''}/>
@@ -1227,15 +1366,18 @@ function registryHTML(){
 
   return `
   <div class="card">
-    <h2 style="margin-bottom:14px;">What to buy or borrow</h2>
-    <div class="add-row">
+    <div class="card-header-row">
+      <h2 style="margin-bottom:0;">What to buy or borrow</h2>
+      <button type="button" class="settings-icon-btn" id="cat-settings-btn" title="Manage categories">${legoIconSVG()}</button>
+    </div>
+    <div class="add-row" style="margin-top:14px;">
       <input type="text" id="new-reg" placeholder="Add a registry item…" />
       <select id="new-reg-cat">
         ${allRegCats.map(c => `<option>${c}</option>`).join('')}
       </select>
       <select id="new-reg-source">
         <option value="">Source…</option>
-        ${SOURCE_OPTIONS.map(s => `<option>${s}</option>`).join('')}
+        ${allSources.map(s => `<option>${s}</option>`).join('')}
       </select>
       <button class="btn small" id="add-reg">Add</button>
     </div>
@@ -1246,12 +1388,13 @@ function registryHTML(){
       <select id="reg-filter-source">
         ${sourceOptions.map(s => `<option value="${s}" ${state.registryFilterSource===s?'selected':''}>${s==='All'?'All sources':s}</option>`).join('')}
       </select>
-      <input type="text" id="new-reg-cat-name" placeholder="New category…" class="new-cat-input" />
-      <button class="btn ghost small" id="add-reg-cat">Add category</button>
     </div>
-    ${catManageRowHTML(allRegCats, 'registry')}
     ${html}
-  </div>`;
+  </div>
+  ${state.showCatSettings ? catSettingsModalHTML([
+    { list: allRegCats, scope: 'registry', singular: 'category', placeholder: 'New category…', addLabel: 'Add category', pluralLower: 'categories' },
+    { list: allSources, scope: 'source', singular: 'source', placeholder: 'New source…', addLabel: 'Add source', pluralLower: 'sources' },
+  ], 'Manage registry options') : ''}`;
 }
 
 // ---- Names / ranked-choice ----
@@ -1383,8 +1526,9 @@ function journalHomeHTML(){
 }
 
 // ---- Journal Entries tab ----
-// Lightweight markdown-style formatting: **bold**, *italic*, __underline__, "- " bullet lines.
-// Kept as plain-text markup (not raw HTML) so it's safe to store/sync and easy to re-edit.
+// Real WYSIWYG formatting via a contenteditable box + document.execCommand, so Bold/Italic/
+// Underline/Bullet apply directly to the current selection (or toggle on for what's typed next),
+// same as a normal rich-text toolbar. Saved HTML is whitelist-sanitized before it's stored/synced.
 
 function formatToolbarHTML(){
   return `
@@ -1396,40 +1540,28 @@ function formatToolbarHTML(){
   </div>`;
 }
 
-function applyFormat(ta, kind){
-  const start = ta.selectionStart;
-  const end = ta.selectionEnd;
-  const value = ta.value;
-  const selected = value.slice(start, end);
-  let newStart, newEnd;
-
-  if(kind === 'bold' || kind === 'italic' || kind === 'underline'){
-    const marker = kind === 'bold' ? '**' : kind === 'italic' ? '*' : '__';
-    const wrapped = marker + selected + marker;
-    ta.value = value.slice(0, start) + wrapped + value.slice(end);
-    newStart = start + marker.length;
-    newEnd = newStart + selected.length;
-  } else if(kind === 'bullet'){
-    let lineStart = value.lastIndexOf('\n', start - 1) + 1;
-    let lineEnd = value.indexOf('\n', end);
-    if(lineEnd === -1) lineEnd = value.length;
-    const block = value.slice(lineStart, lineEnd);
-    const lines = block.split('\n');
-    const allBulleted = lines.every(l => l.trim() === '' || l.startsWith('- '));
-    const newLines = lines.map(l => {
-      if(l.trim() === '') return l;
-      return allBulleted ? l.replace(/^- /, '') : (l.startsWith('- ') ? l : '- ' + l);
+const JOURNAL_ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','UL','OL','LI','BR','DIV']);
+function sanitizeJournalHTML(html){
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  (function clean(node){
+    [...node.childNodes].forEach(child => {
+      if(child.nodeType === 3) return;
+      if(child.nodeType !== 1){ child.remove(); return; }
+      if(!JOURNAL_ALLOWED_TAGS.has(child.tagName)){
+        while(child.firstChild) node.insertBefore(child.firstChild, child);
+        node.removeChild(child);
+        return;
+      }
+      [...child.attributes].forEach(attr => child.removeAttribute(attr.name));
+      clean(child);
     });
-    const newBlock = newLines.join('\n');
-    ta.value = value.slice(0, lineStart) + newBlock + value.slice(lineEnd);
-    newStart = lineStart;
-    newEnd = lineStart + newBlock.length;
-  }
-
-  ta.focus();
-  ta.setSelectionRange(newStart, newEnd);
+  })(tmp);
+  return tmp.innerHTML;
 }
 
+// Legacy fallback for entries saved before the rich-text editor (plain text with
+// **bold**/*italic*/__underline__/"- " bullet markup) — new entries are stored as real HTML.
 function formatJournalText(raw){
   const lines = (raw || '').split('\n');
   let html = '';
@@ -1448,6 +1580,10 @@ function formatJournalText(raw){
   return html;
 }
 
+function renderJournalText(raw){
+  return /<[a-z][\s\S]*>/i.test(raw || '') ? raw : formatJournalText(raw);
+}
+
 function journalEntryRow(e){
   const isEditing = state.editingId === e.id;
   const canEdit = e.authorName === state.name;
@@ -1460,7 +1596,7 @@ function journalEntryRow(e){
     <div class="journal-entry editing">
       <div class="journal-editor">
         ${formatToolbarHTML()}
-        <textarea class="journal-edit-text" rows="4">${escapeHtml(e.text)}</textarea>
+        <div class="journal-rich-input journal-edit-text" contenteditable="true" data-placeholder="How are you feeling today?">${renderJournalText(e.text)}</div>
       </div>
       <div class="journal-controls">
         <select class="journal-edit-visibility">
@@ -1491,7 +1627,7 @@ function journalEntryRow(e){
         </div>` : ''}
       </div>` : ''}
     </div>
-    <div class="journal-entry-text">${formatJournalText(e.text)}</div>
+    <div class="journal-entry-text">${renderJournalText(e.text)}</div>
   </div>`;
 }
 
@@ -1511,7 +1647,7 @@ function journalHTML(){
     <h2 style="margin-bottom:14px;">New entry</h2>
     <div class="journal-editor">
       ${formatToolbarHTML()}
-      <textarea id="journal-new-text" rows="4" placeholder="How are you feeling today?"></textarea>
+      <div class="journal-rich-input" id="journal-new-text" contenteditable="true" data-placeholder="How are you feeling today?"></div>
     </div>
     <div class="journal-controls">
       <select id="journal-new-visibility">
@@ -1600,8 +1736,9 @@ function bindTabEvents(){
   const journalNewSave = document.getElementById('journal-new-save');
   if(journalNewSave){
     journalNewSave.onclick = async () => {
-      const text = document.getElementById('journal-new-text').value.trim();
-      if(!text) return;
+      const box = document.getElementById('journal-new-text');
+      const text = sanitizeJournalHTML(box.innerHTML);
+      if(!box.textContent.trim()) return;
       const visibility = document.getElementById('journal-new-visibility').value;
       state.journal.push({ id: uid(), text, authorName: state.name, createdAt: new Date().toISOString(), visibility });
       await saveHousehold('journal');
@@ -1612,12 +1749,18 @@ function bindTabEvents(){
   if(journalFilterVis){
     journalFilterVis.onchange = () => { state.journalFilterVisibility = journalFilterVis.value; render(); };
   }
+  const fmtCommand = { bold: 'bold', italic: 'italic', underline: 'underline', bullet: 'insertUnorderedList' };
   root.querySelectorAll('.fmt-btn').forEach(btn => {
+    // preventDefault on mousedown (not just click) so the browser doesn't clear the
+    // contenteditable selection before execCommand runs.
+    btn.onmousedown = (e) => e.preventDefault();
     btn.onclick = (e) => {
       e.preventDefault();
       const wrap = btn.closest('.journal-editor');
-      const ta = wrap ? wrap.querySelector('textarea') : null;
-      if(ta) applyFormat(ta, btn.dataset.fmt);
+      const box = wrap ? wrap.querySelector('.journal-rich-input') : null;
+      if(!box) return;
+      box.focus();
+      document.execCommand(fmtCommand[btn.dataset.fmt], false, null);
     };
   });
   root.querySelectorAll('.journal-menu-edit').forEach(btn => {
@@ -1638,8 +1781,9 @@ function bindTabEvents(){
     btn.onclick = async () => {
       const id = btn.dataset.id;
       const wrap = btn.closest('.journal-entry');
-      const text = wrap.querySelector('.journal-edit-text').value.trim();
-      if(!text) return;
+      const box = wrap.querySelector('.journal-edit-text');
+      const text = sanitizeJournalHTML(box.innerHTML);
+      if(!box.textContent.trim()) return;
       const visibility = wrap.querySelector('.journal-edit-visibility').value;
       const entry = state.journal.find(e => e.id === id);
       entry.text = text;
@@ -1686,20 +1830,18 @@ function bindTabEvents(){
   if(hideCompleted){
     hideCompleted.onchange = () => { state.taskHideCompleted = hideCompleted.checked; render(); };
   }
-  const addCatBtn = document.getElementById('add-cat');
-  if(addCatBtn){
-    addCatBtn.onclick = async () => {
-      const inp = document.getElementById('new-cat-name');
-      const name = inp.value.trim();
-      if(!name) return;
-      const list = state.taskCatList || [...TASK_CATS];
-      if(!list.some(c => c.toLowerCase() === name.toLowerCase())){
-        state.taskCatList = [...list, name];
-        await saveHousehold('taskCatList');
+  root.querySelectorAll('.cat-color-input').forEach(inp => {
+    inp.onchange = async () => {
+      if(inp.dataset.scope === 'source'){
+        state.sourceColors = {...state.sourceColors, [inp.dataset.cat]: inp.value};
+        await saveHousehold('sourceColors');
+      } else {
+        state.catColors = {...state.catColors, [inp.dataset.cat]: inp.value};
+        await saveHousehold('catColors');
       }
       render();
     };
-  }
+  });
   root.querySelectorAll('.cat-rename-btn[data-scope="task"]').forEach(btn => {
     btn.onclick = async () => {
       const oldName = btn.dataset.old;
@@ -1712,9 +1854,12 @@ function bindTabEvents(){
       }
       state.taskCatList = list.map(c => c === oldName ? newName : c);
       state.tasks.forEach(i => { if(i.cat === oldName) i.cat = newName; });
+      if(state.catColors && state.catColors[oldName] !== undefined){
+        state.catColors = {...state.catColors, [newName]: state.catColors[oldName]};
+        delete state.catColors[oldName];
+      }
       if(state.taskFilterCat === oldName) state.taskFilterCat = newName;
-      await saveHousehold('taskCatList');
-      await saveHousehold('tasks');
+      await saveHouseholdFields({ taskCatList: state.taskCatList, tasks: state.tasks, catColors: state.catColors });
       render();
     };
   });
@@ -1768,20 +1913,46 @@ function bindTabEvents(){
       render();
     };
   }
-  const addRegCatBtn = document.getElementById('add-reg-cat');
-  if(addRegCatBtn){
-    addRegCatBtn.onclick = async () => {
-      const inp = document.getElementById('new-reg-cat-name');
+  const catSettingsBtn = document.getElementById('cat-settings-btn');
+  if(catSettingsBtn){
+    catSettingsBtn.onclick = () => { state.showCatSettings = true; render(); };
+  }
+  const catModalClose = document.getElementById('cat-modal-close');
+  if(catModalClose){
+    catModalClose.onclick = () => { state.showCatSettings = false; render(); };
+  }
+  const catModalOverlay = document.getElementById('cat-modal-overlay');
+  if(catModalOverlay){
+    catModalOverlay.onclick = (e) => { if(e.target === catModalOverlay){ state.showCatSettings = false; render(); } };
+  }
+  root.querySelectorAll('.add-cat-modal-btn').forEach(btn => {
+    btn.onclick = async () => {
+      const scope = btn.dataset.scope;
+      const inp = btn.closest('.add-row').querySelector('.add-cat-modal-input');
       const name = inp.value.trim();
       if(!name) return;
-      const list = state.registryCatList || [...REGISTRY_CATS];
-      if(!list.some(c => c.toLowerCase() === name.toLowerCase())){
-        state.registryCatList = [...list, name];
-        await saveHousehold('registryCatList');
+      if(scope === 'registry'){
+        const list = state.registryCatList || [...REGISTRY_CATS];
+        if(!list.some(c => c.toLowerCase() === name.toLowerCase())){
+          state.registryCatList = [...list, name];
+          await saveHousehold('registryCatList');
+        }
+      } else if(scope === 'task'){
+        const list = state.taskCatList || [...TASK_CATS];
+        if(!list.some(c => c.toLowerCase() === name.toLowerCase())){
+          state.taskCatList = [...list, name];
+          await saveHousehold('taskCatList');
+        }
+      } else if(scope === 'source'){
+        const list = state.sourceList || [...SOURCE_OPTIONS];
+        if(!list.some(c => c.toLowerCase() === name.toLowerCase())){
+          state.sourceList = [...list, name];
+          await saveHousehold('sourceList');
+        }
       }
       render();
     };
-  }
+  });
   root.querySelectorAll('.cat-rename-btn[data-scope="registry"]').forEach(btn => {
     btn.onclick = async () => {
       const oldName = btn.dataset.old;
@@ -1794,9 +1965,33 @@ function bindTabEvents(){
       }
       state.registryCatList = list.map(c => c === oldName ? newName : c);
       state.registry.forEach(i => { if(i.cat === oldName) i.cat = newName; });
+      if(state.catColors && state.catColors[oldName] !== undefined){
+        state.catColors = {...state.catColors, [newName]: state.catColors[oldName]};
+        delete state.catColors[oldName];
+      }
       if(state.registryFilterCat === oldName) state.registryFilterCat = newName;
-      await saveHousehold('registryCatList');
-      await saveHousehold('registry');
+      await saveHouseholdFields({ registryCatList: state.registryCatList, registry: state.registry, catColors: state.catColors });
+      render();
+    };
+  });
+  root.querySelectorAll('.cat-rename-btn[data-scope="source"]').forEach(btn => {
+    btn.onclick = async () => {
+      const oldName = btn.dataset.old;
+      const newName = (prompt(`Rename source "${oldName}" to:`, oldName) || '').trim();
+      if(!newName || newName === oldName) return;
+      const list = state.sourceList || [...SOURCE_OPTIONS];
+      if(list.some(c => c.toLowerCase() === newName.toLowerCase())){
+        alert(`A source named "${newName}" already exists.`);
+        return;
+      }
+      state.sourceList = list.map(c => c === oldName ? newName : c);
+      state.registry.forEach(i => { if(i.source === oldName) i.source = newName; });
+      if(state.sourceColors && state.sourceColors[oldName] !== undefined){
+        state.sourceColors = {...state.sourceColors, [newName]: state.sourceColors[oldName]};
+        delete state.sourceColors[oldName];
+      }
+      if(state.registryFilterSource === oldName) state.registryFilterSource = newName;
+      await saveHouseholdFields({ sourceList: state.sourceList, registry: state.registry, sourceColors: state.sourceColors });
       render();
     };
   });
@@ -1834,8 +2029,7 @@ function bindTabEvents(){
             state.rankings[g][u] = state.rankings[g][u].filter(x=>x!==id);
           });
         });
-        await saveHousehold('names');
-        await saveHousehold('rankings');
+        await saveHouseholdFields({ names: state.names, rankings: state.rankings });
       }
       state.openMenuId = null;
       render();
@@ -1885,13 +2079,12 @@ function bindTabEvents(){
       const gender = state.namesGender;
       const id = uid();
       state.names.push({id, name, gender, addedBy: state.name});
-      await saveHousehold('names');
       // Append to the current user's ranking at the end.
       if(!state.rankings[gender]) state.rankings[gender] = {};
       const order = orderFor(gender, state.name).filter(x => x !== id);
       order.push(id);
       state.rankings[gender][state.name] = order;
-      await saveHousehold('rankings');
+      await saveHouseholdFields({ names: state.names, rankings: state.rankings });
       render();
     };
   }
