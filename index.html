@@ -40,8 +40,8 @@
 
   h1,h2,h3{font-family:'Public Sans', sans-serif; margin:0; color: var(--evergreen); font-weight:700;}
   .eyebrow{
-    font-family:'JetBrains Mono', monospace;
-    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    font-family:'Public Sans', sans-serif;
+    font-size: 15px;
     color: var(--terracotta); font-weight: 700; margin-bottom:4px; display:block;
   }
   .brand-icon{ color: var(--terracotta); display:inline-flex; vertical-align:-7px; margin-right:8px; }
@@ -196,8 +196,8 @@
 
   .dev-highlights{ margin-top:18px; padding-top:14px; border-top:1px dashed var(--blush); }
   .dev-heading{
-    font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase;
-    letter-spacing:.06em; color: var(--terracotta); font-weight:700; margin-bottom:8px;
+    font-family:'Public Sans',sans-serif; font-size:15px;
+    color: var(--terracotta); font-weight:700; margin-bottom:8px;
   }
   .dev-highlights ul{ margin:0; padding-left:18px; font-size:13.5px; line-height:1.6; color: var(--evergreen); }
   .dev-highlights li{ margin-bottom:4px; }
@@ -207,6 +207,7 @@
   .name-of-day-row{ display:grid; grid-template-columns: 2fr 3fr; gap:16px; align-items:stretch; }
   @media(max-width: 700px){ .name-of-day-row{ grid-template-columns: 1fr; } }
   .name-of-day-card{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .notd-label{ font-family:'Public Sans',sans-serif; font-size:36px; font-weight:700; color: var(--terracotta); line-height:1; display:block; margin-bottom:4px; }
   .notd-name{ font-family:'Public Sans',sans-serif; font-size:30px; font-weight:700; color: var(--evergreen); margin-top:8px; }
   .notd-gender{ font-family:'JetBrains Mono',monospace; font-size:11px; color: var(--sage); text-transform:uppercase; letter-spacing:.06em; margin-top:4px; }
 
@@ -439,12 +440,15 @@ function twemojiUrl(emoji){
 }
 
 // Emoji stand-ins used as the source image for each week's fruit comparison.
+// Where Unicode has no emoji for the real fruit/veg (fig, lime, cauliflower — none exist),
+// we use a plain colored circle rather than a wrong-but-existing fruit emoji, so the image
+// never visibly contradicts the week's text (e.g. an apple shown for "lime").
 const FRUIT_EMOJI = {
   4:"🌱",5:"🌱",6:"🫘",7:"🫐",8:"🍓",
-  9:"🍇",10:"🍊",11:"🌰",12:"🍏",13:"🍋",14:"🍑",
+  9:"🍇",10:"🍊",11:"🟣",12:"🟢",13:"🍋",14:"🍑",
   15:"🍎",16:"🥑",17:"🍐",18:"🫑",19:"🍅",
   20:"🍌",21:"🥕",22:"🍈",23:"🥭",24:"🌽",
-  25:"🥔",26:"🧅",27:"🥦",28:"🍆",
+  25:"🥔",26:"🧅",27:"⚪",28:"🍆",
   29:"🍠",30:"🥬",31:"🥥",32:"🥔",33:"🍍",
   34:"🍈",35:"🍈",36:"🥬",37:"🥬",
   38:"🧅",39:"🍉",40:"🎃"
@@ -1508,7 +1512,7 @@ function nameOfDayHTML(){
   const { gender, name } = nameOfTheDay();
   return `
   <div class="card name-of-day-card">
-    <span class="eyebrow">Baby name of the day</span>
+    <span class="notd-label">Baby name of the day</span>
     ${name
       ? `<div class="notd-name">${escapeHtml(name)}</div>
          <div class="notd-gender">${gender} name</div>
@@ -1520,13 +1524,12 @@ function nameOfDayHTML(){
 function journalHomeHTML(){
   return `
   <div class="card journal-card">
-    <h2 style="margin-bottom:6px;">Journal</h2>
-    <span class="eyebrow" style="margin-bottom:14px;">Jot down a thought</span>
-    <textarea id="home-journal-text" rows="5" placeholder="How are you feeling today?"></textarea>
+    <h2 style="margin-bottom:14px;">Journal</h2>
+    <textarea id="home-journal-text" rows="7" placeholder="How are you feeling today?"></textarea>
     <div class="journal-controls">
       <select id="home-journal-visibility">
+        <option value="public" selected>Shared with my partner</option>
         <option value="private">Private — just for me</option>
-        <option value="public">Shared with my partner</option>
       </select>
       <button class="btn small" id="home-journal-save">Save entry</button>
     </div>
@@ -1679,8 +1682,8 @@ function journalHTML(){
     </div>
     <div class="journal-controls">
       <select id="journal-new-visibility">
+        <option value="public" selected>Shared with my partner</option>
         <option value="private">Private — just for me</option>
-        <option value="public">Shared with my partner</option>
       </select>
       <button class="btn small" id="journal-new-save">Save entry</button>
     </div>
