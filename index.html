@@ -184,7 +184,10 @@
   .vine-dot.clickable:hover{ transform: translateX(-50%) scale(1.12); }
   .fruit-card{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
   .fruit-visual{ flex:1; display:flex; align-items:center; justify-content:center; width:100%; }
-  .fruit-visual img.fruit-img{ width:75%; max-width:140px; height:auto; }
+  .fruit-visual img.fruit-img{
+    width:140px; height:140px; max-width:75%; aspect-ratio:1/1;
+    object-fit:cover; border-radius:50%; border:3px solid var(--blush);
+  }
   .fruit-emoji-fallback{ font-size: clamp(56px, 9vw, 100px); line-height:1; }
   .fruit-caption{ font-size:13.5px; line-height:1.55; margin-top:10px; }
   .fruit-link{ color: var(--terracotta); text-decoration:underline; font-weight:700; }
@@ -207,9 +210,14 @@
   .name-of-day-row{ display:grid; grid-template-columns: 2fr 3fr; gap:16px; align-items:stretch; }
   @media(max-width: 700px){ .name-of-day-row{ grid-template-columns: 1fr; } }
   .name-of-day-card{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
-  .notd-label{ font-family:'Public Sans',sans-serif; font-size:36px; font-weight:700; color: var(--terracotta); line-height:1; display:block; margin-bottom:4px; }
-  .notd-name{ font-family:'Public Sans',sans-serif; font-size:30px; font-weight:700; color: var(--evergreen); margin-top:8px; }
-  .notd-gender{ font-family:'JetBrains Mono',monospace; font-size:11px; color: var(--sage); text-transform:uppercase; letter-spacing:.06em; margin-top:4px; }
+  .notd-label{
+    font-family:'Public Sans',sans-serif; font-size:20px; font-weight:700; color: var(--terracotta);
+    line-height:1; display:block; margin-bottom:4px; white-space:nowrap;
+  }
+  .notd-name{ font-family:'Public Sans',sans-serif; font-size:34px; font-weight:700; color: var(--evergreen); margin-top:8px; }
+  .notd-add-btn{ font-family:'Public Sans',sans-serif; font-weight:700; border:none; }
+  .notd-add-btn.girl{ background:#f6d3de; color:#8a4a5e; }
+  .notd-add-btn.boy{ background:#d2e3f6; color:#3f5f80; }
 
   .journal-card{ display:flex; flex-direction:column; }
   .journal-card textarea{ resize:vertical; min-height:110px; }
@@ -440,9 +448,53 @@ function twemojiUrl(emoji){
 }
 
 // Emoji stand-ins used as the source image for each week's fruit comparison.
+// Real photos (Wikimedia Commons, hotlinked via their stable Special:FilePath redirect) used
+// as the primary fruit-comparison image. FRUIT_EMOJI below is kept as the fallback chain if a
+// photo URL ever breaks — see fruit-img's onerror handling.
+const FRUIT_PHOTO = {
+  4:"https://commons.wikimedia.org/wiki/Special:FilePath/Poppy_seeds.jpg?width=400",
+  5:"https://commons.wikimedia.org/wiki/Special:FilePath/Sesame_seeds.JPG?width=400",
+  6:"https://commons.wikimedia.org/wiki/Special:FilePath/Lentil_seeds.jpg?width=400",
+  7:"https://commons.wikimedia.org/wiki/Special:FilePath/Blueberries.jpg?width=400",
+  8:"https://commons.wikimedia.org/wiki/Special:FilePath/Raspberries_(Rubus_idaeus).jpg?width=400",
+  9:"https://commons.wikimedia.org/wiki/Special:FilePath/Grapes.jpg?width=400",
+  10:"https://commons.wikimedia.org/wiki/Special:FilePath/Owoce_Kumkwat.jpg?width=400",
+  11:"https://commons.wikimedia.org/wiki/Special:FilePath/Fig_(Ficus_carica)_fruits.jpg?width=400",
+  12:"https://commons.wikimedia.org/wiki/Special:FilePath/Lime_-_whole_and_halved.jpg?width=400",
+  13:"https://commons.wikimedia.org/wiki/Special:FilePath/Lemon.jpg?width=400",
+  14:"https://commons.wikimedia.org/wiki/Special:FilePath/Assorted_Peaches_2816px.jpg?width=400",
+  15:"https://commons.wikimedia.org/wiki/Special:FilePath/Red_Apple.jpg?width=400",
+  16:"https://commons.wikimedia.org/wiki/Special:FilePath/Avocado_Hass_-_single_and_halved.jpg?width=400",
+  17:"https://commons.wikimedia.org/wiki/Special:FilePath/Pears.jpg?width=400",
+  18:"https://commons.wikimedia.org/wiki/Special:FilePath/Bell_pepper.jpg?width=400",
+  19:"https://commons.wikimedia.org/wiki/Special:FilePath/Heirloom_tomatoes_2.jpg?width=400",
+  20:"https://commons.wikimedia.org/wiki/Special:FilePath/Banana-Single.jpg?width=400",
+  21:"https://commons.wikimedia.org/wiki/Special:FilePath/Carrots_-_Daucus_carota_subsp._sativus.jpg?width=400",
+  22:"https://commons.wikimedia.org/wiki/Special:FilePath/Fruta_papaya.jpg?width=400",
+  23:"https://commons.wikimedia.org/wiki/Special:FilePath/Mango_-_single.jpg?width=400",
+  24:"https://commons.wikimedia.org/wiki/Special:FilePath/Corn_on_the_cob_(sweet_corn).jpg?width=400",
+  25:"https://commons.wikimedia.org/wiki/Special:FilePath/Swede_-_rutabaga_-_veggiegroup.jpg?width=400",
+  26:"https://commons.wikimedia.org/wiki/Special:FilePath/Scallion.jpg?width=400",
+  27:"https://commons.wikimedia.org/wiki/Special:FilePath/Bloemkool.jpg?width=400",
+  28:"https://commons.wikimedia.org/wiki/Special:FilePath/Eggplants.jpg?width=400",
+  29:"https://commons.wikimedia.org/wiki/Special:FilePath/Butternut_Squash.jpg?width=400",
+  30:"https://commons.wikimedia.org/wiki/Special:FilePath/Cabbage.jpg?width=400",
+  31:"https://commons.wikimedia.org/wiki/Special:FilePath/Coconut_on_white_background.jpg?width=400",
+  32:"https://commons.wikimedia.org/wiki/Special:FilePath/Jicama_Ecuador.jpg?width=400",
+  33:"https://commons.wikimedia.org/wiki/Special:FilePath/Pineapple.jpg?width=400",
+  34:"https://commons.wikimedia.org/wiki/Special:FilePath/Cantaloupes.jpg?width=400",
+  35:"https://commons.wikimedia.org/wiki/Special:FilePath/Honeydew_melon.jpg?width=400",
+  36:"https://commons.wikimedia.org/wiki/Special:FilePath/Romaine_lettuce.jpg?width=400",
+  37:"https://commons.wikimedia.org/wiki/Special:FilePath/Swiss_Chard.jpg?width=400",
+  38:"https://commons.wikimedia.org/wiki/Special:FilePath/Leek.jpg?width=400",
+  39:"https://commons.wikimedia.org/wiki/Special:FilePath/WaterMelon.JPG?width=400",
+  40:"https://commons.wikimedia.org/wiki/Special:FilePath/Munchkin_Pumpkin.jpg?width=400",
+};
+
 // Where Unicode has no emoji for the real fruit/veg (fig, lime, cauliflower — none exist),
 // we use a plain colored circle rather than a wrong-but-existing fruit emoji, so the image
-// never visibly contradicts the week's text (e.g. an apple shown for "lime").
+// never visibly contradicts the week's text (e.g. an apple shown for "lime"). This map is the
+// fallback layer if a real photo URL above ever breaks.
 const FRUIT_EMOJI = {
   4:"🌱",5:"🌱",6:"🫘",7:"🫐",8:"🍓",
   9:"🍇",10:"🍊",11:"🟣",12:"🟢",13:"🍋",14:"🍑",
@@ -1060,6 +1112,7 @@ function overviewHTML(w){
   }
 
   const fruitName = FRUITS[week] || 'small pumpkin';
+  const fruitPhoto = FRUIT_PHOTO[week];
   const fruitEmoji = FRUIT_EMOJI[week] || '🎃';
   const fruitArticle = /^[aeiou]/i.test(fruitName) ? 'an' : 'a';
   const fruitLink = `https://www.google.com/search?q=${encodeURIComponent(fruitName + ' dessert recipe')}`;
@@ -1121,7 +1174,7 @@ function overviewHTML(w){
     </div>
     <div class="card fruit-card">
       <div class="fruit-visual">
-        <img class="fruit-img" src="${twemojiUrl(fruitEmoji)}" alt="${escapeHtml(fruitName)}" onerror="this.outerHTML='<span class=\'fruit-emoji-fallback\'>${fruitEmoji}</span>'" />
+        <img class="fruit-img" src="${fruitPhoto || twemojiUrl(fruitEmoji)}" alt="${escapeHtml(fruitName)}" onerror="if(this.dataset.fallback!=='1'){this.dataset.fallback='1';this.src='${twemojiUrl(fruitEmoji)}';}else{this.outerHTML='<span class=\'fruit-emoji-fallback\'>${fruitEmoji}</span>'}" />
       </div>
       <div class="fruit-caption">Baby is about the size of ${fruitArticle} <a href="${fruitLink}" target="_blank" rel="noopener" class="fruit-link">${escapeHtml(fruitName)}</a>.</div>
     </div>
@@ -1515,8 +1568,7 @@ function nameOfDayHTML(){
     <span class="notd-label">Baby name of the day</span>
     ${name
       ? `<div class="notd-name">${escapeHtml(name)}</div>
-         <div class="notd-gender">${gender} name</div>
-         <button class="btn small" id="notd-add" data-name="${escapeHtml(name)}" data-gender="${gender}" style="margin-top:14px;">Add to my list</button>`
+         <button class="btn small notd-add-btn ${gender.toLowerCase()}" id="notd-add" data-name="${escapeHtml(name)}" data-gender="${gender}" style="margin-top:14px;">Add to my ${gender} list</button>`
       : `<div class="empty">All our suggestions are already on your list — nice taste!</div>`}
   </div>`;
 }
