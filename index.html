@@ -241,7 +241,8 @@
   .dev-highlights.split{ display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
   .dev-highlights.split .dev-col-month{ padding-left:20px; border-left:1px dashed var(--blush); }
 
-  .name-of-day-row{ display:grid; grid-template-columns: 2fr 3fr; gap:16px; align-items:stretch; }
+  .name-of-day-row{ display:grid; grid-template-columns: 2fr 3fr 3fr; gap:16px; align-items:stretch; }
+  @media(max-width: 1000px){ .name-of-day-row{ grid-template-columns: 1fr 1fr; } }
   @media(max-width: 700px){ .name-of-day-row{ grid-template-columns: 1fr; } }
   .name-of-day-card{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
   .notd-label{
@@ -1386,6 +1387,7 @@ function overviewHTML(w){
   <div class="name-of-day-row">
     ${nameOfDayHTML()}
     ${journalHomeHTML()}
+    ${notesHomeHTML()}
   </div>`;
 }
 
@@ -1936,10 +1938,29 @@ function journalHomeHTML(){
     <textarea id="home-journal-text" rows="7" placeholder="How are you feeling today?"></textarea>
     <div class="journal-controls">
       <select id="home-journal-visibility">
+        <option value="public">Shared with my partner</option>
+        <option value="private" selected>Private — just for me</option>
+      </select>
+      <button class="btn small" id="home-journal-save">Save entry</button>
+    </div>
+  </div>`;
+}
+
+function notesHomeHTML(){
+  const theme = activeNoteTheme();
+  return `
+  <div class="card journal-card">
+    <h2 style="margin-bottom:14px;">Notes</h2>
+    <textarea id="home-notes-text" rows="7" placeholder="What's on your mind?"></textarea>
+    <div class="journal-controls">
+      <select id="home-notes-section">
+        ${(state.noteThemes || []).map(t => `<option value="${t.id}" ${theme && t.id===theme.id?'selected':''}>${escapeHtml(t.name)}</option>`).join('')}
+      </select>
+      <select id="home-notes-visibility">
         <option value="public" selected>Shared with my partner</option>
         <option value="private">Private — just for me</option>
       </select>
-      <button class="btn small" id="home-journal-save">Save entry</button>
+      <button class="btn small" id="home-notes-save">Save note</button>
     </div>
   </div>`;
 }
@@ -2092,8 +2113,8 @@ function journalHTML(){
     </div>
     <div class="journal-controls">
       <select id="journal-new-visibility">
-        <option value="public" selected>Shared with my partner</option>
-        <option value="private">Private — just for me</option>
+        <option value="public">Shared with my partner</option>
+        <option value="private" selected>Private — just for me</option>
       </select>
       <button class="btn small" id="journal-new-save">Save entry</button>
     </div>
@@ -2282,6 +2303,25 @@ function bindTabEvents(){
       const visibility = document.getElementById('home-journal-visibility').value;
       state.journal.push({ id: uid(), text, authorName: state.name, createdAt: new Date().toISOString(), visibility });
       await saveHousehold('journal');
+      render();
+    };
+  }
+
+  // Home — notes quick entry (mirrors the journal quick entry above, but files into whichever
+  // section the user picks, same as the full Notes tab composer).
+  const homeNotesSave = document.getElementById('home-notes-save');
+  if(homeNotesSave){
+    homeNotesSave.onclick = async () => {
+      const text = document.getElementById('home-notes-text').value.trim();
+      if(!text) return;
+      const visibility = document.getElementById('home-notes-visibility').value;
+      const themeId = document.getElementById('home-notes-section').value;
+      const theme = state.noteThemes.find(t => t.id === themeId);
+      if(!theme) return;
+      theme.notes.push({ id: uid(), text, authorName: state.name, createdAt: new Date().toISOString(), visibility });
+      state.activeNoteThemeId = theme.id;
+      personalSet('active-note-theme-id', theme.id);
+      await saveHousehold('noteThemes');
       render();
     };
   }
