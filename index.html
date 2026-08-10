@@ -95,6 +95,11 @@
     background: var(--blush); color: var(--evergreen); border:none; border-radius:999px;
     padding:4px 12px; cursor:pointer; white-space:nowrap;
   }
+  .household-code-display{
+    font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:700;
+    background: var(--blush); color: var(--evergreen); border-radius:8px;
+    padding:10px 14px; letter-spacing:0.5px; display:inline-block;
+  }
   .settings-btn:hover{ filter: brightness(0.95); }
 
   nav.tabs{ display:flex; gap:6px; margin-bottom:20px; overflow-x:auto; }
@@ -327,6 +332,12 @@
     display:flex; align-items:center; justify-content:center; padding:0;
   }
   .cat-rename-btn:hover{ background: var(--terracotta); color:#fff; }
+  .cat-delete-btn{
+    background: var(--blush); border:none; border-radius:50%; width:20px; height:20px;
+    font-size:10px; line-height:1; cursor:pointer; color: var(--evergreen);
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .cat-delete-btn:hover{ background:#c0392b; color:#fff; }
   .cat-color-input{
     -webkit-appearance:none; appearance:none; width:16px; height:16px; padding:0;
     border:1px solid rgba(0,0,0,.15); border-radius:50%; cursor:pointer; background:none; flex-shrink:0;
@@ -420,11 +431,10 @@
   .rank-controls button:disabled{ opacity:.3; cursor:default; }
   .unranked-pill{ font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--sage); }
 
-  .top10-grid{ display:grid; grid-template-columns: 1fr; gap:14px; margin-top:8px; }
-  @media(min-width:520px){ .top10-grid{ grid-template-columns: 1fr 1fr; } }
-  .top10-col{ background: var(--blush); border-radius:10px; padding:14px 16px; }
-  .top10-col h4{ font-family:'Public Sans',sans-serif; font-size:14px; color: var(--evergreen); margin:0 0 8px; }
-  .top10-col ol{ margin:0; padding-left:20px; font-size:13.5px; line-height:1.7; color: var(--evergreen); }
+  .fav-panels-row{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px; align-items:stretch; margin-bottom:16px; }
+  @media(max-width:800px){ .fav-panels-row{ grid-template-columns: 1fr; } }
+  .fav-panel h3{ font-family:'Public Sans',sans-serif; font-size:15px; color: var(--evergreen); margin:0 0 10px; }
+  .fav-panel ol{ margin:0; padding-left:20px; font-size:13.5px; line-height:1.8; color: var(--evergreen); }
 
   .empty{ color: var(--sage); font-size:13.5px; text-align:center; padding: 20px 0; }
   ::placeholder{ color: var(--sage); opacity:.8; }
@@ -1226,7 +1236,7 @@ function renderApp(){
     <div class="topbar">
       <h1><span class="brand-icon">${cribIcon(36)}</span>${BRAND}</h1>
       <div class="who-col">
-        <div class="who">${state.name} · ${state.code}</div>
+        <div class="who">${state.name}</div>
         <button class="settings-btn" id="settings-btn">⚙ Settings</button>
       </div>
     </div>
@@ -1382,6 +1392,10 @@ function overviewHTML(w){
 function settingsHTML(){
   return `
   <div class="card">
+    <h2 style="margin-bottom:14px;">Shared household code</h2>
+    <div class="household-code-display">${escapeHtml(state.code)}</div>
+  </div>
+  <div class="card">
     <h2 style="margin-bottom:14px;">When are you due?</h2>
     <input type="date" id="due-input" value="${state.info.dueDate || ''}" />
     <button class="btn ghost small" id="due-save" style="margin-top:10px;">Update due date</button>
@@ -1463,6 +1477,7 @@ function catManageRowHTML(list, scope, colorMap){
       <input type="color" class="cat-color-input" value="${colorFor(c)}" data-cat="${escapeHtml(c)}" data-scope="${scope}" title="${labelFor} color" />
       ${escapeHtml(c)}
       <button type="button" class="cat-rename-btn" data-old="${escapeHtml(c)}" data-scope="${scope}" title="Rename">✎</button>
+      <button type="button" class="cat-delete-btn" data-old="${escapeHtml(c)}" data-scope="${scope}" title="Delete">✕</button>
     </span>`).join('')}
   </div>`;
 }
@@ -1516,7 +1531,7 @@ function noteThemeTabRowHTML(){
     <span class="note-theme-tab-wrap" data-id="${t.id}">
       <button type="button" class="note-theme-tab ${t.id===state.activeNoteThemeId?'active':''}" data-id="${t.id}">${escapeHtml(t.name)}</button>
     </span>`).join('')}
-    <button type="button" class="checklist-add-btn" id="note-theme-add-btn" title="Add a theme">+</button>
+    <button type="button" class="checklist-add-btn" id="note-theme-add-btn" title="Add a section">+</button>
   </div>`;
 }
 
@@ -1525,13 +1540,13 @@ function newNoteThemeModalHTML(){
   <div class="modal-overlay" id="new-note-theme-modal-overlay">
     <div class="modal-panel">
       <div class="modal-header">
-        <h2 style="margin:0;">New theme</h2>
+        <h2 style="margin:0;">New section</h2>
         <button type="button" class="modal-close-btn" id="new-note-theme-modal-close" title="Close">✕</button>
       </div>
       <div class="modal-body">
-        <label>Theme name</label>
+        <label>Section name</label>
         <input type="text" id="new-note-theme-name" placeholder="e.g. Nursery ideas" style="margin-top:6px;" />
-        <button class="btn small block" id="new-note-theme-create">Create theme</button>
+        <button class="btn small block" id="new-note-theme-create">Create section</button>
       </div>
     </div>
   </div>`;
@@ -1548,12 +1563,12 @@ function noteThemeSettingsModalHTML(theme, canDelete){
         <button type="button" class="modal-close-btn" id="note-theme-modal-close" title="Close">✕</button>
       </div>
       <div class="modal-body">
-        <label>Theme name</label>
+        <label>Section name</label>
         <div class="add-row" style="margin-top:6px;margin-bottom:0;">
           <input type="text" id="note-theme-modal-name-input" value="${escapeHtml(theme.name)}" />
           <button type="button" class="btn ghost small" id="note-theme-modal-rename-btn" data-id="${theme.id}">Save name</button>
         </div>
-        ${canDelete ? `<button type="button" class="btn ghost small note-theme-modal-delete-btn" data-id="${theme.id}" style="margin-top:14px;color:#c0392b;border-color:#e3a9a0;">Delete this theme</button>` : ''}
+        ${canDelete ? `<button type="button" class="btn ghost small note-theme-modal-delete-btn" data-id="${theme.id}" style="margin-top:14px;color:#c0392b;border-color:#e3a9a0;">Delete this section</button>` : ''}
       </div>
     </div>
   </div>`;
@@ -1857,26 +1872,37 @@ function namesHTML(){
     }).join('');
   }
 
-  const top10Cols = users.map(u => {
-    const uOrder = orderFor(gender, u).slice(0, 10);
-    const items = uOrder.map(id => {
+  // Exactly two favorites panels — you (always left) and your partner (always right) — instead
+  // of one column per every known contributor. Partner is whichever parent name isn't yours;
+  // fall back to any other contributor if the parent names haven't been set up yet.
+  const partner = [state.info.motherName, state.info.fatherName].find(n => n && n.trim() && n !== user)
+    || users.find(u => u !== user)
+    || null;
+
+  function favoritesPanelHTML(person){
+    if(!person){
+      return `<div class="card fav-panel"><h3>Partner's favorites</h3><div class="empty">Your partner hasn't set up their name yet.</div></div>`;
+    }
+    const pOrder = orderFor(gender, person).slice(0, 10);
+    const items = pOrder.map(id => {
       const n = nameById(id);
       return n ? `<li>${escapeHtml(n.name)}</li>` : '';
     }).join('');
     return `
-    <div class="top10-col">
-      <h4>${escapeHtml(u)}'s top ${uOrder.length || 0}</h4>
-      ${uOrder.length ? `<ol>${items}</ol>` : `<div class="empty">No ranked names yet.</div>`}
+    <div class="card fav-panel">
+      <h3>${escapeHtml(person)}'s favorites</h3>
+      ${pOrder.length ? `<ol>${items}</ol>` : `<div class="empty">No ranked names yet.</div>`}
     </div>`;
-  }).join('');
+  }
 
   return `
   <div class="gender-tab-row">
     ${NAME_GENDERS.map(g => `<button data-gender="${g}" class="gender-tab ${g.toLowerCase()} ${gender===g?'active':''}">${g}</button>`).join('')}
   </div>
-  <div class="card">
-    <h2 style="margin-bottom:10px;">Favorite names — ${gender}</h2>
-    <div class="top10-grid">${top10Cols}</div>
+  <div class="fav-panels-row">
+    ${favoritesPanelHTML(user)}
+    ${nameOfDayHTML()}
+    ${favoritesPanelHTML(partner)}
   </div>
   <div class="card">
     <h2 style="margin-bottom:14px;">Rank your favorites</h2>
@@ -1999,7 +2025,9 @@ function renderJournalText(raw){
 
 function journalEntryRow(e){
   const isEditing = state.editingId === e.id;
-  const canEdit = e.authorName === state.name;
+  // Shared entries are editable/deletable by either partner; private entries stay author-only
+  // (moot for the other partner anyway, since private entries are already filtered out of their view).
+  const canEdit = e.visibility === 'public' || e.authorName === state.name;
   const dt = new Date(e.createdAt);
   const dateStr = dt.toLocaleDateString(undefined,{month:'short', day:'numeric', year:'numeric'});
   const timeStr = dt.toLocaleTimeString(undefined,{hour:'numeric', minute:'2-digit'});
@@ -2093,7 +2121,9 @@ function journalHTML(){
 
 function notesEntryRow(e){
   const isEditing = state.editingId === e.id;
-  const canEdit = e.authorName === state.name;
+  // Shared entries are editable/deletable by either partner; private entries stay author-only
+  // (moot for the other partner anyway, since private entries are already filtered out of their view).
+  const canEdit = e.visibility === 'public' || e.authorName === state.name;
   const dt = new Date(e.createdAt);
   const dateStr = dt.toLocaleDateString(undefined,{month:'short', day:'numeric', year:'numeric'});
   const timeStr = dt.toLocaleTimeString(undefined,{hour:'numeric', minute:'2-digit'});
@@ -2141,7 +2171,7 @@ function notesEntryRow(e){
 function notesHTML(){
   const theme = activeNoteTheme();
   if(!theme){
-    return `${noteThemeTabRowHTML()}<div class="card"><div class="empty">No note themes yet.</div></div>${state.showAddNoteTheme ? newNoteThemeModalHTML() : ''}`;
+    return `${noteThemeTabRowHTML()}<div class="card"><div class="empty">No note sections yet.</div></div>${state.showAddNoteTheme ? newNoteThemeModalHTML() : ''}`;
   }
   const fs = noteThemeFilterState(theme.id);
 
@@ -2177,7 +2207,7 @@ function notesHTML(){
   <div class="card">
     <div class="card-header-row">
       <h2 style="margin-bottom:0;">${escapeHtml(theme.name)}</h2>
-      <button type="button" class="settings-icon-btn" id="note-theme-settings-btn" title="Manage theme">${legoIconSVG()}</button>
+      <button type="button" class="settings-icon-btn" id="note-theme-settings-btn" title="Manage section">${legoIconSVG()}</button>
     </div>
     <div class="filter-row" style="margin-top:14px;">
       <select id="notes-filter-visibility">
@@ -2521,7 +2551,7 @@ function bindTabEvents(){
       if(state.noteThemes.length <= 1) return; // always keep at least one theme
       const target = state.noteThemes.find(t => t.id === btn.dataset.id);
       if(!target) return;
-      if(!confirm(`Delete the "${target.name}" theme? This will permanently remove all ${target.notes.length} note${target.notes.length===1?'':'s'} in it.`)) return;
+      if(!confirm(`Delete the "${target.name}" section? This will permanently remove all ${target.notes.length} note${target.notes.length===1?'':'s'} in it.`)) return;
       state.noteThemes = state.noteThemes.filter(t => t.id !== target.id);
       delete state.noteThemeFilters[target.id];
       if(state.activeNoteThemeId === target.id){
@@ -2618,6 +2648,27 @@ function bindTabEvents(){
         delete cl.catColors[oldName];
       }
       if(fs.filterCat === oldName) fs.filterCat = newName;
+      await saveHousehold('checklists');
+      render();
+    };
+  });
+  root.querySelectorAll('.cat-delete-btn[data-scope="task"]').forEach(btn => {
+    btn.onclick = async () => {
+      if(!cl) return;
+      const name = btn.dataset.old;
+      const list = cl.catList && cl.catList.length ? cl.catList : [...TASK_CATS];
+      if(list.length <= 1){ alert('You need at least one category.'); return; }
+      const affected = cl.tasks.filter(i => i.cat === name).length;
+      const remaining = list.filter(c => c !== name);
+      const fallback = remaining[0];
+      const msg = affected
+        ? `Delete the "${name}" category? ${affected} item${affected===1?'':'s'} using it will be moved to "${fallback}".`
+        : `Delete the "${name}" category?`;
+      if(!confirm(msg)) return;
+      cl.catList = remaining;
+      cl.tasks.forEach(i => { if(i.cat === name) i.cat = fallback; });
+      if(cl.catColors && cl.catColors[name] !== undefined) delete cl.catColors[name];
+      if(fs.filterCat === name) fs.filterCat = 'All';
       await saveHousehold('checklists');
       render();
     };
@@ -2902,6 +2953,26 @@ function bindTabEvents(){
       render();
     };
   });
+  root.querySelectorAll('.cat-delete-btn[data-scope="registry"]').forEach(btn => {
+    btn.onclick = async () => {
+      const name = btn.dataset.old;
+      const list = state.registryCatList || [...REGISTRY_CATS];
+      if(list.length <= 1){ alert('You need at least one category.'); return; }
+      const affected = state.registry.filter(i => i.cat === name).length;
+      const remaining = list.filter(c => c !== name);
+      const fallback = remaining[0];
+      const msg = affected
+        ? `Delete the "${name}" category? ${affected} item${affected===1?'':'s'} using it will be moved to "${fallback}".`
+        : `Delete the "${name}" category?`;
+      if(!confirm(msg)) return;
+      state.registryCatList = remaining;
+      state.registry.forEach(i => { if(i.cat === name) i.cat = fallback; });
+      if(state.catColors && state.catColors[name] !== undefined) delete state.catColors[name];
+      if(state.registryFilterCat === name) state.registryFilterCat = 'All';
+      await saveHouseholdFields({ registryCatList: state.registryCatList, registry: state.registry, catColors: state.catColors });
+      render();
+    };
+  });
   root.querySelectorAll('.cat-rename-btn[data-scope="source"]').forEach(btn => {
     btn.onclick = async () => {
       const oldName = btn.dataset.old;
@@ -2919,6 +2990,22 @@ function bindTabEvents(){
         delete state.sourceColors[oldName];
       }
       if(state.registryFilterSource === oldName) state.registryFilterSource = newName;
+      await saveHouseholdFields({ sourceList: state.sourceList, registry: state.registry, sourceColors: state.sourceColors });
+      render();
+    };
+  });
+  root.querySelectorAll('.cat-delete-btn[data-scope="source"]').forEach(btn => {
+    btn.onclick = async () => {
+      const name = btn.dataset.old;
+      const affected = state.registry.filter(i => i.source === name).length;
+      const msg = affected
+        ? `Delete the "${name}" source? ${affected} item${affected===1?'':'s'} using it will become unset.`
+        : `Delete the "${name}" source?`;
+      if(!confirm(msg)) return;
+      state.sourceList = (state.sourceList || []).filter(c => c !== name);
+      state.registry.forEach(i => { if(i.source === name) i.source = null; });
+      if(state.sourceColors && state.sourceColors[name] !== undefined) delete state.sourceColors[name];
+      if(state.registryFilterSource === name) state.registryFilterSource = 'All';
       await saveHouseholdFields({ sourceList: state.sourceList, registry: state.registry, sourceColors: state.sourceColors });
       render();
     };
@@ -2941,6 +3028,23 @@ function bindTabEvents(){
         delete cl.assigneeColors[oldName];
       }
       if(fs.filterAssignee === oldName) fs.filterAssignee = newName;
+      await saveHousehold('checklists');
+      render();
+    };
+  });
+  root.querySelectorAll('.cat-delete-btn[data-scope="assignee"]').forEach(btn => {
+    btn.onclick = async () => {
+      if(!cl) return;
+      const name = btn.dataset.old;
+      const affected = cl.tasks.filter(i => i.assignee === name).length;
+      const msg = affected
+        ? `Delete "${name}" from this checklist's people? ${affected} item${affected===1?'':'s'} assigned to them will become unassigned.`
+        : `Delete "${name}" from this checklist's people?`;
+      if(!confirm(msg)) return;
+      cl.assigneeList = (cl.assigneeList || []).filter(c => c !== name);
+      cl.tasks.forEach(i => { if(i.assignee === name) i.assignee = null; });
+      if(cl.assigneeColors && cl.assigneeColors[name] !== undefined) delete cl.assigneeColors[name];
+      if(fs.filterAssignee === name) fs.filterAssignee = 'All';
       await saveHousehold('checklists');
       render();
     };
