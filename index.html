@@ -803,23 +803,20 @@ function todayKey(){
   return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
 }
 function nameOfTheDay(){
-  // Force a genuine day-over-day alternation by remembering what gender was last
-  // shown on this device, rather than relying purely on date-math parity.
+  // Gender and name must both be derived purely from the date (and the shared list of names
+  // already added), with nothing remembered per-device — otherwise two phones on the same
+  // household end up with different "memory" of what was last shown and drift out of sync,
+  // which is exactly the bug this replaced. Day-of-year parity still alternates Girl/Boy every
+  // single day, same as before, but it's the same answer on every device for a given date.
   const today = todayKey();
-  const lastDate = personalGet('notd-last-date');
-  const lastGender = personalGet('notd-last-gender');
-  let gender;
-  if(lastDate === today && lastGender){
-    gender = lastGender;
-  } else {
-    gender = lastGender === 'Boy' ? 'Girl' : 'Boy';
-    personalSet('notd-last-date', today);
-    personalSet('notd-last-gender', gender);
-  }
+  const d = new Date();
+  const startOfYear = new Date(d.getFullYear(), 0, 0);
+  const dayOfYear = Math.floor((d - startOfYear) / (24*60*60*1000));
+  const gender = dayOfYear % 2 === 0 ? 'Girl' : 'Boy';
   const usedLower = new Set((state.names||[]).map(n => n.name.trim().toLowerCase()));
   const pool = NAME_SUGGESTIONS[gender].filter(n => !usedLower.has(n.toLowerCase()));
   if(pool.length === 0) return { gender, name: null };
-  const rand = mulberry32(hashString(todayKey() + gender));
+  const rand = mulberry32(hashString(today + gender));
   const idx = Math.floor(rand() * pool.length);
   return { gender, name: pool[idx] };
 }
