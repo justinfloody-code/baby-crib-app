@@ -105,6 +105,35 @@
   }
   nav.tabs button.active{ background: var(--terracotta); color:#fff; }
 
+  .checklist-tab-row{ display:flex; align-items:center; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+  .checklist-tab-wrap{ display:flex; align-items:center; gap:2px; }
+  .checklist-tab-wrap.dragging{ position:relative; z-index:5; }
+  .checklist-tab-wrap.dragging .checklist-tab{ box-shadow: 0 4px 14px rgba(58,51,44,0.28); }
+  .checklist-tab{
+    font-family:'Public Sans',sans-serif; font-weight:700; font-size:13px;
+    background: var(--blush); color: var(--evergreen); border:none; border-radius: 999px;
+    padding: 7px 15px; cursor:pointer; white-space:nowrap;
+    touch-action:none; user-select:none; -webkit-user-select:none;
+  }
+  .checklist-tab.active{ background: var(--evergreen); color:#fff; }
+  .checklist-add-btn{
+    background: none; border: 1.5px dashed var(--blush); border-radius:999px;
+    width:30px; height:30px; flex-shrink:0; cursor:pointer; color: var(--terracotta);
+    display:flex; align-items:center; justify-content:center; padding:0; font-size:17px; line-height:1;
+  }
+  .checklist-add-btn:hover{ border-color: var(--terracotta); background: var(--blush); }
+
+  .note-theme-tab-wrap{ display:flex; align-items:center; gap:2px; }
+  .note-theme-tab-wrap.dragging{ position:relative; z-index:5; }
+  .note-theme-tab-wrap.dragging .note-theme-tab{ box-shadow: 0 4px 14px rgba(58,51,44,0.28); }
+  .note-theme-tab{
+    font-family:'Public Sans',sans-serif; font-weight:700; font-size:13px;
+    background: var(--blush); color: var(--evergreen); border:none; border-radius: 999px;
+    padding: 7px 15px; cursor:pointer; white-space:nowrap;
+    touch-action:none; user-select:none; -webkit-user-select:none;
+  }
+  .note-theme-tab.active{ background: var(--evergreen); color:#fff; }
+
   .card{
     background: #fff; border: 1px solid var(--blush); border-radius: var(--radius);
     padding: 22px; margin-bottom: 16px;
@@ -268,6 +297,8 @@
   .item-row input[type=checkbox]{ width:19px; height:19px; accent-color: var(--terracotta); flex-shrink:0; }
   .item-row .txt{ flex:1; font-size:14.5px; }
   .item-row.done .txt{ text-decoration: line-through; color: var(--sage); }
+  .item-notes{ font-size:12.5px; color: var(--sage); margin-top:2px; padding-left:18px; }
+  .item-row.done .item-notes{ text-decoration: line-through; }
   .item-row .tag{ font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--sage); }
   .add-row{ display:flex; gap:8px; margin-top:14px; margin-bottom:16px; flex-wrap:wrap; }
   .add-row input{ flex:1; min-width:140px; }
@@ -315,6 +346,10 @@
     font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
     padding:3px 9px; border-radius:6px; white-space:nowrap; flex-shrink:0;
   }
+  .assignee-pill{
+    font-family:'Public Sans',sans-serif; font-size:11px; font-weight:700;
+    padding:3px 9px; border-radius:999px; white-space:nowrap; flex-shrink:0;
+  }
   .source-pill{
     font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
     padding:2px 8px; border-radius:6px; white-space:nowrap; flex-shrink:0;
@@ -352,6 +387,8 @@
   .edit-row .edit-week{ width:90px; flex:none; }
   .edit-row .edit-cat{ width:140px; flex:none; }
   .edit-row .edit-source{ width:130px; flex:none; }
+  .edit-row .edit-assignee{ width:150px; flex:none; }
+  .edit-row .edit-notes{ flex:1; min-width:140px; }
 
   /* ---------- Names ---------- */
   .gender-tab-row{ display:flex; gap:10px; margin-bottom:18px; }
@@ -549,7 +586,7 @@ const WEEK_HIGHLIGHTS = {
 
 // ---------- Checklist / To-Do (pregnancy prep tasks, tied to a week) ----------
 // Adapted from a standard pregnancy to-do checklist.
-const TASK_CATS = ["Medical","Financial","Logistics"];
+const TASK_CATS = ["To Do","Medical","Financial","Logistics"];
 const DEFAULT_TASKS = [
   // Medical
   {t:"Confirm pregnancy & schedule first prenatal appointment", cat:"Medical", week:6},
@@ -649,6 +686,7 @@ const DEFAULT_REGISTRY = [
 // Muted, pastel-style colors — thematic per category, not limited to the core brand palette.
 const CAT_COLORS = {
   // Checklist categories
+  "To Do": '#c9a86b',      // warm gold
   Medical: '#cf8a82',      // dusty red
   Financial: '#8aab7c',    // soft green
   Logistics: '#8b9bc0',    // muted blue
@@ -681,8 +719,12 @@ const FALLBACK_CAT_COLORS = [
   '#b7a8d9', '#8fbfa0', '#e0b3a3', '#a3c9d9', '#d9a3c4', '#c4d9a3',
   '#d9c7a3', '#a3d9cf', '#c9a3d9', '#d9b3a3', '#a3b3d9', '#bcd9a3',
 ];
-function catStyle(cat){
-  let bg = (state.catColors && state.catColors[cat]) || CAT_COLORS[cat];
+// colorMap defaults to the Registry's own category colors (state.catColors); pass a
+// checklist's own catColors explicitly for task-checklist categories, since each checklist
+// now keeps its own independent set.
+function catStyle(cat, colorMap){
+  const map = colorMap || state.catColors;
+  let bg = (map && map[cat]) || CAT_COLORS[cat];
   if(!bg){
     const idx = Math.abs(hashString(cat)) % FALLBACK_CAT_COLORS.length;
     bg = FALLBACK_CAT_COLORS[idx];
@@ -701,6 +743,20 @@ function sourceStyle(source){
     color = FALLBACK_CAT_COLORS[idx];
   }
   return color;
+}
+
+// Task "Assigned to" pills are filled (like category pills), so this resolves both a
+// background and a contrast-safe text color — custom color first, then a deterministic
+// fallback shade per person so each name stays a consistent color. colorMap is a specific
+// checklist's own assigneeColors (each checklist has its own independent people/colors).
+function assigneeStyle(name, colorMap){
+  let bg = colorMap && colorMap[name];
+  if(!bg){
+    const idx = Math.abs(hashString(name)) % FALLBACK_CAT_COLORS.length;
+    bg = FALLBACK_CAT_COLORS[idx];
+  }
+  const text = relLuminance(bg) > 0.4 ? '#3a332c' : '#ffffff';
+  return { bg, text };
 }
 
 const NAME_GENDERS = ["Girl","Boy"];
@@ -853,16 +909,22 @@ function attachLiveSync(){
     if(val.info) state.info = val.info;
     if(state.info.motherName === undefined) state.info.motherName = '';
     if(state.info.fatherName === undefined) state.info.fatherName = '';
-    if(val.tasks) state.tasks = val.tasks;
+    if(val.checklists) state.checklists = normalizeChecklists(val.checklists);
     if(val.registry) state.registry = val.registry;
     if(val.names) state.names = val.names;
     if(val.rankings) state.rankings = val.rankings;
     if(val.journal) state.journal = val.journal;
-    if(val.taskCatList) state.taskCatList = val.taskCatList;
+    if(val.noteThemes) state.noteThemes = normalizeNoteThemes(val.noteThemes);
     if(val.registryCatList) state.registryCatList = val.registryCatList;
     if(val.catColors) state.catColors = val.catColors;
     if(val.sourceList) state.sourceList = val.sourceList;
     if(val.sourceColors) state.sourceColors = val.sourceColors;
+    if(!state.checklists.some(c => c.id === state.activeChecklistId) && state.checklists.length){
+      state.activeChecklistId = state.checklists[0].id;
+    }
+    if(!state.noteThemes.some(t => t.id === state.activeNoteThemeId) && state.noteThemes.length){
+      state.activeNoteThemeId = state.noteThemes[0].id;
+    }
     safeRerenderFromRemote();
   });
 }
@@ -872,22 +934,36 @@ let state = {
   code: null,
   name: null,
   info: { dueDate: null, motherName: '', fatherName: '' },
-  tasks: [],
+  // Each checklist owns its own tasks, categories, and assignable people — kept fully separate
+  // per checklist. Shape: { id, name, tasks, catList, catColors, assigneeList, assigneeColors }.
+  checklists: [],
+  activeChecklistId: null,
+  // Filter/hide-completed selections per checklist — intentionally kept OUT of the checklists
+  // array above (and out of everything synced to Firebase): they're personal, per-device view
+  // state, the same way the current tab or an open row menu is. Keyed by checklist id.
+  checklistFilters: {},
+  showAddChecklist: false,
   registry: [],
   names: [],
   rankings: {},   // { Girl: { [userName]: [nameId,...] }, Boy: {...}, Neutral: {...} }
   journal: [],
-  taskCatList: [...TASK_CATS],
+  // Notes tab — entries grouped into themes (like Checklist's multiple checklists). Shape:
+  // { id, name, notes: [{id, text, authorName, createdAt, visibility}] }. Kept entirely separate
+  // from Journal Entries.
+  noteThemes: [],
+  activeNoteThemeId: null,
+  // Personal, per-device filter state per theme — same reasoning as checklistFilters: never
+  // synced, so one partner's filter choice can't overwrite the other's view.
+  noteThemeFilters: {},
+  showAddNoteTheme: false,
+  showNoteThemeSettings: false,
   registryCatList: [...REGISTRY_CATS],
-  catColors: {},
+  catColors: {},   // Registry category colors only (task-checklist colors live per-checklist now)
   sourceList: [...SOURCE_OPTIONS],
   sourceColors: {},
   journalFilterVisibility: 'All',
   tab: 'overview',
   namesGender: 'Girl',
-  taskFilterCat: 'All',
-  taskFilterTime: 'All',
-  taskHideCompleted: false,
   registryFilterCat: 'All',
   registryFilterSource: 'All',
   loading: true,
@@ -903,6 +979,71 @@ function currentWeekNum(){
   return weeksFromDueDate(state.info.dueDate).week;
 }
 
+// ---------- Multiple checklists ----------
+function activeChecklist(){
+  if(!state.checklists || !state.checklists.length) return null;
+  return state.checklists.find(c => c.id === state.activeChecklistId) || state.checklists[0];
+}
+function newChecklist(name){
+  return {
+    id: uid(), name,
+    tasks: [],
+    catList: [...TASK_CATS],
+    catColors: {},
+    assigneeList: [state.info.motherName, state.info.fatherName].filter(n => n && n.trim()),
+    assigneeColors: {},
+  };
+}
+// Firebase Realtime Database silently drops empty arrays/objects (a node with no children is
+// indistinguishable from "no data here"), so a freshly created checklist's empty tasks/colors
+// come back missing after a round-trip through Firebase. Every place that assigns
+// state.checklists from Firebase or localStorage must run the result through this so downstream
+// code (tasksHTML, the Home page aggregation, etc.) can always safely assume tasks/catList/
+// assigneeList are arrays and catColors/assigneeColors are objects.
+function normalizeChecklists(list){
+  return (list || []).map(cl => ({
+    id: cl.id,
+    name: cl.name,
+    tasks: cl.tasks || [],
+    catList: (cl.catList && cl.catList.length) ? cl.catList : [...TASK_CATS],
+    catColors: cl.catColors || {},
+    assigneeList: cl.assigneeList || [],
+    assigneeColors: cl.assigneeColors || {},
+  }));
+}
+// Personal, per-device filter state for a checklist — never synced (see state.checklistFilters above).
+function checklistFilterState(id){
+  if(!state.checklistFilters[id]){
+    state.checklistFilters[id] = { filterCat: 'All', filterTime: 'All', filterAssignee: 'All', hideCompleted: false };
+  }
+  return state.checklistFilters[id];
+}
+
+// ---------- Notes tab themes ----------
+function activeNoteTheme(){
+  if(!state.noteThemes || !state.noteThemes.length) return null;
+  return state.noteThemes.find(t => t.id === state.activeNoteThemeId) || state.noteThemes[0];
+}
+function newNoteTheme(name){
+  return { id: uid(), name, notes: [] };
+}
+// Same Firebase quirk as normalizeChecklists() — a brand-new theme's notes:[] is empty and gets
+// silently pruned on write, so it comes back missing after a round-trip. Always run themes
+// through this before use.
+function normalizeNoteThemes(list){
+  return (list || []).map(t => ({
+    id: t.id,
+    name: t.name,
+    notes: t.notes || [],
+  }));
+}
+function noteThemeFilterState(id){
+  if(!state.noteThemeFilters[id]){
+    state.noteThemeFilters[id] = { filterVisibility: 'All' };
+  }
+  return state.noteThemeFilters[id];
+}
+
 async function loadPersonal(){
   state.name = personalGet('display-name');
   state.code = personalGet('household-code');
@@ -911,7 +1052,7 @@ async function loadPersonal(){
 async function loadHousehold(){
   if(!state.code) return;
 
-  const fields = ['info','tasks','registry','names','rankings','journal','customTaskCats','customRegistryCats','taskCatList','registryCatList','catColors','sourceList','sourceColors'];
+  const fields = ['info','tasks','registry','names','rankings','journal','notes','noteThemes','customTaskCats','customRegistryCats','taskCatList','registryCatList','catColors','sourceList','sourceColors','taskAssigneeList','assigneeColors','checklists'];
   const results = {};
   for(const f of fields){
     let r = await fbFetch(f);
@@ -939,11 +1080,22 @@ async function loadHousehold(){
   state.names = results.names || [];
   state.rankings = results.rankings || {};
   state.journal = results.journal || [];
-  if(results.taskCatList){
-    state.taskCatList = results.taskCatList;
+
+  // ---- Notes tab themes (multiple themes, each holding its own notes) ----
+  if(results.noteThemes && results.noteThemes.length){
+    state.noteThemes = normalizeNoteThemes(results.noteThemes);
+  } else if(results.notes && results.notes.length){
+    // One-time migration from the earlier flat Notes list into a single default theme.
+    state.noteThemes = [{ id: uid(), name: 'General', notes: results.notes }];
+    await saveHousehold('noteThemes');
   } else {
-    state.taskCatList = [...TASK_CATS, ...(results.customTaskCats || [])];
-    await saveHousehold('taskCatList');
+    state.noteThemes = [{ id: uid(), name: 'General', notes: [] }];
+    await saveHousehold('noteThemes');
+  }
+  state.activeNoteThemeId = personalGet('active-note-theme-id');
+  if(!state.noteThemes.some(t => t.id === state.activeNoteThemeId)){
+    state.activeNoteThemeId = state.noteThemes[0].id;
+    personalSet('active-note-theme-id', state.activeNoteThemeId);
   }
   if(results.registryCatList){
     state.registryCatList = results.registryCatList;
@@ -960,17 +1112,48 @@ async function loadHousehold(){
   }
   state.sourceColors = results.sourceColors || {};
 
-  if(results.tasks){
-    state.tasks = results.tasks;
-  } else if(oldChecklist){
-    state.tasks = oldChecklist.filter(i => TASK_CATS.includes(i.cat)).map(i => ({...i}));
-    if(state.tasks.length === 0){
-      state.tasks = DEFAULT_TASKS.map(i => ({id:uid(), text:i.t, cat:i.cat, week:i.week, done:false}));
-    }
-    await saveHousehold('tasks');
+  // ---- Task checklists (multiple checklists, each with its own categories/people/tasks) ----
+  if(results.checklists && results.checklists.length){
+    state.checklists = normalizeChecklists(results.checklists);
   } else {
-    state.tasks = DEFAULT_TASKS.map(i => ({id:uid(), text:i.t, cat:i.cat, week:i.week, done:false}));
-    await saveHousehold('tasks');
+    // One-time migration from the old single flat checklist (pre-multi-checklist) into the
+    // new model — everything that used to live at the top level becomes the first checklist.
+    let catList = results.taskCatList || [...TASK_CATS, ...(results.customTaskCats || [])];
+    if(!catList.some(c => c.toLowerCase() === 'to do')) catList = ['To Do', ...catList];
+
+    // catColors used to be shared between task categories and registry categories in one map —
+    // split out just the keys that belong to this checklist's own category list.
+    const legacyAllCatColors = results.catColors || {};
+    const catColors = {};
+    Object.keys(legacyAllCatColors).forEach(k => { if(catList.includes(k)) catColors[k] = legacyAllCatColors[k]; });
+
+    let tasks;
+    if(results.tasks){
+      tasks = results.tasks;
+    } else if(oldChecklist){
+      tasks = oldChecklist.filter(i => TASK_CATS.includes(i.cat)).map(i => ({...i}));
+      if(tasks.length === 0) tasks = DEFAULT_TASKS.map(i => ({id:uid(), text:i.t, cat:i.cat, week:i.week, done:false}));
+    } else {
+      tasks = DEFAULT_TASKS.map(i => ({id:uid(), text:i.t, cat:i.cat, week:i.week, done:false}));
+    }
+
+    const assigneeList = (results.taskAssigneeList && results.taskAssigneeList.length)
+      ? results.taskAssigneeList
+      : [state.info.motherName, state.info.fatherName].filter(n => n && n.trim());
+
+    state.checklists = [{
+      id: uid(),
+      name: 'Pregnancy Prep Tasks',
+      tasks, catList, catColors,
+      assigneeList,
+      assigneeColors: results.assigneeColors || {},
+    }];
+    await saveHousehold('checklists');
+  }
+  state.activeChecklistId = personalGet('active-checklist-id');
+  if(!state.checklists.some(c => c.id === state.activeChecklistId)){
+    state.activeChecklistId = state.checklists[0].id;
+    personalSet('active-checklist-id', state.activeChecklistId);
   }
 
   if(results.registry){
@@ -1052,7 +1235,8 @@ function renderApp(){
       <button data-tab="checklist" class="${state.tab==='checklist'?'active':''}">Checklist</button>
       <button data-tab="registry" class="${state.tab==='registry'?'active':''}">Registry</button>
       <button data-tab="names" class="${state.tab==='names'?'active':''}">Names</button>
-      <button data-tab="journal" class="${state.tab==='journal'?'active':''}">Journal Entries</button>
+      <button data-tab="journal" class="${state.tab==='journal'?'active':''}">Journal</button>
+      <button data-tab="notes" class="${state.tab==='notes'?'active':''}">Notes</button>
     </nav>
     <div id="tab-content"></div>
   `;
@@ -1061,7 +1245,7 @@ function renderApp(){
     render();
   };
   root.querySelectorAll('nav.tabs button').forEach(b => {
-    b.onclick = () => { state.tab = b.dataset.tab; state.openMenuId = null; state.editingId = null; state.timelinePopupIdx = null; state.showCatSettings = false; render(); };
+    b.onclick = () => { state.tab = b.dataset.tab; state.openMenuId = null; state.editingId = null; state.timelinePopupIdx = null; state.showCatSettings = false; state.showAddNoteTheme = false; state.showNoteThemeSettings = false; render(); };
   });
 
   const content = document.getElementById('tab-content');
@@ -1070,6 +1254,7 @@ function renderApp(){
   else if(state.tab === 'registry') content.innerHTML = registryHTML();
   else if(state.tab === 'names') content.innerHTML = namesHTML();
   else if(state.tab === 'journal') content.innerHTML = journalHTML();
+  else if(state.tab === 'notes') content.innerHTML = notesHTML();
   else if(state.tab === 'settings') content.innerHTML = settingsHTML();
 
   bindTabEvents();
@@ -1117,16 +1302,21 @@ function overviewHTML(w){
   const fruitArticle = /^[aeiou]/i.test(fruitName) ? 'an' : 'a';
   const fruitLink = `https://www.google.com/search?q=${encodeURIComponent(fruitName + ' dessert recipe')}`;
 
-  const overdueItems = state.tasks
+  // Pulls "this week"/"overdue" tasks from every checklist combined, so the Home page stays a
+  // single at-a-glance summary regardless of how many checklists exist.
+  const allTasksForHome = (state.checklists || []).flatMap(cl =>
+    cl.tasks.map(t => ({...t, _checklistId: cl.id, _catColors: cl.catColors}))
+  );
+  const overdueItems = allTasksForHome
     .filter(i => !i.done && i.week != null && i.week < week)
     .sort((a,b) => a.week - b.week);
-  const weekItems = state.tasks.filter(i => i.week === week && !i.done);
+  const weekItems = allTasksForHome.filter(i => i.week === week && !i.done);
 
   function homeItemRow(i, overdue){
-    const {bg, text} = catStyle(i.cat);
+    const {bg, text} = catStyle(i.cat, i._catColors);
     return `
     <div class="item-row">
-      <input type="checkbox" data-id="${i.id}" class="chk-home" ${i.done?'checked':''}/>
+      <input type="checkbox" data-id="${i.id}" data-checklist-id="${i._checklistId}" class="chk-home" ${i.done?'checked':''}/>
       <div class="txt">${escapeHtml(i.text)}</div>
       <div class="item-meta">
         ${overdue ? `<span class="overdue-tag">Overdue</span><span class="week-tag">wk ${i.week}</span>` : ''}
@@ -1227,7 +1417,10 @@ function legoIconSVG(){
 }
 
 // sections: [{ list, scope, addLabel, placeholder, manageLabel }]
-function catSettingsModalHTML(sections, title){
+// checklistMeta (optional): { id, name, canDelete } — when passed, adds a "Checklist" section
+// at the top of the modal with a rename field and (if canDelete) a delete button, so checklist
+// housekeeping lives in the same settings modal as its categories/people instead of the tab row.
+function catSettingsModalHTML(sections, title, checklistMeta){
   return `
   <div class="modal-overlay" id="cat-modal-overlay">
     <div class="modal-panel">
@@ -1236,59 +1429,174 @@ function catSettingsModalHTML(sections, title){
         <button type="button" class="modal-close-btn" id="cat-modal-close" title="Close">✕</button>
       </div>
       <div class="modal-body">
+        ${checklistMeta ? `
+        <div>
+          <label>Checklist name</label>
+          <div class="add-row" style="margin-top:6px;margin-bottom:0;">
+            <input type="text" id="checklist-modal-name-input" value="${escapeHtml(checklistMeta.name)}" />
+            <button type="button" class="btn ghost small" id="checklist-modal-rename-btn" data-id="${checklistMeta.id}">Save name</button>
+          </div>
+          ${checklistMeta.canDelete ? `<button type="button" class="btn ghost small checklist-modal-delete-btn" data-id="${checklistMeta.id}" style="margin-top:14px;color:#c0392b;border-color:#e3a9a0;">Delete this checklist</button>` : ''}
+        </div>` : ''}
         ${sections.map((sec, idx) => `
-        <div ${idx > 0 ? 'class="modal-section"' : ''}>
+        <div ${(checklistMeta || idx > 0) ? 'class="modal-section"' : ''}>
           <label>Add a new ${sec.singular}</label>
           <div class="add-row" style="margin-top:6px;margin-bottom:0;">
             <input type="text" placeholder="${escapeHtml(sec.placeholder)}" class="new-cat-input add-cat-modal-input" data-scope="${sec.scope}" />
             <button type="button" class="btn ghost small add-cat-modal-btn" data-scope="${sec.scope}">${escapeHtml(sec.addLabel)}</button>
           </div>
           <label style="margin-top:18px;">Rename or recolor ${sec.pluralLower}</label>
-          ${catManageRowHTML(sec.list, sec.scope)}
+          ${catManageRowHTML(sec.list, sec.scope, sec.colorMap)}
         </div>`).join('')}
       </div>
     </div>
   </div>`;
 }
 
-function catManageRowHTML(list, scope){
-  const isSource = scope === 'source';
+function catManageRowHTML(list, scope, colorMap){
+  const colorFor = (c) => scope === 'source' ? sourceStyle(c) : scope === 'assignee' ? assigneeStyle(c, colorMap).bg : catStyle(c, colorMap).bg;
+  const labelFor = scope === 'source' ? 'Source' : scope === 'assignee' ? 'Person' : 'Category';
   return `
   <div class="cat-manage-row">
     ${list.map(c => `
     <span class="cat-manage-chip">
-      <input type="color" class="cat-color-input" value="${isSource ? sourceStyle(c) : catStyle(c).bg}" data-cat="${escapeHtml(c)}" data-scope="${scope}" title="${isSource ? 'Source' : 'Category'} color" />
+      <input type="color" class="cat-color-input" value="${colorFor(c)}" data-cat="${escapeHtml(c)}" data-scope="${scope}" title="${labelFor} color" />
       ${escapeHtml(c)}
       <button type="button" class="cat-rename-btn" data-old="${escapeHtml(c)}" data-scope="${scope}" title="Rename">✎</button>
     </span>`).join('')}
   </div>`;
 }
 
+// Small pill/tab row for switching between checklists, renaming the active one, and adding
+// a new one — sits above the checklist card itself.
+function checklistTabRowHTML(){
+  return `
+  <div class="checklist-tab-row">
+    ${state.checklists.map(cl => `
+    <span class="checklist-tab-wrap" data-id="${cl.id}">
+      <button type="button" class="checklist-tab ${cl.id===state.activeChecklistId?'active':''}" data-id="${cl.id}">${escapeHtml(cl.name)}</button>
+    </span>`).join('')}
+    <button type="button" class="checklist-add-btn" id="checklist-add-btn" title="Add a checklist">+</button>
+  </div>`;
+}
+
+function newChecklistModalHTML(){
+  return `
+  <div class="modal-overlay" id="new-checklist-modal-overlay">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2 style="margin:0;">New checklist</h2>
+        <button type="button" class="modal-close-btn" id="new-checklist-modal-close" title="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <label>Checklist name</label>
+        <input type="text" id="new-checklist-name" placeholder="e.g. Hospital Bag" style="margin-top:6px;" />
+        ${state.checklists.length ? `
+        <label style="margin-top:18px;">Copy categories &amp; people from</label>
+        <select id="new-checklist-copy-from" style="margin-top:6px;">
+          <option value="">Start fresh — don't copy</option>
+          ${state.checklists.map(cl => `<option value="${cl.id}">${escapeHtml(cl.name)}</option>`).join('')}
+        </select>` : ''}
+        <button class="btn small block" id="new-checklist-create">Create checklist</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ---------- Notes tab themes: pill tab row, add-theme modal, rename/delete modal ----------
+// Mirrors the Checklist tab's tab row (same pill/switch/drag/add pattern) but with its own
+// class names throughout, so its generic-selector event handlers never collide with the
+// Checklist tab's — the two tabs are never on screen at the same time, but bindTabEvents()
+// re-binds by class name on every render, so reusing checklist-* classes here would let the
+// Checklist tab's handlers mistakenly attach to Notes theme buttons (and vice versa).
+function noteThemeTabRowHTML(){
+  return `
+  <div class="checklist-tab-row">
+    ${state.noteThemes.map(t => `
+    <span class="note-theme-tab-wrap" data-id="${t.id}">
+      <button type="button" class="note-theme-tab ${t.id===state.activeNoteThemeId?'active':''}" data-id="${t.id}">${escapeHtml(t.name)}</button>
+    </span>`).join('')}
+    <button type="button" class="checklist-add-btn" id="note-theme-add-btn" title="Add a theme">+</button>
+  </div>`;
+}
+
+function newNoteThemeModalHTML(){
+  return `
+  <div class="modal-overlay" id="new-note-theme-modal-overlay">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2 style="margin:0;">New theme</h2>
+        <button type="button" class="modal-close-btn" id="new-note-theme-modal-close" title="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <label>Theme name</label>
+        <input type="text" id="new-note-theme-name" placeholder="e.g. Nursery ideas" style="margin-top:6px;" />
+        <button class="btn small block" id="new-note-theme-create">Create theme</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// Simpler cousin of catSettingsModalHTML — themes have no categories/people to manage, just a
+// name and (when there's more than one theme) a delete option.
+function noteThemeSettingsModalHTML(theme, canDelete){
+  return `
+  <div class="modal-overlay" id="note-theme-modal-overlay">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2 style="margin:0;">Manage “${escapeHtml(theme.name)}”</h2>
+        <button type="button" class="modal-close-btn" id="note-theme-modal-close" title="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <label>Theme name</label>
+        <div class="add-row" style="margin-top:6px;margin-bottom:0;">
+          <input type="text" id="note-theme-modal-name-input" value="${escapeHtml(theme.name)}" />
+          <button type="button" class="btn ghost small" id="note-theme-modal-rename-btn" data-id="${theme.id}">Save name</button>
+        </div>
+        ${canDelete ? `<button type="button" class="btn ghost small note-theme-modal-delete-btn" data-id="${theme.id}" style="margin-top:14px;color:#c0392b;border-color:#e3a9a0;">Delete this theme</button>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
 function tasksHTML(){
   const currentWeek = currentWeekNum();
-  const allCats = state.taskCatList && state.taskCatList.length ? state.taskCatList : TASK_CATS;
-  const catOptions = ["All", ...allCats];
-  const timeOptions = ["All","Overdue","This week","Upcoming"];
-
-  let items = state.tasks.slice();
-  if(state.taskFilterCat !== 'All') items = items.filter(i => i.cat === state.taskFilterCat);
-  if(state.taskFilterTime === 'Overdue'){
-    items = items.filter(i => !i.done && currentWeek != null && i.week != null && i.week < currentWeek);
-  } else if(state.taskFilterTime === 'This week'){
-    items = items.filter(i => currentWeek != null && i.week === currentWeek);
-  } else if(state.taskFilterTime === 'Upcoming'){
-    items = items.filter(i => currentWeek != null && i.week != null && i.week > currentWeek);
+  const cl = activeChecklist();
+  if(!cl){
+    return `${checklistTabRowHTML()}<div class="card"><div class="empty">No checklists yet.</div></div>${state.showAddChecklist ? newChecklistModalHTML() : ''}`;
   }
-  if(state.taskHideCompleted) items = items.filter(i => !i.done);
+  const fs = checklistFilterState(cl.id);
+  const allCats = cl.catList && cl.catList.length ? cl.catList : TASK_CATS;
+  const catOptions = ["All", ...allCats];
+  const timeOptions = ["All","Overdue","This week","Upcoming","No week set"];
+  const allAssignees = cl.assigneeList || [];
+  const assigneeOptions = ["All", "Unassigned", ...allAssignees];
 
-  // Sort: overdue (not done, week < currentWeek) first — oldest week first — then remaining by week asc (unscheduled last).
+  let items = cl.tasks.slice();
+  if(fs.filterCat !== 'All') items = items.filter(i => i.cat === fs.filterCat);
+  if(fs.filterTime === 'Overdue'){
+    items = items.filter(i => !i.done && currentWeek != null && i.week != null && i.week < currentWeek);
+  } else if(fs.filterTime === 'This week'){
+    items = items.filter(i => currentWeek != null && i.week === currentWeek);
+  } else if(fs.filterTime === 'Upcoming'){
+    items = items.filter(i => currentWeek != null && i.week != null && i.week > currentWeek);
+  } else if(fs.filterTime === 'No week set'){
+    items = items.filter(i => i.week == null);
+  }
+  if(fs.hideCompleted) items = items.filter(i => !i.done);
+  if(fs.filterAssignee === 'Unassigned') items = items.filter(i => !i.assignee);
+  else if(fs.filterAssignee !== 'All') items = items.filter(i => i.assignee === fs.filterAssignee);
+
+  // Sort: unscheduled (no week set) first, then overdue (not done, week < currentWeek) —
+  // oldest week first — then remaining scheduled tasks by week ascending.
   items.sort((a,b) => {
+    const aNoWeek = a.week == null;
+    const bNoWeek = b.week == null;
+    if(aNoWeek !== bNoWeek) return aNoWeek ? -1 : 1;
     const aOverdue = !a.done && currentWeek != null && a.week != null && a.week < currentWeek;
     const bOverdue = !b.done && currentWeek != null && b.week != null && b.week < currentWeek;
     if(aOverdue !== bOverdue) return aOverdue ? -1 : 1;
-    const aw = a.week == null ? 999 : a.week;
-    const bw = b.week == null ? 999 : b.week;
-    if(aw !== bw) return aw - bw;
+    if(a.week !== b.week) return a.week - b.week;
     return 0;
   });
 
@@ -1299,6 +1607,10 @@ function tasksHTML(){
       <input type="number" class="edit-week" value="${i.week != null ? i.week : ''}" placeholder="Week" min="1" max="42" />
       <select class="edit-cat">
         ${allCats.map(c => `<option ${c===i.cat?'selected':''}>${c}</option>`).join('')}
+      </select>
+      <select class="edit-assignee">
+        <option value="" ${!i.assignee?'selected':''}>Unassigned</option>
+        ${allAssignees.map(p => `<option ${p===i.assignee?'selected':''}>${p}</option>`).join('')}
       </select>
       <button class="btn small edit-save" data-id="${i.id}" data-kind="task">Save</button>
       <button class="btn ghost small edit-cancel">Cancel</button>
@@ -1319,11 +1631,13 @@ function tasksHTML(){
       rows += taskEditRow(i);
       return;
     }
-    const {bg, text} = catStyle(i.cat);
+    const {bg, text} = catStyle(i.cat, cl.catColors);
+    const assigneeStyleVal = i.assignee ? assigneeStyle(i.assignee, cl.assigneeColors) : null;
     rows += `
     <div class="item-row ${i.done?'done':''}">
       <input type="checkbox" data-id="${i.id}" class="chk" ${i.done?'checked':''}/>
       <div class="txt">${escapeHtml(i.text)}</div>
+      ${i.assignee ? `<span class="assignee-pill" style="background:${assigneeStyleVal.bg};color:${assigneeStyleVal.text};">${escapeHtml(i.assignee)}</span>` : ''}
       <span class="cat-pill" style="background:${bg};color:${text};">${i.cat}</span>
       <div class="row-menu">
         <button class="row-menu-btn" data-id="${i.id}">▾</button>
@@ -1338,9 +1652,10 @@ function tasksHTML(){
   if(items.length === 0) rows = `<div class="empty">No checklist items match this filter.</div>`;
 
   return `
+  ${checklistTabRowHTML()}
   <div class="card">
     <div class="card-header-row">
-      <h2 style="margin-bottom:0;">Pregnancy prep tasks</h2>
+      <h2 style="margin-bottom:0;">${escapeHtml(cl.name)}</h2>
       <button type="button" class="settings-icon-btn" id="cat-settings-btn" title="Manage categories">${legoIconSVG()}</button>
     </div>
     <div class="add-row" style="margin-top:14px;">
@@ -1349,25 +1664,34 @@ function tasksHTML(){
       <select id="new-task-cat">
         ${allCats.map(c => `<option>${c}</option>`).join('')}
       </select>
+      <select id="new-task-assignee">
+        <option value="">Assign to… (optional)</option>
+        ${allAssignees.map(p => `<option>${p}</option>`).join('')}
+      </select>
       <button class="btn small" id="add-task">Add</button>
     </div>
     <div class="filter-row">
       <select id="task-filter-cat">
-        ${catOptions.map(c => `<option value="${c}" ${state.taskFilterCat===c?'selected':''}>${c==='All'?'All categories':c}</option>`).join('')}
+        ${catOptions.map(c => `<option value="${c}" ${fs.filterCat===c?'selected':''}>${c==='All'?'All categories':c}</option>`).join('')}
       </select>
       <select id="task-filter-time">
-        ${timeOptions.map(t => `<option value="${t}" ${state.taskFilterTime===t?'selected':''}>${t==='All'?'All timeframes':t}</option>`).join('')}
+        ${timeOptions.map(t => `<option value="${t}" ${fs.filterTime===t?'selected':''}>${t==='All'?'All timeframes':t}</option>`).join('')}
+      </select>
+      <select id="task-filter-assignee">
+        ${assigneeOptions.map(p => `<option value="${p}" ${fs.filterAssignee===p?'selected':''}>${p==='All'?'All assignees':p}</option>`).join('')}
       </select>
       <label class="hide-completed-toggle">
-        <input type="checkbox" id="task-hide-completed" ${state.taskHideCompleted ? 'checked' : ''}/>
+        <input type="checkbox" id="task-hide-completed" ${fs.hideCompleted ? 'checked' : ''}/>
         Hide completed
       </label>
     </div>
     ${rows}
   </div>
   ${state.showCatSettings ? catSettingsModalHTML([
-    { list: allCats, scope: 'task', singular: 'category', placeholder: 'New category…', addLabel: 'Add category', pluralLower: 'categories' },
-  ], 'Manage task categories') : ''}`;
+    { list: allCats, scope: 'task', singular: 'category', placeholder: 'New category…', addLabel: 'Add category', pluralLower: 'categories', colorMap: cl.catColors },
+    { list: allAssignees, scope: 'assignee', singular: 'person', placeholder: 'Person’s name…', addLabel: 'Add person', pluralLower: 'people', colorMap: cl.assigneeColors },
+  ], `Manage “${cl.name}” options`, { id: cl.id, name: cl.name, canDelete: state.checklists.length > 1 }) : ''}
+  ${state.showAddChecklist ? newChecklistModalHTML() : ''}`;
 }
 
 function registryHTML(){
@@ -1383,6 +1707,7 @@ function registryHTML(){
     return `
     <div class="item-row edit-row">
       <input type="text" class="edit-text" value="${escapeHtml(i.text)}" />
+      <input type="text" class="edit-notes" value="${escapeHtml(i.notes || '')}" placeholder="Additional details (optional)" />
       <select class="edit-cat">
         ${allRegCats.map(c => `<option ${c===i.cat?'selected':''}>${c}</option>`).join('')}
       </select>
@@ -1402,7 +1727,10 @@ function registryHTML(){
     return `
     <div class="item-row ${i.done?'done':''}">
       <input type="checkbox" data-id="${i.id}" class="chk-reg" ${i.done?'checked':''}/>
-      <div class="txt">${escapeHtml(i.text)}</div>
+      <div class="txt">
+        <div>${escapeHtml(i.text)}</div>
+        ${i.notes ? `<div class="item-notes">${escapeHtml(i.notes)}</div>` : ''}
+      </div>
       ${i.source ? `<span class="source-pill" style="border-color:${sourceColor};color:${sourceColor};">${i.source}</span>` : ''}
       <span class="cat-pill" style="background:${bg};color:${text};">${i.cat}</span>
       <div class="row-menu">
@@ -1422,7 +1750,8 @@ function registryHTML(){
   } else if(state.registryFilterCat !== 'All'){
     html = items.map(i => itemRowHTML(i)).join('');
   } else {
-    html = allRegCats.map(cat => {
+    // Group by category, alphabetically rather than the categories' custom/insertion order.
+    html = [...allRegCats].sort((a,b) => a.localeCompare(b)).map(cat => {
       const catItems = items.filter(i => i.cat === cat);
       if(catItems.length === 0) return '';
       return `<div class="cat-heading">${cat}</div>` + catItems.map(i => itemRowHTML(i)).join('');
@@ -1437,6 +1766,7 @@ function registryHTML(){
     </div>
     <div class="add-row" style="margin-top:14px;">
       <input type="text" id="new-reg" placeholder="Add a registry item…" />
+      <input type="text" id="new-reg-notes" placeholder="Additional details (optional)" />
       <select id="new-reg-cat">
         ${allRegCats.map(c => `<option>${c}</option>`).join('')}
       </select>
@@ -1753,6 +2083,115 @@ function journalHTML(){
   </div>`;
 }
 
+// ---- Notes tab ----
+// Journal Entries' rich text editor, private/shared visibility, and edit/delete, but notes are
+// grouped into themes (state.noteThemes) the same way Checklist groups tasks into checklists —
+// pill tabs at the top switch between themes, and each new note picks which theme it files
+// under. Reuses the same .journal-editor/.journal-rich-input/.fmt-btn markup+CSS/toolbar logic
+// (those are generic, not tied to state.journal), but uses its own edit/menu button classes so
+// the two tabs' save/delete handlers can't cross-fire on each other's data.
+
+function notesEntryRow(e){
+  const isEditing = state.editingId === e.id;
+  const canEdit = e.authorName === state.name;
+  const dt = new Date(e.createdAt);
+  const dateStr = dt.toLocaleDateString(undefined,{month:'short', day:'numeric', year:'numeric'});
+  const timeStr = dt.toLocaleTimeString(undefined,{hour:'numeric', minute:'2-digit'});
+
+  if(isEditing){
+    return `
+    <div class="journal-entry editing">
+      <div class="journal-editor">
+        ${formatToolbarHTML()}
+        <div class="journal-rich-input notes-edit-text" contenteditable="true" data-placeholder="What's on your mind?">${renderJournalText(e.text)}</div>
+      </div>
+      <div class="journal-controls">
+        <select class="notes-edit-visibility">
+          <option value="private" ${e.visibility==='private'?'selected':''}>Private — just for me</option>
+          <option value="public" ${e.visibility==='public'?'selected':''}>Shared with my partner</option>
+        </select>
+        <button class="btn small notes-edit-save" data-id="${e.id}">Save</button>
+        <button class="btn ghost small notes-edit-cancel">Cancel</button>
+      </div>
+    </div>`;
+  }
+
+  return `
+  <div class="journal-entry">
+    <div class="journal-entry-head">
+      <div class="journal-entry-meta">
+        <span class="journal-author">${escapeHtml(e.authorName)}</span>
+        <span class="journal-date">${dateStr} · ${timeStr}</span>
+        <span class="visibility-pill ${e.visibility}">${e.visibility === 'public' ? 'Shared' : 'Private'}</span>
+      </div>
+      ${canEdit ? `
+      <div class="row-menu">
+        <button class="row-menu-btn" data-id="${e.id}">▾</button>
+        ${state.openMenuId === e.id ? `
+        <div class="row-menu-dropdown">
+          <button class="notes-menu-edit" data-id="${e.id}">Edit</button>
+          <button class="notes-menu-delete" data-id="${e.id}">Delete</button>
+        </div>` : ''}
+      </div>` : ''}
+    </div>
+    <div class="journal-entry-text">${renderJournalText(e.text)}</div>
+  </div>`;
+}
+
+function notesHTML(){
+  const theme = activeNoteTheme();
+  if(!theme){
+    return `${noteThemeTabRowHTML()}<div class="card"><div class="empty">No note themes yet.</div></div>${state.showAddNoteTheme ? newNoteThemeModalHTML() : ''}`;
+  }
+  const fs = noteThemeFilterState(theme.id);
+
+  let visible = (theme.notes || [])
+    .filter(e => e.visibility === 'public' || e.authorName === state.name);
+  if(fs.filterVisibility === 'Private') visible = visible.filter(e => e.visibility === 'private');
+  else if(fs.filterVisibility === 'Shared') visible = visible.filter(e => e.visibility === 'public');
+  visible = visible.slice().sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const list = visible.length === 0
+    ? `<div class="empty">No notes match this filter.</div>`
+    : visible.map(e => notesEntryRow(e)).join('');
+
+  return `
+  ${noteThemeTabRowHTML()}
+  <div class="card">
+    <h2 style="margin-bottom:14px;">New note</h2>
+    <div class="journal-editor">
+      ${formatToolbarHTML()}
+      <div class="journal-rich-input" id="notes-new-text" contenteditable="true" data-placeholder="What's on your mind?"></div>
+    </div>
+    <div class="journal-controls">
+      <select id="notes-new-theme">
+        ${state.noteThemes.map(t => `<option value="${t.id}" ${t.id===theme.id?'selected':''}>${escapeHtml(t.name)}</option>`).join('')}
+      </select>
+      <select id="notes-new-visibility">
+        <option value="public" selected>Shared with my partner</option>
+        <option value="private">Private — just for me</option>
+      </select>
+      <button class="btn small" id="notes-new-save">Save note</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header-row">
+      <h2 style="margin-bottom:0;">${escapeHtml(theme.name)}</h2>
+      <button type="button" class="settings-icon-btn" id="note-theme-settings-btn" title="Manage theme">${legoIconSVG()}</button>
+    </div>
+    <div class="filter-row" style="margin-top:14px;">
+      <select id="notes-filter-visibility">
+        <option value="All" ${fs.filterVisibility==='All'?'selected':''}>All notes</option>
+        <option value="Private" ${fs.filterVisibility==='Private'?'selected':''}>Private only</option>
+        <option value="Shared" ${fs.filterVisibility==='Shared'?'selected':''}>Shared only</option>
+      </select>
+    </div>
+    ${list}
+  </div>
+  ${state.showNoteThemeSettings ? noteThemeSettingsModalHTML(theme, state.noteThemes.length > 1) : ''}
+  ${state.showAddNoteTheme ? newNoteThemeModalHTML() : ''}`;
+}
+
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 function bindTabEvents(){
@@ -1769,9 +2208,11 @@ function bindTabEvents(){
   }
   root.querySelectorAll('.chk-home').forEach(cb => {
     cb.onchange = async () => {
-      const item = state.tasks.find(i=>i.id===cb.dataset.id);
+      const cl = state.checklists.find(c => c.id === cb.dataset.checklistId);
+      const item = cl && cl.tasks.find(i=>i.id===cb.dataset.id);
+      if(!item) return;
       item.done = cb.checked;
-      await saveHousehold('tasks');
+      await saveHousehold('checklists');
       render();
     };
   });
@@ -1885,6 +2326,216 @@ function bindTabEvents(){
     };
   });
 
+  // Notes tab — new entry + edit/delete, scoped to the active theme (saving to state.noteThemes).
+  // The rich-text toolbar (.fmt-btn/.journal-rich-input handlers above) already cover Notes too
+  // since that logic is generic.
+  const notesNewSave = document.getElementById('notes-new-save');
+  if(notesNewSave){
+    notesNewSave.onclick = async () => {
+      const box = document.getElementById('notes-new-text');
+      const text = sanitizeJournalHTML(box.innerHTML);
+      if(!box.textContent.trim()) return;
+      const visibility = document.getElementById('notes-new-visibility').value;
+      const themeId = document.getElementById('notes-new-theme').value;
+      const theme = state.noteThemes.find(t => t.id === themeId);
+      if(!theme) return;
+      theme.notes.push({ id: uid(), text, authorName: state.name, createdAt: new Date().toISOString(), visibility });
+      // Jump the view to whichever theme the note was filed under, so it's immediately visible
+      // even if that's a different theme than the one currently on screen.
+      state.activeNoteThemeId = theme.id;
+      personalSet('active-note-theme-id', theme.id);
+      await saveHousehold('noteThemes');
+      render();
+    };
+  }
+  const notesFilterVis = document.getElementById('notes-filter-visibility');
+  if(notesFilterVis){
+    notesFilterVis.onchange = () => {
+      const theme = activeNoteTheme();
+      if(!theme) return;
+      noteThemeFilterState(theme.id).filterVisibility = notesFilterVis.value;
+      render();
+    };
+  }
+  root.querySelectorAll('.notes-menu-edit').forEach(btn => {
+    btn.onclick = () => { state.editingId = btn.dataset.id; state.openMenuId = null; render(); };
+  });
+  root.querySelectorAll('.notes-menu-delete').forEach(btn => {
+    btn.onclick = async () => {
+      const theme = activeNoteTheme();
+      if(!theme) return;
+      theme.notes = theme.notes.filter(e => e.id !== btn.dataset.id);
+      state.openMenuId = null;
+      await saveHousehold('noteThemes');
+      render();
+    };
+  });
+  root.querySelectorAll('.notes-edit-cancel').forEach(btn => {
+    btn.onclick = () => { state.editingId = null; render(); };
+  });
+  root.querySelectorAll('.notes-edit-save').forEach(btn => {
+    btn.onclick = async () => {
+      const theme = activeNoteTheme();
+      if(!theme) return;
+      const id = btn.dataset.id;
+      const wrap = btn.closest('.journal-entry');
+      const box = wrap.querySelector('.notes-edit-text');
+      const text = sanitizeJournalHTML(box.innerHTML);
+      if(!box.textContent.trim()) return;
+      const visibility = wrap.querySelector('.notes-edit-visibility').value;
+      const entry = theme.notes.find(e => e.id === id);
+      entry.text = text;
+      entry.visibility = visibility;
+      state.editingId = null;
+      await saveHousehold('noteThemes');
+      render();
+    };
+  });
+
+  // Note theme switcher + drag-to-reorder — identical pattern to the Checklist tab row above,
+  // duplicated under note-theme-* class names so the two tabs' handlers can't cross-bind.
+  const NOTE_THEME_DRAG_THRESHOLD = 6;
+  root.querySelectorAll('.note-theme-tab-wrap').forEach(wrap => {
+    const btn = wrap.querySelector('.note-theme-tab');
+    if(!btn) return;
+    let startX = 0;
+    let dragging = false;
+    let pressed = false;
+
+    btn.onpointerdown = (e) => {
+      pressed = true;
+      startX = e.clientX;
+      dragging = false;
+      try{ btn.setPointerCapture(e.pointerId); }catch(err){}
+    };
+    btn.onpointermove = (e) => {
+      if(!pressed) return;
+      const dx = e.clientX - startX;
+      if(!dragging && Math.abs(dx) > NOTE_THEME_DRAG_THRESHOLD){
+        dragging = true;
+        wrap.classList.add('dragging');
+      }
+      if(dragging) wrap.style.transform = `translateX(${dx}px)`;
+    };
+    const endDrag = async (e) => {
+      pressed = false;
+      try{ btn.releasePointerCapture(e.pointerId); }catch(err){}
+      if(!dragging) return;
+      btn._justDragged = true;
+
+      const row = wrap.parentElement;
+      const siblings = [...row.querySelectorAll('.note-theme-tab-wrap')].filter(s => s !== wrap);
+      const wrapRect = wrap.getBoundingClientRect();
+      const wrapCenter = wrapRect.left + wrapRect.width / 2;
+      let placed = false;
+      for(const sib of siblings){
+        const rect = sib.getBoundingClientRect();
+        const mid = rect.left + rect.width / 2;
+        if(wrapCenter < mid){ row.insertBefore(wrap, sib); placed = true; break; }
+      }
+      if(!placed && siblings.length) siblings[siblings.length - 1].after(wrap);
+
+      wrap.classList.remove('dragging');
+      wrap.style.transform = '';
+      dragging = false;
+
+      const row2 = wrap.parentElement;
+      const orderedIds = [...row2.querySelectorAll('.note-theme-tab-wrap')].map(w => w.dataset.id);
+      state.noteThemes.sort((a,b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id));
+      await saveHousehold('noteThemes');
+      render();
+    };
+    btn.onpointerup = endDrag;
+    btn.onpointercancel = () => {
+      pressed = false;
+      dragging = false;
+      wrap.classList.remove('dragging');
+      wrap.style.transform = '';
+    };
+  });
+  root.querySelectorAll('.note-theme-tab').forEach(btn => {
+    btn.onclick = () => {
+      if(btn._justDragged){ btn._justDragged = false; return; }
+      state.activeNoteThemeId = btn.dataset.id;
+      personalSet('active-note-theme-id', state.activeNoteThemeId);
+      state.openMenuId = null;
+      state.editingId = null;
+      state.showNoteThemeSettings = false;
+      render();
+    };
+  });
+  const noteThemeAddBtn = document.getElementById('note-theme-add-btn');
+  if(noteThemeAddBtn){
+    noteThemeAddBtn.onclick = () => { state.showAddNoteTheme = true; render(); };
+  }
+  const newNoteThemeModalClose = document.getElementById('new-note-theme-modal-close');
+  if(newNoteThemeModalClose){
+    newNoteThemeModalClose.onclick = () => { state.showAddNoteTheme = false; render(); };
+  }
+  const newNoteThemeModalOverlay = document.getElementById('new-note-theme-modal-overlay');
+  if(newNoteThemeModalOverlay){
+    newNoteThemeModalOverlay.onclick = (e) => { if(e.target === newNoteThemeModalOverlay){ state.showAddNoteTheme = false; render(); } };
+  }
+  const newNoteThemeCreateBtn = document.getElementById('new-note-theme-create');
+  if(newNoteThemeCreateBtn){
+    newNoteThemeCreateBtn.onclick = async () => {
+      const nameInp = document.getElementById('new-note-theme-name');
+      const name = nameInp.value.trim();
+      if(!name) return;
+      const created = newNoteTheme(name);
+      state.noteThemes.push(created);
+      state.activeNoteThemeId = created.id;
+      personalSet('active-note-theme-id', created.id);
+      state.showAddNoteTheme = false;
+      await saveHousehold('noteThemes');
+      render();
+    };
+  }
+  const noteThemeSettingsBtn = document.getElementById('note-theme-settings-btn');
+  if(noteThemeSettingsBtn){
+    noteThemeSettingsBtn.onclick = () => { state.showNoteThemeSettings = true; render(); };
+  }
+  const noteThemeModalClose = document.getElementById('note-theme-modal-close');
+  if(noteThemeModalClose){
+    noteThemeModalClose.onclick = () => { state.showNoteThemeSettings = false; render(); };
+  }
+  const noteThemeModalOverlay = document.getElementById('note-theme-modal-overlay');
+  if(noteThemeModalOverlay){
+    noteThemeModalOverlay.onclick = (e) => { if(e.target === noteThemeModalOverlay){ state.showNoteThemeSettings = false; render(); } };
+  }
+  const noteThemeModalRenameBtn = document.getElementById('note-theme-modal-rename-btn');
+  if(noteThemeModalRenameBtn){
+    noteThemeModalRenameBtn.onclick = async () => {
+      const target = state.noteThemes.find(t => t.id === noteThemeModalRenameBtn.dataset.id);
+      const input = document.getElementById('note-theme-modal-name-input');
+      if(!target || !input) return;
+      const newName = input.value.trim();
+      if(!newName || newName === target.name) return;
+      target.name = newName;
+      await saveHousehold('noteThemes');
+      render();
+    };
+  }
+  root.querySelectorAll('.note-theme-modal-delete-btn').forEach(btn => {
+    btn.onclick = async () => {
+      if(state.noteThemes.length <= 1) return; // always keep at least one theme
+      const target = state.noteThemes.find(t => t.id === btn.dataset.id);
+      if(!target) return;
+      if(!confirm(`Delete the "${target.name}" theme? This will permanently remove all ${target.notes.length} note${target.notes.length===1?'':'s'} in it.`)) return;
+      state.noteThemes = state.noteThemes.filter(t => t.id !== target.id);
+      delete state.noteThemeFilters[target.id];
+      if(state.activeNoteThemeId === target.id){
+        state.activeNoteThemeId = state.noteThemes[0].id;
+        personalSet('active-note-theme-id', state.activeNoteThemeId);
+      }
+      state.openMenuId = null;
+      state.editingId = null;
+      state.showNoteThemeSettings = false;
+      await saveHousehold('noteThemes');
+      render();
+    };
+  });
+
   // Settings — leave household
   const switchBtn = document.getElementById('switch-btn');
   if(switchBtn){
@@ -1908,24 +2559,40 @@ function bindTabEvents(){
     };
   }
 
-  // Checklist (tasks)
+  // Checklist (tasks) — all task/category/assignee actions operate on the active checklist.
+  const cl = activeChecklist();
+  const fs = cl ? checklistFilterState(cl.id) : null;
   const catFilter = document.getElementById('task-filter-cat');
   if(catFilter){
-    catFilter.onchange = () => { state.taskFilterCat = catFilter.value; render(); };
+    catFilter.onchange = () => { fs.filterCat = catFilter.value; render(); };
   }
   const timeFilter = document.getElementById('task-filter-time');
   if(timeFilter){
-    timeFilter.onchange = () => { state.taskFilterTime = timeFilter.value; render(); };
+    timeFilter.onchange = () => { fs.filterTime = timeFilter.value; render(); };
+  }
+  const assigneeFilter = document.getElementById('task-filter-assignee');
+  if(assigneeFilter){
+    assigneeFilter.onchange = () => { fs.filterAssignee = assigneeFilter.value; render(); };
   }
   const hideCompleted = document.getElementById('task-hide-completed');
   if(hideCompleted){
-    hideCompleted.onchange = () => { state.taskHideCompleted = hideCompleted.checked; render(); };
+    hideCompleted.onchange = () => { fs.hideCompleted = hideCompleted.checked; render(); };
   }
   root.querySelectorAll('.cat-color-input').forEach(inp => {
     inp.onchange = async () => {
       if(inp.dataset.scope === 'source'){
         state.sourceColors = {...state.sourceColors, [inp.dataset.cat]: inp.value};
         await saveHousehold('sourceColors');
+      } else if(inp.dataset.scope === 'assignee'){
+        if(cl){
+          cl.assigneeColors = {...cl.assigneeColors, [inp.dataset.cat]: inp.value};
+          await saveHousehold('checklists');
+        }
+      } else if(inp.dataset.scope === 'task'){
+        if(cl){
+          cl.catColors = {...cl.catColors, [inp.dataset.cat]: inp.value};
+          await saveHousehold('checklists');
+        }
       } else {
         state.catColors = {...state.catColors, [inp.dataset.cat]: inp.value};
         await saveHousehold('catColors');
@@ -1935,43 +2602,201 @@ function bindTabEvents(){
   });
   root.querySelectorAll('.cat-rename-btn[data-scope="task"]').forEach(btn => {
     btn.onclick = async () => {
+      if(!cl) return;
       const oldName = btn.dataset.old;
       const newName = (prompt(`Rename category "${oldName}" to:`, oldName) || '').trim();
       if(!newName || newName === oldName) return;
-      const list = state.taskCatList || [...TASK_CATS];
+      const list = cl.catList && cl.catList.length ? cl.catList : [...TASK_CATS];
       if(list.some(c => c.toLowerCase() === newName.toLowerCase())){
         alert(`A category named "${newName}" already exists.`);
         return;
       }
-      state.taskCatList = list.map(c => c === oldName ? newName : c);
-      state.tasks.forEach(i => { if(i.cat === oldName) i.cat = newName; });
-      if(state.catColors && state.catColors[oldName] !== undefined){
-        state.catColors = {...state.catColors, [newName]: state.catColors[oldName]};
-        delete state.catColors[oldName];
+      cl.catList = list.map(c => c === oldName ? newName : c);
+      cl.tasks.forEach(i => { if(i.cat === oldName) i.cat = newName; });
+      if(cl.catColors && cl.catColors[oldName] !== undefined){
+        cl.catColors = {...cl.catColors, [newName]: cl.catColors[oldName]};
+        delete cl.catColors[oldName];
       }
-      if(state.taskFilterCat === oldName) state.taskFilterCat = newName;
-      await saveHouseholdFields({ taskCatList: state.taskCatList, tasks: state.tasks, catColors: state.catColors });
+      if(fs.filterCat === oldName) fs.filterCat = newName;
+      await saveHousehold('checklists');
       render();
     };
   });
   root.querySelectorAll('.chk').forEach(cb => {
     cb.onchange = async () => {
-      const item = state.tasks.find(i=>i.id===cb.dataset.id);
+      if(!cl) return;
+      const item = cl.tasks.find(i=>i.id===cb.dataset.id);
       item.done = cb.checked;
-      await saveHousehold('tasks');
+      await saveHousehold('checklists');
       render();
     };
   });
   const addTaskBtn = document.getElementById('add-task');
   if(addTaskBtn){
     addTaskBtn.onclick = async () => {
+      if(!cl) return;
       const inp = document.getElementById('new-task');
       const weekInp = document.getElementById('new-task-week');
       const cat = document.getElementById('new-task-cat').value;
+      const assignee = document.getElementById('new-task-assignee').value || null;
       if(!inp.value.trim()) return;
       const week = weekInp.value ? Number(weekInp.value) : null;
-      state.tasks.push({id:uid(), text:inp.value.trim(), cat, week, done:false});
-      await saveHousehold('tasks');
+      cl.tasks.push({id:uid(), text:inp.value.trim(), cat, week, assignee, done:false});
+      await saveHousehold('checklists');
+      render();
+    };
+  }
+  // Checklist switcher + drag-to-reorder, both on the tab pill itself (no separate grip icon).
+  // Pointer events (not HTML5 drag-and-drop) so this works with touch on phones, not just mouse.
+  // A tap (no meaningful movement) switches to that checklist as before; if the pointer moves
+  // past a small threshold first, it's treated as a drag instead — the tab visually slides
+  // left/right with the pointer via a CSS transform (pointer capture keeps move/up events
+  // flowing to the button even once the finger moves off it), and the resulting click that the
+  // browser fires right after pointerup is swallowed so a drag never also triggers a switch.
+  const CHECKLIST_DRAG_THRESHOLD = 6;
+  root.querySelectorAll('.checklist-tab-wrap').forEach(wrap => {
+    const btn = wrap.querySelector('.checklist-tab');
+    if(!btn) return;
+    let startX = 0;
+    let dragging = false;
+    let pressed = false; // guards pointermove so hovering (no button/finger down) does nothing —
+                          // pointermove fires on plain mouse hover too, not just while dragging
+
+    btn.onpointerdown = (e) => {
+      pressed = true;
+      startX = e.clientX;
+      dragging = false;
+      try{ btn.setPointerCapture(e.pointerId); }catch(err){}
+    };
+    btn.onpointermove = (e) => {
+      if(!pressed) return;
+      const dx = e.clientX - startX;
+      if(!dragging && Math.abs(dx) > CHECKLIST_DRAG_THRESHOLD){
+        dragging = true;
+        wrap.classList.add('dragging');
+      }
+      if(dragging) wrap.style.transform = `translateX(${dx}px)`;
+    };
+    const endDrag = async (e) => {
+      pressed = false;
+      try{ btn.releasePointerCapture(e.pointerId); }catch(err){}
+      if(!dragging) return; // plain tap — let the click handler below switch checklists
+      btn._justDragged = true;
+
+      const row = wrap.parentElement;
+      const siblings = [...row.querySelectorAll('.checklist-tab-wrap')].filter(s => s !== wrap);
+      // getBoundingClientRect() reflects the live transform, so this is the tab's actual
+      // on-screen center after being dragged — find the first sibling whose midpoint it has
+      // passed and drop it there; if it was dragged past everyone, it goes at the end.
+      const wrapRect = wrap.getBoundingClientRect();
+      const wrapCenter = wrapRect.left + wrapRect.width / 2;
+      let placed = false;
+      for(const sib of siblings){
+        const rect = sib.getBoundingClientRect();
+        const mid = rect.left + rect.width / 2;
+        if(wrapCenter < mid){
+          row.insertBefore(wrap, sib);
+          placed = true;
+          break;
+        }
+      }
+      if(!placed && siblings.length) siblings[siblings.length - 1].after(wrap);
+
+      wrap.classList.remove('dragging');
+      wrap.style.transform = '';
+      dragging = false;
+
+      const orderedIds = [...row.querySelectorAll('.checklist-tab-wrap')].map(w => w.dataset.id);
+      state.checklists.sort((a,b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id));
+      await saveHousehold('checklists');
+      render();
+    };
+    btn.onpointerup = endDrag;
+    btn.onpointercancel = () => {
+      pressed = false;
+      dragging = false;
+      wrap.classList.remove('dragging');
+      wrap.style.transform = '';
+    };
+  });
+  root.querySelectorAll('.checklist-tab').forEach(btn => {
+    btn.onclick = () => {
+      if(btn._justDragged){ btn._justDragged = false; return; }
+      state.activeChecklistId = btn.dataset.id;
+      personalSet('active-checklist-id', state.activeChecklistId);
+      state.openMenuId = null;
+      state.editingId = null;
+      state.showCatSettings = false;
+      render();
+    };
+  });
+  const checklistModalRenameBtn = document.getElementById('checklist-modal-rename-btn');
+  if(checklistModalRenameBtn){
+    checklistModalRenameBtn.onclick = async () => {
+      const target = state.checklists.find(c => c.id === checklistModalRenameBtn.dataset.id);
+      const input = document.getElementById('checklist-modal-name-input');
+      if(!target || !input) return;
+      const newName = input.value.trim();
+      if(!newName || newName === target.name) return;
+      target.name = newName;
+      await saveHousehold('checklists');
+      render();
+    };
+  }
+  root.querySelectorAll('.checklist-modal-delete-btn').forEach(btn => {
+    btn.onclick = async () => {
+      if(state.checklists.length <= 1) return; // always keep at least one checklist
+      const target = state.checklists.find(c => c.id === btn.dataset.id);
+      if(!target) return;
+      if(!confirm(`Delete the "${target.name}" checklist? This will permanently remove all ${target.tasks.length} item${target.tasks.length===1?'':'s'} in it.`)) return;
+      state.checklists = state.checklists.filter(c => c.id !== target.id);
+      delete state.checklistFilters[target.id];
+      if(state.activeChecklistId === target.id){
+        state.activeChecklistId = state.checklists[0].id;
+        personalSet('active-checklist-id', state.activeChecklistId);
+      }
+      state.openMenuId = null;
+      state.editingId = null;
+      state.showCatSettings = false;
+      await saveHousehold('checklists');
+      render();
+    };
+  });
+  const checklistAddBtn = document.getElementById('checklist-add-btn');
+  if(checklistAddBtn){
+    checklistAddBtn.onclick = () => { state.showAddChecklist = true; render(); };
+  }
+  const newChecklistModalClose = document.getElementById('new-checklist-modal-close');
+  if(newChecklistModalClose){
+    newChecklistModalClose.onclick = () => { state.showAddChecklist = false; render(); };
+  }
+  const newChecklistModalOverlay = document.getElementById('new-checklist-modal-overlay');
+  if(newChecklistModalOverlay){
+    newChecklistModalOverlay.onclick = (e) => { if(e.target === newChecklistModalOverlay){ state.showAddChecklist = false; render(); } };
+  }
+  const newChecklistCreateBtn = document.getElementById('new-checklist-create');
+  if(newChecklistCreateBtn){
+    newChecklistCreateBtn.onclick = async () => {
+      const nameInp = document.getElementById('new-checklist-name');
+      const name = nameInp.value.trim();
+      if(!name) return;
+      const created = newChecklist(name);
+      const copyFromSel = document.getElementById('new-checklist-copy-from');
+      const copyFromId = copyFromSel ? copyFromSel.value : '';
+      if(copyFromId){
+        const source = state.checklists.find(c => c.id === copyFromId);
+        if(source){
+          created.catList = [...source.catList];
+          created.catColors = {...source.catColors};
+          created.assigneeList = [...source.assigneeList];
+          created.assigneeColors = {...source.assigneeColors};
+        }
+      }
+      state.checklists.push(created);
+      state.activeChecklistId = created.id;
+      personalSet('active-checklist-id', created.id);
+      state.showAddChecklist = false;
+      await saveHousehold('checklists');
       render();
     };
   }
@@ -1996,10 +2821,12 @@ function bindTabEvents(){
   if(addRegBtn){
     addRegBtn.onclick = async () => {
       const inp = document.getElementById('new-reg');
+      const notesInp = document.getElementById('new-reg-notes');
       const cat = document.getElementById('new-reg-cat').value;
       const source = document.getElementById('new-reg-source').value || null;
       if(!inp.value.trim()) return;
-      state.registry.push({id:uid(), text:inp.value.trim(), cat, source, done:false});
+      const notes = notesInp.value.trim() || null;
+      state.registry.push({id:uid(), text:inp.value.trim(), notes, cat, source, done:false});
       await saveHousehold('registry');
       render();
     };
@@ -2029,16 +2856,26 @@ function bindTabEvents(){
           await saveHousehold('registryCatList');
         }
       } else if(scope === 'task'){
-        const list = state.taskCatList || [...TASK_CATS];
-        if(!list.some(c => c.toLowerCase() === name.toLowerCase())){
-          state.taskCatList = [...list, name];
-          await saveHousehold('taskCatList');
+        if(cl){
+          const list = cl.catList && cl.catList.length ? cl.catList : [...TASK_CATS];
+          if(!list.some(c => c.toLowerCase() === name.toLowerCase())){
+            cl.catList = [...list, name];
+            await saveHousehold('checklists');
+          }
         }
       } else if(scope === 'source'){
         const list = state.sourceList || [...SOURCE_OPTIONS];
         if(!list.some(c => c.toLowerCase() === name.toLowerCase())){
           state.sourceList = [...list, name];
           await saveHousehold('sourceList');
+        }
+      } else if(scope === 'assignee'){
+        if(cl){
+          const list = cl.assigneeList || [];
+          if(!list.some(c => c.toLowerCase() === name.toLowerCase())){
+            cl.assigneeList = [...list, name];
+            await saveHousehold('checklists');
+          }
         }
       }
       render();
@@ -2086,6 +2923,28 @@ function bindTabEvents(){
       render();
     };
   });
+  root.querySelectorAll('.cat-rename-btn[data-scope="assignee"]').forEach(btn => {
+    btn.onclick = async () => {
+      if(!cl) return;
+      const oldName = btn.dataset.old;
+      const newName = (prompt(`Rename person "${oldName}" to:`, oldName) || '').trim();
+      if(!newName || newName === oldName) return;
+      const list = cl.assigneeList || [];
+      if(list.some(c => c.toLowerCase() === newName.toLowerCase())){
+        alert(`A person named "${newName}" already exists.`);
+        return;
+      }
+      cl.assigneeList = list.map(c => c === oldName ? newName : c);
+      cl.tasks.forEach(i => { if(i.assignee === oldName) i.assignee = newName; });
+      if(cl.assigneeColors && cl.assigneeColors[oldName] !== undefined){
+        cl.assigneeColors = {...cl.assigneeColors, [newName]: cl.assigneeColors[oldName]};
+        delete cl.assigneeColors[oldName];
+      }
+      if(fs.filterAssignee === oldName) fs.filterAssignee = newName;
+      await saveHousehold('checklists');
+      render();
+    };
+  });
 
   // Row menus (task + registry rows): open/close dropdown, edit, delete
   root.querySelectorAll('.row-menu-btn').forEach(btn => {
@@ -2108,8 +2967,10 @@ function bindTabEvents(){
       const id = btn.dataset.id;
       const kind = btn.dataset.kind;
       if(kind === 'task'){
-        state.tasks = state.tasks.filter(i=>i.id!==id);
-        await saveHousehold('tasks');
+        if(cl){
+          cl.tasks = cl.tasks.filter(i=>i.id!==id);
+          await saveHousehold('checklists');
+        }
       } else if(kind === 'registry'){
         state.registry = state.registry.filter(i=>i.id!==id);
         await saveHousehold('registry');
@@ -2138,18 +2999,23 @@ function bindTabEvents(){
       if(!text) return;
       const cat = row.querySelector('.edit-cat').value;
       if(kind === 'task'){
-        const item = state.tasks.find(i=>i.id===id);
+        if(!cl) return;
+        const item = cl.tasks.find(i=>i.id===id);
         const weekInp = row.querySelector('.edit-week');
+        const assigneeSel = row.querySelector('.edit-assignee');
         item.text = text;
         item.cat = cat;
         item.week = weekInp && weekInp.value ? Number(weekInp.value) : null;
+        item.assignee = assigneeSel && assigneeSel.value ? assigneeSel.value : null;
         state.editingId = null;
-        await saveHousehold('tasks');
+        await saveHousehold('checklists');
       } else {
         const item = state.registry.find(i=>i.id===id);
         const sourceSel = row.querySelector('.edit-source');
+        const notesInp = row.querySelector('.edit-notes');
         item.text = text;
         item.cat = cat;
+        item.notes = notesInp && notesInp.value.trim() ? notesInp.value.trim() : null;
         item.source = sourceSel && sourceSel.value ? sourceSel.value : null;
         state.editingId = null;
         await saveHousehold('registry');
