@@ -11,197 +11,540 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Crib">
+<script>
+  // Apply any saved manual theme preference before first paint, so there's no flash
+  // of the wrong theme. Falls through to OS preference (handled in CSS) if unset/'system'.
+  try{
+    var __t = JSON.parse(localStorage.getItem('crib:theme-preference') || '"system"');
+    if(__t === 'light' || __t === 'dark') document.documentElement.setAttribute('data-theme', __t);
+  }catch(e){}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ivory: #f4f3f1;
-    --blush: #decebf;
-    --sage: #a1a79e;
-    --terracotta: #b57b66;
-    --evergreen: #68756d;
+    color-scheme: light;
+
+    /* ==================== Material Design 3 tokens ==================== */
+    /* Seeded from Crib's existing brand hues (terracotta / evergreen / trimester-green) rather
+       than a generic M3 purple, so the restyle stays "Crib" — just built on proper M3 structure:
+       tonal roles with paired on-colors, a real shape/type scale, tonal elevation, and state
+       layers, plus a dark theme that falls out of the token system for free. */
+
+    /* ---- Primary (terracotta) ---- */
+    --md-primary: #b57b66;
+    --md-on-primary: #ffffff;
+    --md-primary-container: #f4ded0;
+    --md-on-primary-container: #4a2c1a;
+
+    /* ---- Secondary (evergreen) ---- */
+    --md-secondary: #5c6a61;
+    --md-on-secondary: #ffffff;
+    --md-secondary-container: #dde5df;
+    --md-on-secondary-container: #29332c;
+
+    /* ---- Tertiary (trimester-progress green) ---- */
+    --md-tertiary: #3e5c39;
+    --md-on-tertiary: #ffffff;
+    --md-tertiary-container: #d6e8cf;
+    --md-on-tertiary-container: #16290f;
+
+    /* ---- Error ---- */
+    --md-error: #b3261e;
+    --md-on-error: #ffffff;
+    --md-error-container: #f9dedc;
+    --md-on-error-container: #410e0b;
+
+    /* ---- Neutral surfaces (elevation is expressed by walking up this ramp, not by inventing
+       shadows — surface-container-lowest is the "resting" card tone already used across the
+       app; higher containers are for popover-like surfaces sitting above cards) ---- */
+    --md-surface: #f4f3f1;
+    --md-surface-dim: #ddd8d2;
+    --md-surface-bright: #fdfbf9;
+    --md-surface-container-lowest: #ffffff;
+    --md-surface-container-low: #f8f5f2;
+    --md-surface-container: #f1ece6;
+    --md-surface-container-high: #ebe4dd;
+    --md-surface-container-highest: #e5ddd4;
+    --md-on-surface: #322b23;
+    --md-on-surface-variant: #6b6055;
+    --md-outline: #8f8579;
+    --md-outline-variant: #decebf;
+
+    /* ---- Shape scale ---- */
+    --md-shape-none: 0px;
+    --md-shape-xs: 4px;
+    --md-shape-sm: 8px;
+    --md-shape-md: 12px;
+    --md-shape-lg: 16px;
+    --md-shape-xl: 28px;
+    --md-shape-full: 999px;
+
+    /* ---- Type scale (font shorthand: weight size/line-height family) ---- */
+    --md-type-headline-lg: 700 32px/1.2 'Public Sans', sans-serif;
+    --md-type-headline-md: 700 26px/1.25 'Public Sans', sans-serif;
+    --md-type-title-lg: 700 20px/1.3 'Public Sans', sans-serif;
+    --md-type-title-md: 700 16px/1.4 'Public Sans', sans-serif;
+    --md-type-title-sm: 700 14px/1.4 'Public Sans', sans-serif;
+    --md-type-body-lg: 400 16px/1.5 'Public Sans', sans-serif;
+    --md-type-body-md: 400 14.5px/1.5 'Public Sans', sans-serif;
+    --md-type-body-sm: 400 12.5px/1.5 'Public Sans', sans-serif;
+    --md-type-label-lg: 700 14px/1.2 'Public Sans', sans-serif;
+    --md-type-label-md: 700 12px/1.2 'Public Sans', sans-serif;
+    --md-type-label-sm: 700 11px/1.2 'Public Sans', sans-serif;
+
+    /* ---- Elevation: tonal surface tint (surface-container-*) does the heavy lifting; these
+       shadows are the secondary, low-opacity cue M3 layers on top for cards/modals/menus ---- */
+    --md-elevation-0: none;
+    --md-elevation-1: 0 1px 3px rgba(50,43,35,0.10), 0 1px 2px rgba(50,43,35,0.07);
+    --md-elevation-2: 0 2px 6px rgba(50,43,35,0.12), 0 1px 2px rgba(50,43,35,0.08);
+    --md-elevation-3: 0 4px 12px rgba(50,43,35,0.16), 0 2px 4px rgba(50,43,35,0.10);
+    --md-elevation-4: 0 8px 20px rgba(50,43,35,0.20), 0 3px 6px rgba(50,43,35,0.12);
+
+    /* ---- State-layer opacities (applied as a currentColor overlay, not a flat color swap) ---- */
+    --md-state-hover: 0.08;
+    --md-state-focus: 0.12;
+    --md-state-pressed: 0.12;
+
+    /* ---- Motion ---- */
+    --md-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+    --md-duration-short: 150ms;
+    --md-duration-medium: 250ms;
+
+    /* ---- Legacy variable names: every existing rule below (and any inline style="" in the JS)
+       still works unchanged, and now automatically gets correct tokens + dark mode for free. ---- */
+    --ivory: var(--md-surface);
+    --blush: var(--md-outline-variant);
+    --sage: var(--md-on-surface-variant);
+    --terracotta: var(--md-primary);
+    --evergreen: var(--md-on-surface);
     --eg-light: #b3bdb7;
     --eg-dark: #434b46;
-    --tri-light: #a8c79f;
+    --tri-light: var(--md-tertiary-container);
     --tri-mid: #6b9660;
-    --tri-dark: #3e5c39;
-    --radius: 14px;
+    --tri-dark: var(--md-tertiary);
+    --radius: var(--md-shape-lg);
   }
+
+  /* Dark tokens apply automatically via OS preference, UNLESS the user has picked an explicit
+     preference in Settings (data-theme="light"/"dark" on <html>), in which case that wins. */
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme]){
+      color-scheme: dark;
+      --md-primary: #e6b8a2;
+      --md-on-primary: #4a2c1a;
+      --md-primary-container: #63432f;
+      --md-on-primary-container: #f4ded0;
+
+      --md-secondary: #b8c4bc;
+      --md-on-secondary: #29332c;
+      --md-secondary-container: #414d45;
+      --md-on-secondary-container: #dde5df;
+
+      --md-tertiary: #a0d295;
+      --md-on-tertiary: #16290f;
+      --md-tertiary-container: #24401e;
+      --md-on-tertiary-container: #d6e8cf;
+
+      --md-error: #f2b8b5;
+      --md-on-error: #601410;
+      --md-error-container: #8c1d18;
+      --md-on-error-container: #f9dedc;
+
+      --md-surface: #17140f;
+      --md-surface-dim: #17140f;
+      --md-surface-bright: #3d372f;
+      --md-surface-container-lowest: #110e0a;
+      --md-surface-container-low: #201c16;
+      --md-surface-container: #241f19;
+      --md-surface-container-high: #2f2921;
+      --md-surface-container-highest: #3a332b;
+      --md-on-surface: #e9e1d8;
+      --md-on-surface-variant: #cdc2b4;
+      --md-outline: #968c7f;
+      --md-outline-variant: #4d453a;
+
+      --eg-light: #6f7a74; --eg-dark: #c7d0ca;
+      --tri-mid: #7fb374;
+    }
+  }
+
+  /* Explicit manual override, set via the Appearance control in Settings. */
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --md-primary: #e6b8a2;
+    --md-on-primary: #4a2c1a;
+    --md-primary-container: #63432f;
+    --md-on-primary-container: #f4ded0;
+
+    --md-secondary: #b8c4bc;
+    --md-on-secondary: #29332c;
+    --md-secondary-container: #414d45;
+    --md-on-secondary-container: #dde5df;
+
+    --md-tertiary: #a0d295;
+    --md-on-tertiary: #16290f;
+    --md-tertiary-container: #24401e;
+    --md-on-tertiary-container: #d6e8cf;
+
+    --md-error: #f2b8b5;
+    --md-on-error: #601410;
+    --md-error-container: #8c1d18;
+    --md-on-error-container: #f9dedc;
+
+    --md-surface: #17140f;
+    --md-surface-dim: #17140f;
+    --md-surface-bright: #3d372f;
+    --md-surface-container-lowest: #110e0a;
+    --md-surface-container-low: #201c16;
+    --md-surface-container: #241f19;
+    --md-surface-container-high: #2f2921;
+    --md-surface-container-highest: #3a332b;
+    --md-on-surface: #e9e1d8;
+    --md-on-surface-variant: #cdc2b4;
+    --md-outline: #968c7f;
+    --md-outline-variant: #4d453a;
+
+    --eg-light: #6f7a74; --eg-dark: #c7d0ca;
+    --tri-mid: #7fb374;
+  }
+
+  :root[data-theme="light"]{ color-scheme: light; }
+
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    background: var(--ivory);
-    color: var(--evergreen);
+    background: var(--md-surface);
+    color: var(--md-on-surface);
     font-family: 'Public Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden; /* guards against the full-bleed .home-hero's 100vw math overshooting when a scrollbar is present */
   }
   #root{max-width: 1100px; margin: 0 auto; padding: 20px 32px 60px;}
   @media(max-width: 700px){ #root{ padding: 20px 18px 60px; } }
+  /* Small gap below the header on every page except Home (where the hero deliberately touches
+     the header to read as one continuous band). */
+  .tab-content-spaced{ margin-top:20px; }
 
-  h1,h2,h3{font-family:'Public Sans', sans-serif; margin:0; color: var(--evergreen); font-weight:700;}
+  h1,h2,h3{font-family:'Public Sans', sans-serif; margin:0; color: var(--md-on-surface); font-weight:700;}
   .eyebrow{
     font-family:'Public Sans', sans-serif;
     font-size: 15px;
-    color: var(--terracotta); font-weight: 700; margin-bottom:4px; display:block;
+    color: var(--md-primary); font-weight: 700; margin-bottom:4px; display:block;
   }
-  .brand-icon{ color: var(--terracotta); display:inline-flex; vertical-align:-7px; margin-right:8px; }
+  .brand-icon{ color: var(--md-primary); display:inline-flex; vertical-align:-7px; margin-right:8px; }
+
+  /* ---------- Shared interactive-surface treatment: state layers + focus ring ----------
+     Every clickable control below gets a currentColor overlay that fades in on hover/focus/press
+     (M3's default feedback mechanism) instead of one-off hover color swaps, plus a visible
+     focus-visible ring for keyboard users. Controls with their own meaningful hover color (e.g.
+     delete buttons going red) keep that AND layer this on top. */
+  .btn, nav.tabs button, .checklist-tab, .note-theme-tab, .settings-icon-btn,
+  .checklist-add-btn, .cat-rename-btn, .cat-delete-btn, .modal-close-btn,
+  .row-menu-btn, .fmt-btn, .gender-tab, .rank-controls button, .who button,
+  .hamburger-btn, .nav-drawer-links button{
+    position: relative; isolation: isolate;
+  }
+  .btn::after, nav.tabs button::after, .checklist-tab::after, .note-theme-tab::after,
+  .settings-icon-btn::after, .checklist-add-btn::after, .cat-rename-btn::after,
+  .cat-delete-btn::after, .modal-close-btn::after, .row-menu-btn::after,
+  .fmt-btn::after, .gender-tab::after, .rank-controls button::after,
+  .hamburger-btn::after, .nav-drawer-links button::after{
+    content:''; position:absolute; inset:0; border-radius:inherit;
+    background: currentColor; opacity:0; pointer-events:none; z-index:-1;
+    transition: opacity var(--md-duration-short) var(--md-easing-standard);
+  }
+  .btn:hover::after, nav.tabs button:hover::after, .checklist-tab:hover::after, .note-theme-tab:hover::after,
+  .settings-icon-btn:hover::after, .checklist-add-btn:hover::after, .cat-rename-btn:hover::after,
+  .cat-delete-btn:hover::after, .modal-close-btn:hover::after, .row-menu-btn:hover::after,
+  .fmt-btn:hover::after, .gender-tab:hover::after, .rank-controls button:hover::after,
+  .hamburger-btn:hover::after, .nav-drawer-links button:hover::after{
+    opacity: var(--md-state-hover);
+  }
+  .btn:focus-visible::after, nav.tabs button:focus-visible::after, .checklist-tab:focus-visible::after,
+  .note-theme-tab:focus-visible::after, .settings-icon-btn:focus-visible::after, .checklist-add-btn:focus-visible::after,
+  .cat-rename-btn:focus-visible::after, .cat-delete-btn:focus-visible::after, .modal-close-btn:focus-visible::after,
+  .row-menu-btn:focus-visible::after, .fmt-btn:focus-visible::after, .gender-tab:focus-visible::after,
+  .rank-controls button:focus-visible::after, .hamburger-btn:focus-visible::after, .nav-drawer-links button:focus-visible::after{
+    opacity: var(--md-state-focus);
+  }
+  .btn:active::after, nav.tabs button:active::after, .checklist-tab:active::after, .note-theme-tab:active::after,
+  .settings-icon-btn:active::after, .checklist-add-btn:active::after, .cat-rename-btn:active::after,
+  .cat-delete-btn:active::after, .modal-close-btn:active::after, .row-menu-btn:active::after,
+  .fmt-btn:active::after, .gender-tab:active::after, .rank-controls button:active::after,
+  .hamburger-btn:active::after, .nav-drawer-links button:active::after{
+    opacity: var(--md-state-pressed);
+  }
+  .btn:focus-visible, nav.tabs button:focus-visible, .checklist-tab:focus-visible, .note-theme-tab:focus-visible,
+  .settings-icon-btn:focus-visible, .checklist-add-btn:focus-visible, .cat-rename-btn:focus-visible,
+  .cat-delete-btn:focus-visible, .modal-close-btn:focus-visible, .row-menu-btn:focus-visible,
+  .fmt-btn:focus-visible, .gender-tab:focus-visible, .rank-controls button:focus-visible,
+  input:focus-visible, select:focus-visible, textarea:focus-visible, .journal-rich-input:focus-visible,
+  .who button:focus-visible, .hamburger-btn:focus-visible, .nav-drawer-links button:focus-visible{
+    outline: 2px solid var(--md-primary); outline-offset: 2px;
+  }
+  /* Larger invisible hit area on the smallest standalone icon buttons, pushing their effective
+     tap target toward the 48dp minimum without changing their visible (intentionally compact)
+     size. Not applied to buttons that sit tightly beside a sibling control (e.g. category chip
+     rename/delete pairs) — there, an invisible overlap would misdirect taps onto the wrong
+     button, so those got a real size increase instead (see their rules below). */
+  .settings-icon-btn::before, .checklist-add-btn::before, .modal-close-btn::before, .row-menu-btn::before,
+  .hamburger-btn::before{
+    content:''; position:absolute; inset:-8px;
+  }
 
   /* ---------- Setup screen ---------- */
   .setup-wrap{ min-height: 80vh; display:flex; align-items:center; justify-content:center; }
+  .loading-wrap{ flex-direction:column; gap:32px; }
+  .loading-rattle{
+    width:72px; height:72px; color: var(--md-primary);
+    animation: rattle-shake 1.1s ease-in-out infinite; transform-origin: 50% 82%;
+  }
+  @keyframes rattle-shake{
+    0%, 100% { transform: rotate(-14deg); }
+    50% { transform: rotate(14deg); }
+  }
+  .loading-text{ font: var(--md-type-title-md); color: var(--md-on-surface-variant); }
   .setup-card{
-    background: #fff; border:1px solid var(--blush); border-radius: var(--radius);
-    padding: 36px 30px; width:100%; max-width: 420px; box-shadow: 0 2px 0 var(--blush);
+    background: var(--md-surface-container-lowest); border:1px solid var(--md-outline-variant); border-radius: var(--md-shape-xl);
+    padding: 36px 30px; width:100%; max-width: 420px; box-shadow: var(--md-elevation-1);
     text-align:center;
   }
-  .setup-card h1{font-size: 30px; margin-bottom:6px; text-align:left;}
+  .setup-card h1{font: var(--md-type-headline-md); margin-bottom:6px; text-align:left; color:var(--md-on-surface);}
   .setup-card .eyebrow{ text-align:left; }
-  .setup-card p.sub{color: var(--evergreen); opacity:.8; font-size:14.5px; line-height:1.5; margin: 8px 0 22px; text-align:left;}
+  .setup-card p.sub{color: var(--md-on-surface-variant); font-size:14.5px; line-height:1.5; margin: 8px 0 22px; text-align:left;}
   .setup-card label, .setup-card input, .setup-card .btn, .setup-card .err{ text-align:left; }
-  label{ font-size:12.5px; font-weight:700; color: var(--evergreen); display:block; margin: 14px 0 6px; }
+  label{ font: var(--md-type-label-md); color: var(--md-on-surface-variant); display:block; margin: 14px 0 6px; text-transform:uppercase; letter-spacing:.03em; }
   input[type=text], input[type=date], input[type=number], select, textarea{
     width:100%; font-family:'Public Sans',sans-serif; font-size:15px;
-    padding: 10px 12px; border-radius: 9px; border: 1.5px solid var(--blush);
-    background: #fff; color: var(--evergreen);
+    padding: 10px 12px; border-radius: var(--md-shape-sm); border: 1.5px solid var(--md-outline);
+    background: var(--md-surface-container-lowest); color: var(--md-on-surface);
+    transition: border-color var(--md-duration-short) var(--md-easing-standard);
   }
-  input:focus, select:focus, textarea:focus{ outline:none; border-color: var(--terracotta); }
+  input:focus, select:focus, textarea:focus{ outline:none; border-color: var(--md-primary); border-width:2px; }
   select{
     appearance: none; -webkit-appearance: none; -moz-appearance: none;
     padding-right: 30px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2368756d' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23322b23' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
     background-size: 10px 6px;
   }
+  /* M3 filled button: solid primary fill, white text, pill-ish shape, no border */
   .btn{
-    font-family:'Public Sans',sans-serif; font-weight:700; font-size:14.5px;
-    border:none; border-radius: 9px; padding: 11px 18px; cursor:pointer;
-    background: var(--terracotta); color: #fff; transition: transform .12s ease, filter .15s ease;
+    font: var(--md-type-label-lg); letter-spacing:.02em;
+    border:none; border-radius: var(--md-shape-full); padding: 11px 22px; cursor:pointer;
+    background: var(--md-primary); color: var(--md-on-primary);
+    min-height:40px;
+    transition: transform .12s var(--md-easing-standard), box-shadow var(--md-duration-short) var(--md-easing-standard);
   }
-  .btn:hover{ filter: brightness(0.92); }
+  .btn:hover{ box-shadow: var(--md-elevation-1); }
   .btn:active{ transform: scale(0.97); }
   .btn.block{ width:100%; margin-top: 20px; }
-  .btn.ghost{ background: transparent; color: var(--terracotta); border:1.5px solid var(--terracotta); }
-  .btn.small{ padding: 6px 12px; font-size: 13px; }
-  .err{ color: var(--terracotta); font-size: 13px; margin-top: 10px; }
+  /* M3 outlined button: for secondary-emphasis actions (ghost = outlined here) */
+  .btn.ghost{ background: transparent; color: var(--md-primary); border:1px solid var(--md-outline); }
+  .btn.ghost::after{ background: var(--md-primary); }
+  .btn.small{ padding: 7px 16px; font-size: 13px; min-height:32px; }
+  .err{ color: var(--md-error); font-size: 13px; margin-top: 10px; }
 
   /* ---------- Header / nav ---------- */
-  .topbar{ display:flex; align-items:flex-start; justify-content:space-between; padding: 6px 2px 14px; gap:12px; }
-  .topbar h1{ font-size: 32px; display:flex; align-items:center; }
-  .who-col{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
-  .who{ font-family:'JetBrains Mono',monospace; font-size:12px; color: var(--sage); text-align:right; }
-  .who button{ background:none; border:none; color:var(--terracotta); font-family:inherit; cursor:pointer; text-decoration:underline; font-size:12px; padding:0; margin-left:6px;}
+  /* The header row shares the hero's white (dark-mode-adaptive) background and stretches
+     full-bleed too, with no gap, so the two form one continuous band down to the hero below —
+     margin-top cancels #root's own top padding so the color reaches the very top of the page,
+     padding-top puts that visual space back inside the colored band instead. */
+  .topbar-band{
+    position:relative; left:50%; right:50%; width:100vw; margin-left:-50vw; margin-right:-50vw;
+    background: var(--md-surface-container-lowest);
+    margin-top:-20px; padding-top:20px;
+  }
+  .topbar{ max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding: 6px 32px 14px; gap:12px; }
+  @media(max-width: 700px){ .topbar{ padding: 6px 18px 14px; } }
+  .topbar-left{ display:flex; align-items:center; gap:10px; }
+  .topbar h1{ font: var(--md-type-headline-lg); display:flex; align-items:center; color:var(--md-on-surface); }
+  /* The Crib wordmark/icon doubles as a Home link — reset to look like plain h1 text/icon,
+     just with a pointer cursor and a subtle hover fade for discoverability. */
+  .brand-link{
+    background:none; border:none; padding:0; margin:0; font:inherit; color:inherit;
+    cursor:pointer; display:flex; align-items:center; gap:inherit;
+  }
+  .brand-link:hover{ opacity:0.82; }
+  /* M3 standard icon button: the hamburger that opens the nav drawer */
+  .hamburger-btn{
+    background:none; border:none; border-radius:50%; width:40px; height:40px; flex-shrink:0;
+    cursor:pointer; color: var(--md-on-surface); display:flex; align-items:center; justify-content:center;
+    padding:0; margin-top:2px;
+  }
+  .hamburger-btn svg{ width:24px; height:24px; }
+  /* Name and Settings pill sit in one row, name to the left of the pill. */
+  .who-col{ display:flex; flex-direction:row; align-items:center; gap:10px; }
+  .who{ font-family:'JetBrains Mono',monospace; font-size:12px; color: var(--md-on-surface-variant); }
+  .who button{ background:none; border:none; color:var(--md-primary); font-family:inherit; cursor:pointer; text-decoration:underline; font-size:12px; padding:0; margin-left:6px;}
+  /* M3 tonal button (secondary-container): used for the low-emphasis settings entry point */
   .settings-btn{
-    font-family:'JetBrains Mono',monospace; font-weight:700; font-size:11px;
-    background: var(--blush); color: var(--evergreen); border:none; border-radius:999px;
-    padding:4px 12px; cursor:pointer; white-space:nowrap;
+    font: var(--md-type-label-md);
+    background: var(--md-secondary-container); color: var(--md-on-secondary-container); border:none; border-radius:var(--md-shape-full);
+    padding:6px 14px; cursor:pointer; white-space:nowrap; min-height:32px;
   }
   .household-code-display{
     font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:700;
-    background: var(--blush); color: var(--evergreen); border-radius:8px;
+    background: var(--md-secondary-container); color: var(--md-on-secondary-container); border-radius:var(--md-shape-sm);
     padding:10px 14px; letter-spacing:0.5px; display:inline-block;
   }
-  .settings-btn:hover{ filter: brightness(0.95); }
 
+  /* M3 primary tabs: pill-shaped, filled-container inactive state, primary fill when active.
+     No longer shown directly in the page (navigation now lives in the hamburger drawer below),
+     kept defined in case any other spot wants the same pill-tab look. */
   nav.tabs{ display:flex; gap:6px; margin-bottom:20px; overflow-x:auto; }
   nav.tabs button{
-    font-family:'Public Sans',sans-serif; font-weight:700; font-size:13.5px;
-    background: var(--blush); color: var(--evergreen); border:none; border-radius: 999px;
-    padding: 8px 16px; cursor:pointer; white-space:nowrap;
+    font: var(--md-type-label-md); font-size:13.5px;
+    background: var(--md-secondary-container); color: var(--md-on-secondary-container); border:none; border-radius: var(--md-shape-full);
+    padding: 8px 16px; cursor:pointer; white-space:nowrap; min-height:36px;
   }
-  nav.tabs button.active{ background: var(--terracotta); color:#fff; }
+  nav.tabs button.active{ background: var(--md-primary); color: var(--md-on-primary); }
 
-  .checklist-tab-row{ display:flex; align-items:center; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
-  .checklist-tab-wrap{ display:flex; align-items:center; gap:2px; }
+  /* ---------- Nav drawer (hamburger menu) ---------- */
+  .nav-drawer-overlay{
+    position:fixed; inset:0; background: rgba(50,43,35,0.4); z-index:200;
+    animation: nav-fade-in var(--md-duration-medium) var(--md-easing-standard);
+  }
+  @keyframes nav-fade-in{ from{ opacity:0; } to{ opacity:1; } }
+  .nav-drawer{
+    position:fixed; top:0; left:0; bottom:0; width:280px; max-width:82vw; z-index:201;
+    background: var(--md-surface-container-high); box-shadow: var(--md-elevation-3);
+    display:flex; flex-direction:column;
+    transform: translateX(-100%); transition: transform var(--md-duration-medium) var(--md-easing-standard);
+  }
+  .nav-drawer.open{ transform: translateX(0); }
+  .nav-drawer-header{
+    display:flex; align-items:center; gap:10px; padding:18px 16px;
+    border-bottom:1px solid var(--md-outline-variant);
+  }
+  .nav-drawer-brand{ font: var(--md-type-title-lg); color: var(--md-on-surface); flex:1; }
+  .nav-drawer-links{ display:flex; flex-direction:column; padding:10px; gap:2px; overflow-y:auto; }
+  .nav-drawer-links button{
+    font: var(--md-type-body-lg); font-size:15px; text-align:left;
+    background:none; border:none; border-radius: var(--md-shape-md); color: var(--md-on-surface);
+    padding:13px 14px; cursor:pointer; min-height:48px;
+  }
+  .nav-drawer-links button.active{ background: var(--md-secondary-container); color: var(--md-on-secondary-container); font-weight:700; }
+
+  /* Text tabs (not pill/chip buttons): plain label, flat solid underline marks the selected
+     one. No shared baseline under the whole row — only the active tab gets a line. Bottom
+     corners are square (not rounded) so that underline runs perfectly flat with no curl at
+     either end; top corners stay rounded just for the hover/pressed state-layer overlay. */
+  .checklist-tab-row{ display:flex; align-items:center; gap:2px; margin-bottom:14px; flex-wrap:wrap; }
+  .checklist-tab-wrap{ display:flex; align-items:center; gap:0; }
   .checklist-tab-wrap.dragging{ position:relative; z-index:5; }
-  .checklist-tab-wrap.dragging .checklist-tab{ box-shadow: 0 4px 14px rgba(58,51,44,0.28); }
+  .checklist-tab-wrap.dragging .checklist-tab{ background: var(--md-surface-container-high); }
   .checklist-tab{
-    font-family:'Public Sans',sans-serif; font-weight:700; font-size:13px;
-    background: var(--blush); color: var(--evergreen); border:none; border-radius: 999px;
-    padding: 7px 15px; cursor:pointer; white-space:nowrap;
+    font: var(--md-type-label-md); font-size:13.5px;
+    background:none; color: var(--md-on-surface-variant); border:none;
+    border-radius: var(--md-shape-sm) var(--md-shape-sm) 0 0;
+    border-bottom:2px solid transparent;
+    padding: 8px 12px 6px; cursor:pointer; white-space:nowrap; min-height:32px;
     touch-action:none; user-select:none; -webkit-user-select:none;
   }
-  .checklist-tab.active{ background: var(--evergreen); color:#fff; }
+  .checklist-tab.active{ color: var(--md-primary); border-bottom-color: var(--md-primary); font-weight:700; }
   .checklist-add-btn{
-    background: none; border: 1.5px dashed var(--blush); border-radius:999px;
-    width:30px; height:30px; flex-shrink:0; cursor:pointer; color: var(--terracotta);
+    background: none; border: 1.5px dashed var(--md-outline); border-radius:var(--md-shape-full);
+    width:32px; height:32px; flex-shrink:0; cursor:pointer; color: var(--md-primary);
     display:flex; align-items:center; justify-content:center; padding:0; font-size:17px; line-height:1;
   }
-  .checklist-add-btn:hover{ border-color: var(--terracotta); background: var(--blush); }
+  .checklist-add-btn:hover{ border-color: var(--md-primary); }
 
-  .note-theme-tab-wrap{ display:flex; align-items:center; gap:2px; }
+  .note-theme-tab-wrap{ display:flex; align-items:center; gap:0; }
   .note-theme-tab-wrap.dragging{ position:relative; z-index:5; }
-  .note-theme-tab-wrap.dragging .note-theme-tab{ box-shadow: 0 4px 14px rgba(58,51,44,0.28); }
+  .note-theme-tab-wrap.dragging .note-theme-tab{ background: var(--md-surface-container-high); }
   .note-theme-tab{
-    font-family:'Public Sans',sans-serif; font-weight:700; font-size:13px;
-    background: var(--blush); color: var(--evergreen); border:none; border-radius: 999px;
-    padding: 7px 15px; cursor:pointer; white-space:nowrap;
+    font: var(--md-type-label-md); font-size:13.5px;
+    background:none; color: var(--md-on-surface-variant); border:none;
+    border-radius: var(--md-shape-sm) var(--md-shape-sm) 0 0;
+    border-bottom:2px solid transparent;
+    padding: 8px 12px 6px; cursor:pointer; white-space:nowrap; min-height:32px;
     touch-action:none; user-select:none; -webkit-user-select:none;
   }
-  .note-theme-tab.active{ background: var(--evergreen); color:#fff; }
+  .note-theme-tab.active{ color: var(--md-primary); border-bottom-color: var(--md-primary); font-weight:700; }
 
+  /* M3 elevated card: surface-container-lowest tone + a level-1 tonal shadow */
   .card{
-    background: #fff; border: 1px solid var(--blush); border-radius: var(--radius);
+    background: var(--md-surface-container-lowest); border: 1px solid var(--md-outline-variant); border-radius: var(--md-shape-lg);
     padding: 22px; margin-bottom: 16px;
-    box-shadow: 0 3px 10px rgba(104,117,109,0.10);
+    box-shadow: var(--md-elevation-1);
   }
 
   .card-header-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
   .settings-icon-btn{
-    background: none; border: 1.5px solid var(--blush); border-radius:8px;
-    width:34px; height:34px; flex-shrink:0; cursor:pointer; color: var(--terracotta);
+    background: none; border: 1.5px solid var(--md-outline); border-radius:var(--md-shape-sm);
+    width:34px; height:34px; flex-shrink:0; cursor:pointer; color: var(--md-primary);
     display:flex; align-items:center; justify-content:center; padding:0;
   }
   .settings-icon-btn svg{ width:19px; height:19px; }
-  .settings-icon-btn:hover{ border-color: var(--terracotta); filter: brightness(0.85); }
+  .settings-icon-btn:hover{ border-color: var(--md-primary); }
 
+  /* M3 dialog (modal): surface-container-high + a level-3 shadow, distinct from resting cards */
   .modal-overlay{
-    position:fixed; inset:0; background: rgba(58,51,44,0.35);
+    position:fixed; inset:0; background: rgba(50,43,35,0.4);
     display:flex; align-items:center; justify-content:center;
     padding:20px; z-index:100;
   }
   .modal-panel{
-    background:#fff; border-radius: var(--radius); width:100%; max-width:480px;
-    max-height:85vh; overflow-y:auto; box-shadow: 0 10px 30px rgba(58,51,44,0.25);
+    background: var(--md-surface-container-high); border-radius: var(--md-shape-xl); width:100%; max-width:480px;
+    max-height:85vh; overflow-y:auto; box-shadow: var(--md-elevation-3);
   }
   .modal-header{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
-    padding:20px 22px; border-bottom:1px solid var(--blush);
+    padding:20px 22px; border-bottom:1px solid var(--md-outline-variant);
   }
   .modal-close-btn{
-    background: var(--blush); border:none; border-radius:50%; width:26px; height:26px;
-    font-size:13px; line-height:1; cursor:pointer; color: var(--evergreen);
+    background: var(--md-surface-container-highest); border:none; border-radius:50%; width:28px; height:28px;
+    font-size:13px; line-height:1; cursor:pointer; color: var(--md-on-surface);
     display:flex; align-items:center; justify-content:center; padding:0; flex-shrink:0;
   }
-  .modal-close-btn:hover{ background: var(--terracotta); color:#fff; }
+  .modal-close-btn:hover{ background: var(--md-error); color:#fff; }
   .modal-body{ padding:20px 22px 22px; }
-  .modal-section{ margin-top:22px; padding-top:22px; border-top:1px solid var(--blush); }
+  .modal-section{ margin-top:22px; padding-top:22px; border-top:1px solid var(--md-outline-variant); }
 
   /* ---------- Overview / timeline ---------- */
   .week-hero{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
-  .week-num{ font-family:'Public Sans',sans-serif; font-size: 36px; font-weight:700; color: var(--evergreen); line-height:1; }
-  .week-meta{ font-size: 14px; color: var(--sage); line-height:1.5; }
-  .week-meta b{ color: var(--evergreen); }
+  .week-num{ font: var(--md-type-headline-lg); font-size:36px; color: var(--md-on-surface); line-height:1; }
+  .week-meta{ font-size: 14px; color: var(--md-on-surface-variant); line-height:1.5; }
+  .week-meta b{ color: var(--md-on-surface); }
 
-  .vine{ position:relative; margin: 22px 4px 12px; height: 70px; }
-  .vine-line{ position:absolute; top: 34px; left:0; right:0; height:3px; background: var(--blush); border-radius:2px; }
-  .vine-fill{ position:absolute; top: 34px; left:0; height:3px; background: var(--evergreen); border-radius:2px; transition: width .4s ease; }
+  .vine{ position:relative; margin: 44px 4px 12px; height: 70px; }
+  .vine-line{ position:absolute; top: 34px; left:0; right:0; height:3px; background: var(--md-outline-variant); border-radius:2px; }
+  .vine-fill{ position:absolute; top: 34px; left:0; height:3px; background: var(--md-secondary); border-radius:2px; transition: width .4s var(--md-easing-standard); }
   .vine-dot{
-    position:absolute; top:17px; width:34px; height:34px; border-radius:50%;
+    position:absolute; top:14px; width:40px; height:40px; border-radius:50%;
     transform: translateX(-50%); display:flex; align-items:center; justify-content:center;
-    font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:#fff;
+    font-family:'Public Sans', sans-serif; font-size:14px; font-weight:700; color:#fff;
     border:2px solid transparent; opacity:1;
   }
-  .vine-dot.tri-0{ background:#fff; color: var(--evergreen); border-color: var(--blush); }
+  /* Explicit "you are here" marker, positioned at today's exact spot on the line regardless of
+     whether that happens to land on a big month dot or a small week dot. */
+  .vine-today-marker{
+    position:absolute; top:-24px; transform: translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; pointer-events:none; z-index:2;
+  }
+  .vine-today-label{
+    font-family:'Public Sans', sans-serif; font-size:10px; font-weight:700; letter-spacing:.04em;
+    text-transform:uppercase; color: var(--md-on-primary); white-space:nowrap;
+    background: var(--md-primary); padding:2px 7px; border-radius: var(--md-shape-full); margin-bottom:2px;
+  }
+  .vine-today-caret{
+    width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent;
+    border-top:5px solid var(--md-primary);
+  }
+  .vine-dot.tri-0{ background: var(--md-surface-container-lowest); color: var(--md-on-surface); border-color: var(--md-outline-variant); }
   .vine-dot.tri-1{ background: var(--tri-light); color: var(--eg-dark); }
   .vine-dot.tri-2{ background: var(--tri-mid); color:#fff; }
   .vine-dot.tri-3{ background: var(--tri-dark); color:#fff; }
   .vine-dot.current{
-    width:40px; height:40px; top:14px; font-size:14px;
-    box-shadow: 0 0 0 3px #fff, 0 0 0 6px rgba(104,117,109,0.25);
+    width:46px; height:46px; top:11px; font-size:15px;
+    box-shadow: 0 0 0 3px var(--md-surface-container-lowest), 0 0 0 6px rgba(92,106,97,0.25);
   }
   .vine-dot.current::after{
     content:''; position:absolute; top:50%; left:50%; width:100%; height:100%;
-    border-radius:50%; background: var(--evergreen);
+    border-radius:50%; background: var(--md-secondary);
     transform: translate(-50%, -50%) scale(1); opacity:0.55;
     animation: vine-ripple 2.8s ease-out infinite; pointer-events:none;
   }
@@ -209,8 +552,61 @@
     0% { transform: translate(-50%, -50%) scale(1); opacity:0.55; }
     100% { transform: translate(-50%, -50%) scale(2.4); opacity:0; }
   }
-  .vine-dot.selected{ filter: invert(1); }
+  /* Terracotta (brand primary), not the purple filter:invert(1) hack this used to be — inverting
+     the tri-color greens/tans was landing on an unintended purple-ish hue. */
+  .vine-dot.selected{ background: var(--md-primary); color: var(--md-on-primary); border-color: var(--md-primary); }
 
+  /* Small filled dots marking every individual week along the line, in between the big numbered
+     month markers, so a specific week (not just a whole month block) can be selected. */
+  .vine-week-dot{
+    position:absolute; top:31px; width:9px; height:9px; border-radius:50%;
+    transform: translateX(-50%); background: var(--md-outline-variant); border:none; padding:0;
+    transition: transform var(--md-duration-short) var(--md-easing-standard), background var(--md-duration-short) var(--md-easing-standard);
+  }
+  .vine-week-dot.clickable{ cursor:pointer; }
+  .vine-week-dot.clickable:hover{ background: var(--md-secondary); transform: translateX(-50%) scale(1.3); }
+  .vine-week-dot.current{ background: var(--md-secondary); width:11px; height:11px; top:30px; }
+  .vine-week-dot.selected{ background: var(--md-primary); width:11px; height:11px; top:30px; }
+
+  /* Home page: the header band and the timeline hero share one continuous white
+     (dark-mode-adaptive via surface-container-lowest) canvas from the very top of the page —
+     no card border/shadow/radius, edge-to-edge across the full browser width regardless of
+     #root's centered max-width column — scattered with a decorative pattern of the current
+     week's size-comparison emoji. The grid below it (key checklist items, baby facts, name of
+     the day, journal/notes quick-entry) gets the same full-bleed treatment — same edge-to-edge
+     width, but sitting back on the plain page background so the color change alone marks the
+     seam between "hero" and "everything else." */
+  .home-hero{
+    position:relative; left:50%; right:50%; width:100vw; margin-left:-50vw; margin-right:-50vw;
+    background: var(--md-surface-container-lowest);
+    margin-top:0; margin-bottom:0;
+    overflow:hidden;
+  }
+  .home-hero-lemons{ position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+  .home-hero-lemons img{ position:absolute; }
+  .home-hero-inner{ position:relative; z-index:1; max-width:1100px; margin:0 auto; padding: 30px 32px; }
+  @media(max-width: 700px){ .home-hero-inner{ padding: 22px 18px; } }
+  .hero-size-caption{
+    text-align:center; font: var(--md-type-title-md); font-size:18px; color: var(--md-on-surface);
+    margin-top:20px;
+  }
+  .home-grid-wrap{
+    position:relative; left:50%; right:50%; width:100vw; margin-left:-50vw; margin-right:-50vw;
+    padding: 24px 32px 4px;
+  }
+  @media(max-width: 700px){ .home-grid-wrap{ padding: 20px 18px 4px; } }
+  /* Three explicit rows (Key Checklist Items alone; Baby Facts + Name of the Day; Notes +
+     Journal) rather than one big auto-wrapping grid, so the grouping holds regardless of
+     viewport width. Each row is its own flexbox so panels can have different widths based on
+     content — but align-items:stretch (the flex default) keeps panels within the SAME row at
+     equal height, for consistency; different rows are still free to have different heights. */
+  .home-grid-row{ display:flex; flex-wrap:wrap; align-items:stretch; gap:16px; margin-bottom:16px; }
+  .home-grid-row:last-child{ margin-bottom:0; }
+  .home-grid-row > .card{ flex:1 1 320px; }
+  .home-grid-row > .name-of-day-card{ flex:0 1 260px; max-width:320px; }
+  .home-grid-row-full > .card{ flex:1 1 100%; }
+  /* Notes + Journal: equal-size boxes regardless of how much either one's content wants. */
+  .home-grid-row-equal > .journal-card{ flex:1 1 0; min-width:280px; }
   .overview-row{ display:grid; grid-template-columns: 3fr 1fr; gap:16px; align-items:stretch; }
   @media(max-width: 700px){ .overview-row{ grid-template-columns: 1fr; } }
   .timeline-card{ display:flex; flex-direction:column; }
@@ -220,37 +616,37 @@
   .fruit-visual{ flex:1; display:flex; align-items:center; justify-content:center; width:100%; }
   .fruit-visual img.fruit-img{
     width:140px; height:140px; max-width:75%; aspect-ratio:1/1;
-    object-fit:cover; border-radius:50%; border:3px solid var(--blush);
+    object-fit:cover; border-radius:50%; border:3px solid var(--md-outline-variant);
   }
   .fruit-emoji-fallback{ font-size: clamp(56px, 9vw, 100px); line-height:1; }
-  .fruit-caption{ font-size:13.5px; line-height:1.55; margin-top:10px; }
-  .fruit-link{ color: var(--terracotta); text-decoration:underline; font-weight:700; }
+  .fruit-caption{ font: var(--md-type-body-sm); font-size:13.5px; line-height:1.55; margin-top:10px; color: var(--md-on-surface); }
+  .fruit-link{ color: var(--md-primary); text-decoration:underline; font-weight:700; }
   .fruit-link:hover{ filter: brightness(0.88); }
   .section-label{
-    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color: var(--sage);
+    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color: var(--md-on-surface-variant);
     text-transform:uppercase; letter-spacing:.06em; margin: 14px 0 6px;
   }
 
-  .dev-highlights{ margin-top:18px; padding-top:14px; border-top:1px dashed var(--blush); }
+  .dev-highlights{ margin-top:18px; padding-top:14px; border-top:1px dashed var(--md-outline-variant); }
   .dev-heading{
-    font-family:'Public Sans',sans-serif; font-size:15px;
-    color: var(--terracotta); font-weight:700; margin-bottom:8px;
+    font: var(--md-type-title-sm); font-size:15px;
+    color: var(--md-primary); margin-bottom:8px;
   }
-  .dev-highlights ul{ margin:0; padding-left:18px; font-size:13.5px; line-height:1.6; color: var(--evergreen); }
+  .dev-highlights ul{ margin:0; padding-left:18px; font-size:13.5px; line-height:1.6; color: var(--md-on-surface); }
   .dev-highlights li{ margin-bottom:4px; }
   .dev-highlights.split{ display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
-  .dev-highlights.split .dev-col-month{ padding-left:20px; border-left:1px dashed var(--blush); }
+  .dev-highlights.split .dev-col-month{ padding-left:20px; border-left:1px dashed var(--md-outline-variant); }
 
   .name-of-day-row{ display:grid; grid-template-columns: 2fr 3fr 3fr; gap:16px; align-items:stretch; }
   @media(max-width: 1000px){ .name-of-day-row{ grid-template-columns: 1fr 1fr; } }
   @media(max-width: 700px){ .name-of-day-row{ grid-template-columns: 1fr; } }
   .name-of-day-card{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
   .notd-label{
-    font-family:'Public Sans',sans-serif; font-size:20px; font-weight:700; color: var(--terracotta);
+    font: var(--md-type-title-lg); font-size:20px; color: var(--md-primary);
     line-height:1; display:block; margin-bottom:4px; white-space:nowrap;
   }
-  .notd-name{ font-family:'Public Sans',sans-serif; font-size:34px; font-weight:700; color: var(--evergreen); margin-top:8px; }
-  .notd-add-btn{ font-family:'Public Sans',sans-serif; font-weight:700; border:none; }
+  .notd-name{ font: var(--md-type-headline-md); font-size:34px; color: var(--md-on-surface); margin-top:8px; }
+  .notd-add-btn{ font: var(--md-type-label-lg); border:none; }
   .notd-add-btn.girl{ background:#f6d3de; color:#8a4a5e; }
   .notd-add-btn.boy{ background:#d2e3f6; color:#3f5f80; }
 
@@ -259,19 +655,19 @@
   .journal-controls{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center; }
   .journal-controls select{ flex:1; min-width:170px; }
 
-  .journal-entry{ padding:14px 0; border-bottom:1px solid var(--blush); }
+  .journal-entry{ padding:14px 0; border-bottom:1px solid var(--md-outline-variant); }
   .journal-entry:last-child{ border-bottom:none; }
   .journal-entry-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; flex-wrap:wrap; }
   .journal-entry-meta{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-  .journal-author{ font-family:'Public Sans',sans-serif; font-size:14px; color: var(--evergreen); font-weight:600; }
-  .journal-date{ font-family:'JetBrains Mono',monospace; font-size:11px; color: var(--sage); }
+  .journal-author{ font-family:'Public Sans',sans-serif; font-size:14px; color: var(--md-on-surface); font-weight:600; }
+  .journal-date{ font-family:'JetBrains Mono',monospace; font-size:11px; color: var(--md-on-surface-variant); }
   .visibility-pill{
     font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; text-transform:uppercase;
-    letter-spacing:.05em; padding:2px 8px; border-radius:999px; white-space:nowrap;
+    letter-spacing:.05em; padding:2px 8px; border-radius:var(--md-shape-full); white-space:nowrap;
   }
-  .visibility-pill.private{ background: var(--blush); color: var(--evergreen); }
-  .visibility-pill.public{ background: var(--evergreen); color:#fff; }
-  .journal-entry-text{ font-size:14.5px; line-height:1.6; color: var(--evergreen); }
+  .visibility-pill.private{ background: var(--md-surface-container-high); color: var(--md-on-surface); }
+  .visibility-pill.public{ background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
+  .journal-entry-text{ font-size:14.5px; line-height:1.6; color: var(--md-on-surface); }
   .journal-entry-text ul{ margin:4px 0; padding-left:20px; }
   .journal-entry-text li{ margin-bottom:2px; }
 
@@ -279,33 +675,34 @@
   .journal-rich-input{
     width:100%; min-height:88px; max-height:340px; overflow-y:auto;
     font-family:'Public Sans',sans-serif; font-size:15px; line-height:1.5;
-    padding:10px 12px; border-radius:9px; border:1.5px solid var(--blush);
-    background:#fff; color: var(--evergreen);
+    padding:10px 12px; border-radius:var(--md-shape-sm); border:1.5px solid var(--md-outline);
+    background: var(--md-surface-container-lowest); color: var(--md-on-surface);
+    transition: border-color var(--md-duration-short) var(--md-easing-standard);
   }
-  .journal-rich-input:focus{ outline:none; border-color: var(--terracotta); }
-  .journal-rich-input:empty:before{ content: attr(data-placeholder); color: var(--sage); opacity:.75; }
+  .journal-rich-input:focus{ outline:none; border-color: var(--md-primary); border-width:2px; }
+  .journal-rich-input:empty:before{ content: attr(data-placeholder); color: var(--md-on-surface-variant); opacity:.75; }
   .journal-rich-input ul{ margin:4px 0; padding-left:20px; }
   .journal-rich-input li{ margin-bottom:2px; }
   .format-toolbar{ display:flex; gap:5px; margin-bottom:7px; }
   .fmt-btn{
-    background: var(--blush); border:none; border-radius:6px; width:30px; height:28px;
-    font-family:'Public Sans',sans-serif; font-size:13px; color: var(--evergreen); cursor:pointer;
+    background: var(--md-secondary-container); border:none; border-radius:var(--md-shape-xs); width:32px; height:32px;
+    font-family:'Public Sans',sans-serif; font-size:13px; color: var(--md-on-secondary-container); cursor:pointer;
     display:flex; align-items:center; justify-content:center; padding:0;
   }
-  .fmt-btn:hover{ background: var(--terracotta); color:#fff; }
-  .fmt-btn.active{ background: var(--evergreen); color:#fff; }
+  .fmt-btn:hover{ filter: brightness(0.95); }
+  .fmt-btn.active{ background: var(--md-secondary); color: var(--md-on-secondary); }
 
   /* ---------- Checklist / Registry ---------- */
-  .cat-heading{ font-family:'Public Sans',sans-serif; font-size:16px; color: var(--evergreen); margin: 18px 0 8px; }
+  .cat-heading{ font: var(--md-type-title-md); font-size:16px; color: var(--md-on-surface); margin: 18px 0 8px; }
   .cat-heading:first-child{ margin-top:0; }
-  .item-row{ display:flex; align-items:center; gap:10px; padding: 8px 0; border-bottom: 1px solid var(--blush); }
+  .item-row{ display:flex; align-items:center; gap:10px; padding: 8px 0; border-bottom: 1px solid var(--md-outline-variant); }
   .item-row:last-child{ border-bottom:none; }
-  .item-row input[type=checkbox]{ width:19px; height:19px; accent-color: var(--terracotta); flex-shrink:0; }
+  .item-row input[type=checkbox]{ width:20px; height:20px; accent-color: var(--md-primary); flex-shrink:0; }
   .item-row .txt{ flex:1; font-size:14.5px; }
-  .item-row.done .txt{ text-decoration: line-through; color: var(--sage); }
-  .item-notes{ font-size:12.5px; color: var(--sage); margin-top:2px; padding-left:18px; }
+  .item-row.done .txt{ text-decoration: line-through; color: var(--md-on-surface-variant); }
+  .item-notes{ font-size:12.5px; color: var(--md-on-surface-variant); margin-top:2px; padding-left:18px; }
   .item-row.done .item-notes{ text-decoration: line-through; }
-  .item-row .tag{ font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--sage); }
+  .item-row .tag{ font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--md-on-surface-variant); }
   .add-row{ display:flex; gap:8px; margin-top:14px; margin-bottom:16px; flex-wrap:wrap; }
   .add-row input{ flex:1; min-width:140px; }
   .add-row select{ width:130px; flex-shrink:0; }
@@ -316,29 +713,32 @@
   .filter-row .new-cat-input{ flex:1; min-width:130px; width:auto; }
   .hide-completed-toggle{
     display:flex; align-items:center; gap:7px; font-size:13px; font-weight:600;
-    color: var(--evergreen); font-family:'Public Sans',sans-serif; white-space:nowrap; cursor:pointer;
+    color: var(--md-on-surface); font-family:'Public Sans',sans-serif; white-space:nowrap; cursor:pointer;
   }
-  .hide-completed-toggle input{ width:16px; height:16px; accent-color: var(--terracotta); cursor:pointer; }
+  .hide-completed-toggle input{ width:18px; height:18px; accent-color: var(--md-primary); cursor:pointer; }
 
-  .cat-manage-row{ display:flex; flex-wrap:wrap; gap:7px; margin-bottom:16px; }
+  .cat-manage-row{ display:flex; flex-wrap:wrap; gap:9px; margin-bottom:16px; }
   .cat-manage-chip{
-    display:inline-flex; align-items:center; gap:5px;
-    background: var(--ivory); border:1px solid var(--blush); border-radius:999px;
+    display:inline-flex; align-items:center; gap:6px;
+    background: var(--md-surface-container); border:1px solid var(--md-outline-variant); border-radius:var(--md-shape-full);
     padding:4px 6px 4px 12px; font-family:'JetBrains Mono',monospace; font-size:11px;
-    color: var(--evergreen); font-weight:600;
+    color: var(--md-on-surface); font-weight:600;
   }
+  /* Sit right next to their sibling delete button, so — unlike the standalone icon buttons above
+     — these get a real size bump instead of an invisible hit-area, to avoid the two overlapping
+     and misdirecting taps onto the wrong one. */
   .cat-rename-btn{
-    background: var(--blush); border:none; border-radius:50%; width:20px; height:20px;
-    font-size:11px; line-height:1; cursor:pointer; color: var(--evergreen);
+    background: var(--md-surface-container-highest); border:none; border-radius:50%; width:24px; height:24px;
+    font-size:11px; line-height:1; cursor:pointer; color: var(--md-on-surface);
     display:flex; align-items:center; justify-content:center; padding:0;
   }
-  .cat-rename-btn:hover{ background: var(--terracotta); color:#fff; }
+  .cat-rename-btn:hover{ background: var(--md-primary); color: var(--md-on-primary); }
   .cat-delete-btn{
-    background: var(--blush); border:none; border-radius:50%; width:20px; height:20px;
-    font-size:10px; line-height:1; cursor:pointer; color: var(--evergreen);
+    background: var(--md-surface-container-highest); border:none; border-radius:50%; width:24px; height:24px;
+    font-size:10px; line-height:1; cursor:pointer; color: var(--md-on-surface);
     display:flex; align-items:center; justify-content:center; padding:0;
   }
-  .cat-delete-btn:hover{ background:#c0392b; color:#fff; }
+  .cat-delete-btn:hover{ background: var(--md-error); color: var(--md-on-error); }
   .cat-color-input{
     -webkit-appearance:none; appearance:none; width:16px; height:16px; padding:0;
     border:1px solid rgba(0,0,0,.15); border-radius:50%; cursor:pointer; background:none; flex-shrink:0;
@@ -347,52 +747,52 @@
   .cat-color-input::-webkit-color-swatch{ border:none; border-radius:50%; }
   .cat-color-input::-moz-color-swatch{ border:none; border-radius:50%; }
 
-  .week-tag{ font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--sage); white-space:nowrap; }
+  .week-tag{ font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--md-on-surface-variant); white-space:nowrap; }
   .overdue-tag{
-    font-family:'JetBrains Mono',monospace; font-size:9px; color:#fff; background: var(--terracotta);
-    padding:2px 6px; border-radius:999px; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap;
+    font-family:'JetBrains Mono',monospace; font-size:9px; color: var(--md-on-error); background: var(--md-error);
+    padding:2px 6px; border-radius:var(--md-shape-full); text-transform:uppercase; letter-spacing:.05em; white-space:nowrap;
   }
   .item-meta{ display:flex; align-items:center; gap:6px; }
 
   .cat-pill{
     font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
-    padding:3px 9px; border-radius:6px; white-space:nowrap; flex-shrink:0;
+    padding:3px 9px; border-radius:var(--md-shape-xs); white-space:nowrap; flex-shrink:0;
   }
   .assignee-pill{
     font-family:'Public Sans',sans-serif; font-size:11px; font-weight:700;
-    padding:3px 9px; border-radius:999px; white-space:nowrap; flex-shrink:0;
+    padding:3px 9px; border-radius:var(--md-shape-full); white-space:nowrap; flex-shrink:0;
   }
   .source-pill{
     font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
-    padding:2px 8px; border-radius:6px; white-space:nowrap; flex-shrink:0;
-    background:#fff; border:1.5px solid; text-transform:uppercase; letter-spacing:.03em;
+    padding:2px 8px; border-radius:var(--md-shape-xs); white-space:nowrap; flex-shrink:0;
+    background: var(--md-surface-container-lowest); border:1.5px solid; text-transform:uppercase; letter-spacing:.03em;
   }
 
   .week-break{
     display:flex; align-items:center; gap:10px; margin: 16px 0 10px;
-    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color: var(--sage);
+    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color: var(--md-on-surface-variant);
     text-transform:uppercase; letter-spacing:.06em;
   }
   .week-break:first-child{ margin-top:0; }
-  .week-break-line{ flex:1; height:0; border-top:1px dashed var(--blush); }
+  .week-break-line{ flex:1; height:0; border-top:1px dashed var(--md-outline-variant); }
 
   .row-menu{ position:relative; flex-shrink:0; }
   .row-menu-btn{
-    background:none; border:none; color: var(--sage); cursor:pointer; font-size:13px;
-    padding:2px 6px; line-height:1; border-radius:6px;
+    background:none; border:none; color: var(--md-on-surface-variant); cursor:pointer; font-size:13px;
+    padding:2px 6px; line-height:1; border-radius:var(--md-shape-xs);
   }
-  .row-menu-btn:hover{ background: var(--ivory); color: var(--evergreen); }
+  .row-menu-btn:hover{ background: var(--md-surface-container-high); color: var(--md-on-surface); }
   .row-menu-dropdown{
-    position:absolute; right:0; top:26px; background:#fff; border:1px solid var(--blush);
-    border-radius:8px; box-shadow: 0 6px 18px rgba(0,0,0,0.1); overflow:hidden; z-index:10; min-width:104px;
+    position:absolute; right:0; top:26px; background: var(--md-surface-container-high); border:1px solid var(--md-outline-variant);
+    border-radius:var(--md-shape-sm); box-shadow: var(--md-elevation-2); overflow:hidden; z-index:10; min-width:104px;
   }
   .row-menu-dropdown button{
     display:block; width:100%; text-align:left; background:none; border:none;
     padding:9px 13px; font-family:'Public Sans',sans-serif; font-weight:600; font-size:13px;
-    color: var(--evergreen); cursor:pointer;
+    color: var(--md-on-surface); cursor:pointer;
   }
-  .row-menu-dropdown button:hover{ background: var(--ivory); }
-  .row-menu-dropdown button.menu-delete{ color: var(--terracotta); }
+  .row-menu-dropdown button:hover{ background: var(--md-surface-container-highest); }
+  .row-menu-dropdown button.menu-delete{ color: var(--md-error); }
 
   .edit-row{ flex-wrap:wrap; gap:8px; }
   .edit-row .edit-text{ flex:1; min-width:140px; }
@@ -406,8 +806,8 @@
   .gender-tab-row{ display:flex; gap:10px; margin-bottom:18px; }
   .gender-tab{
     flex:1; font-family:'Public Sans',sans-serif; font-weight:700; font-size:14px;
-    border:none; border-radius:12px; padding:12px 18px; cursor:pointer;
-    transition: filter .15s ease, transform .12s ease;
+    border:none; border-radius:var(--md-shape-md); padding:12px 18px; cursor:pointer; min-height:48px;
+    transition: filter .15s var(--md-easing-standard), transform .12s var(--md-easing-standard);
   }
   .gender-tab:active{ transform: scale(0.98); }
   .gender-tab.girl{ background:#f6d3de; color:#8a4a5e; }
@@ -415,30 +815,30 @@
   .gender-tab.boy{ background:#d2e3f6; color:#3f5f80; }
   .gender-tab.boy.active{ background:#9cc0e8; color:#1f3c58; }
 
-  .name-card{ display:flex; align-items:center; padding:10px 0; border-bottom:1px solid var(--blush); gap:10px; flex-wrap:wrap;}
+  .name-card{ display:flex; align-items:center; padding:10px 0; border-bottom:1px solid var(--md-outline-variant); gap:10px; flex-wrap:wrap;}
   .name-card .row-menu{ margin-left:auto; }
   .name-card:last-child{ border-bottom:none; }
   .name-card.editing{ gap:8px; }
   .name-card.editing .edit-name-text{ flex:1; min-width:140px; }
   .name-left{ display:flex; flex-direction:column; }
-  .name-left .nm{ font-family:'Public Sans',sans-serif; font-size:18px; color: var(--evergreen); }
-  .name-left .meta{ font-size:11px; color: var(--sage); font-family:'JetBrains Mono',monospace; }
-  .rank-controls{ display:flex; align-items:center; gap:6px; }
-  .rank-controls .rank-num{ font-family:'JetBrains Mono',monospace; font-size:12px; color: var(--evergreen); font-weight:700; min-width:22px; text-align:center; }
+  .name-left .nm{ font-family:'Public Sans',sans-serif; font-size:18px; color: var(--md-on-surface); }
+  .name-left .meta{ font-size:11px; color: var(--md-on-surface-variant); font-family:'JetBrains Mono',monospace; }
+  .rank-controls{ display:flex; align-items:center; gap:8px; }
+  .rank-controls .rank-num{ font-family:'JetBrains Mono',monospace; font-size:12px; color: var(--md-on-surface); font-weight:700; min-width:22px; text-align:center; }
   .rank-controls button{
-    background:none; border:1px solid var(--blush); border-radius:6px; width:24px; height:22px;
-    font-size:12px; cursor:pointer; color: var(--evergreen); line-height:1; padding:0;
+    background: var(--md-surface-container); border:1px solid var(--md-outline-variant); border-radius:var(--md-shape-xs); width:28px; height:28px;
+    font-size:12px; cursor:pointer; color: var(--md-on-surface); line-height:1; padding:0;
   }
   .rank-controls button:disabled{ opacity:.3; cursor:default; }
-  .unranked-pill{ font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--sage); }
+  .unranked-pill{ font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--md-on-surface-variant); }
 
   .fav-panels-row{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px; align-items:stretch; margin-bottom:16px; }
   @media(max-width:800px){ .fav-panels-row{ grid-template-columns: 1fr; } }
-  .fav-panel h3{ font-family:'Public Sans',sans-serif; font-size:15px; color: var(--evergreen); margin:0 0 10px; }
-  .fav-panel ol{ margin:0; padding-left:20px; font-size:13.5px; line-height:1.8; color: var(--evergreen); }
+  .fav-panel h3{ font: var(--md-type-title-sm); font-size:15px; color: var(--md-on-surface); margin:0 0 10px; }
+  .fav-panel ol{ margin:0; padding-left:20px; font-size:13.5px; line-height:1.8; color: var(--md-on-surface); }
 
-  .empty{ color: var(--sage); font-size:13.5px; text-align:center; padding: 20px 0; }
-  ::placeholder{ color: var(--sage); opacity:.8; }
+  .empty{ color: var(--md-on-surface-variant); font-size:13.5px; text-align:center; padding: 20px 0; }
+  ::placeholder{ color: var(--md-on-surface-variant); opacity:.8; }
 </style>
 </head>
 <body>
@@ -476,6 +876,32 @@ function cribIcon(size){
   </svg>`;
 }
 
+// Simple 3-bar hamburger icon for the nav-drawer toggle button.
+function hamburgerIconSVG(){
+  return `
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <line x1="3" y1="6" x2="21" y2="6"/>
+    <line x1="3" y1="12" x2="21" y2="12"/>
+    <line x1="3" y1="18" x2="21" y2="18"/>
+  </svg>`;
+}
+
+// Solid-fill baby rattle silhouette (head, handle, grip knob, plus a few small "jingle" dots
+// for character) shown on the loading screen — currentColor throughout so it picks up whatever
+// color the .loading-rattle wrapper is styled with.
+function rattleSilhouetteSVG(){
+  return `
+  <svg viewBox="0 0 24 34" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="9" r="7"/>
+    <rect x="9.4" y="15" width="5.2" height="13" rx="2.6"/>
+    <circle cx="12" cy="29.5" r="3"/>
+    <circle cx="3" cy="4" r="1.3" opacity="0.55"/>
+    <circle cx="21" cy="3" r="1.7" opacity="0.55"/>
+    <circle cx="21.5" cy="11.5" r="1.1" opacity="0.5"/>
+    <circle cx="2" cy="12.5" r="1" opacity="0.5"/>
+  </svg>`;
+}
+
 // Bare nouns (no leading article) so we can link just the fruit/veg name.
 const FRUITS = {
   4:"poppy seed",5:"sesame seed",6:"lentil",7:"blueberry",8:"raspberry",
@@ -493,6 +919,75 @@ const FRUITS = {
 function twemojiUrl(emoji){
   const cp = [...emoji].map(c => c.codePointAt(0).toString(16)).join('-');
   return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${cp}.png`;
+}
+
+// Fixed (not randomized-per-render) scatter layout for the decorative emoji pattern behind the
+// Home page timeline hero — the current week's size-comparison emoji (e.g. 🍋 for "lemon") fills
+// these slots, doubling as the size indicator instead of a separate fruit-photo panel. Fixed
+// positions keep the pattern visually stable across re-renders — Home re-renders on every state
+// change (checking off a task, etc.), and random placement would make it noticeably jump around.
+// Deliberately spread across the FULL hero (not just the side gutters) — candidates that would
+// land on top of the actual text get hidden at runtime by avoidLemonTextOverlap() below, rather
+// than being conservatively excluded here, so the pattern can still read as "throughout" while
+// guaranteeing no visual collision with the week info or size caption.
+const HERO_EMOJI_DECOR_LAYOUT = [
+  { top:'4%',  left:'3%',  size:42, rot:-14, op:0.85 },
+  { top:'8%',  left:'18%', size:26, rot:20,  op:0.55 },
+  { top:'3%',  left:'35%', size:32, rot:-8,  op:0.65 },
+  { top:'6%',  left:'52%', size:24, rot:15,  op:0.5  },
+  { top:'10%', left:'68%', size:38, rot:-20, op:0.75 },
+  { top:'5%',  left:'85%', size:48, rot:10,  op:0.85 },
+  { top:'4%',  left:'96%', size:28, rot:-25, op:0.6  },
+  { top:'35%', left:'2%',  size:34, rot:18,  op:0.7  },
+  { top:'42%', left:'22%', size:22, rot:-12, op:0.5  },
+  { top:'38%', left:'78%', size:30, rot:25,  op:0.65 },
+  { top:'40%', left:'94%', size:44, rot:-10, op:0.8  },
+  { top:'65%', left:'5%',  size:40, rot:-15, op:0.8  },
+  { top:'70%', left:'28%', size:26, rot:12,  op:0.55 },
+  { top:'72%', left:'72%', size:34, rot:-22, op:0.65 },
+  { top:'68%', left:'90%', size:50, rot:16,  op:0.85 },
+  { top:'88%', left:'12%', size:36, rot:-8,  op:0.7  },
+  { top:'90%', left:'55%', size:24, rot:20,  op:0.5  },
+  { top:'86%', left:'93%', size:42, rot:-18, op:0.75 },
+  // A few more through the middle — kept out of the vine's own vertical band (roughly 30%-65%,
+  // which avoidLemonTextOverlap() below does NOT check since the timeline itself isn't "text"),
+  // so they sit clearly above or below the timeline rather than crowding right against it.
+  { top:'12%', left:'46%', size:28, rot:-10, op:0.6  },
+  { top:'16%', left:'59%', size:24, rot:15,  op:0.55 },
+  { top:'80%', left:'44%', size:34, rot:-18, op:0.7  },
+  { top:'84%', left:'61%', size:26, rot:12,  op:0.6  },
+  { top:'92%', left:'50%', size:30, rot:-8,  op:0.65 },
+];
+function fruitDecorHTML(emoji){
+  const url = twemojiUrl(emoji);
+  return `<div class="home-hero-lemons">${HERO_EMOJI_DECOR_LAYOUT.map(l =>
+    `<img src="${url}" alt="" style="top:${l.top};left:${l.left};width:${l.size}px;height:${l.size}px;opacity:${l.op};transform:rotate(${l.rot}deg);" />`
+  ).join('')}</div>`;
+}
+
+// Runs right after the Home hero renders: hides any decorative emoji whose live rendered
+// position would visually collide with the hero's actual text (the week/due-date block and the
+// size caption). Measured via getBoundingClientRect rather than guessed with fixed CSS zones, so
+// it stays correct regardless of viewport width, font rendering, or how long this week's fruit
+// name / due-date string happens to be — a lemon only ever gets hidden, positions of the rest
+// never shift, so the pattern still reads as scattered "throughout" the hero.
+function avoidLemonTextOverlap(){
+  const hero = document.querySelector('.home-hero');
+  if(!hero) return;
+  const lemons = hero.querySelectorAll('.home-hero-lemons img');
+  if(!lemons.length) return;
+  const textEls = [hero.querySelector('.week-hero'), hero.querySelector('.hero-size-caption')].filter(Boolean);
+  if(!textEls.length) return;
+  const buffer = 10; // px breathing room around each text block
+  const textRects = textEls.map(el => {
+    const r = el.getBoundingClientRect();
+    return { left: r.left - buffer, right: r.right + buffer, top: r.top - buffer, bottom: r.bottom + buffer };
+  });
+  lemons.forEach(img => {
+    const r = img.getBoundingClientRect();
+    const hits = textRects.some(t => r.left < t.right && r.right > t.left && r.top < t.bottom && r.bottom > t.top);
+    img.style.visibility = hits ? 'hidden' : '';
+  });
 }
 
 // Emoji stand-ins used as the source image for each week's fruit comparison.
@@ -978,8 +1473,9 @@ let state = {
   liveAttached: false,
   openMenuId: null,
   editingId: null,
-  timelinePopupIdx: null,
+  selectedFactsWeek: null,
   showCatSettings: false,
+  menuOpen: false,
 };
 
 function currentWeekNum(){
@@ -1182,7 +1678,11 @@ async function loadHousehold(){
 
 function render(){
   if(state.loading){
-    root.innerHTML = `<div class="setup-wrap"><div style="color:var(--sage);font-family:'JetBrains Mono',monospace;font-size:13px;">loading…</div></div>`;
+    root.innerHTML = `
+    <div class="setup-wrap loading-wrap">
+      <div class="loading-rattle">${rattleSilhouetteSVG()}</div>
+      <div class="loading-text">loading…</div>
+    </div>`;
     return;
   }
   if(!state.name || !state.code){
@@ -1230,34 +1730,66 @@ function renderSetup(){
 function renderApp(){
   const w = state.info.dueDate ? weeksFromDueDate(state.info.dueDate) : null;
 
+  const navLinks = [
+    { tab: 'overview', label: 'Home' },
+    { tab: 'checklist', label: 'Checklist' },
+    { tab: 'registry', label: 'Registry' },
+    { tab: 'names', label: 'Names' },
+    { tab: 'journal', label: 'Journal' },
+    { tab: 'notes', label: 'Notes' },
+  ];
+
   root.innerHTML = `
-    <div class="topbar">
-      <h1><span class="brand-icon">${cribIcon(36)}</span>${BRAND}</h1>
-      <div class="who-col">
-        <div class="who">${state.name}</div>
-        <button class="settings-btn" id="settings-btn">⚙ Settings</button>
+    <div class="topbar-band">
+      <div class="topbar">
+        <div class="topbar-left">
+          <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu">${hamburgerIconSVG()}</button>
+          <h1><button class="brand-link" id="brand-home-btn"><span class="brand-icon">${cribIcon(36)}</span>${BRAND}</button></h1>
+        </div>
+        <div class="who-col">
+          <div class="who">${state.name}</div>
+          <button class="settings-btn" id="settings-btn">⚙ Settings</button>
+        </div>
       </div>
     </div>
-    <nav class="tabs">
-      <button data-tab="overview" class="${state.tab==='overview'?'active':''}">Home</button>
-      <button data-tab="checklist" class="${state.tab==='checklist'?'active':''}">Checklist</button>
-      <button data-tab="registry" class="${state.tab==='registry'?'active':''}">Registry</button>
-      <button data-tab="names" class="${state.tab==='names'?'active':''}">Names</button>
-      <button data-tab="journal" class="${state.tab==='journal'?'active':''}">Journal</button>
-      <button data-tab="notes" class="${state.tab==='notes'?'active':''}">Notes</button>
-    </nav>
+    ${state.menuOpen ? `<div class="nav-drawer-overlay" id="nav-drawer-overlay"></div>` : ''}
+    <div class="nav-drawer ${state.menuOpen ? 'open' : ''}" id="nav-drawer">
+      <div class="nav-drawer-header">
+        <span class="brand-icon">${cribIcon(26)}</span>
+        <span class="nav-drawer-brand">${BRAND}</span>
+        <button class="modal-close-btn" id="nav-drawer-close" aria-label="Close menu">✕</button>
+      </div>
+      <nav class="nav-drawer-links">
+        ${navLinks.map(l => `<button data-tab="${l.tab}" class="${state.tab===l.tab?'active':''}">${l.label}</button>`).join('')}
+      </nav>
+    </div>
     <div id="tab-content"></div>
   `;
   document.getElementById('settings-btn').onclick = () => {
     state.tab = 'settings';
     render();
   };
-  root.querySelectorAll('nav.tabs button').forEach(b => {
-    b.onclick = () => { state.tab = b.dataset.tab; state.openMenuId = null; state.editingId = null; state.timelinePopupIdx = null; state.showCatSettings = false; state.showAddNoteTheme = false; state.showNoteThemeSettings = false; render(); };
+  document.getElementById('brand-home-btn').onclick = () => {
+    state.tab = 'overview'; state.menuOpen = false; state.openMenuId = null; state.editingId = null;
+    state.selectedFactsWeek = null; state.showCatSettings = false; state.showAddNoteTheme = false;
+    state.showNoteThemeSettings = false;
+    render();
+  };
+  const closeMenu = () => { state.menuOpen = false; render(); };
+  document.getElementById('hamburger-btn').onclick = () => { state.menuOpen = true; render(); };
+  const navDrawerClose = document.getElementById('nav-drawer-close');
+  if(navDrawerClose) navDrawerClose.onclick = closeMenu;
+  const navDrawerOverlay = document.getElementById('nav-drawer-overlay');
+  if(navDrawerOverlay) navDrawerOverlay.onclick = closeMenu;
+  root.querySelectorAll('.nav-drawer-links button').forEach(b => {
+    b.onclick = () => { state.tab = b.dataset.tab; state.menuOpen = false; state.openMenuId = null; state.editingId = null; state.selectedFactsWeek = null; state.showCatSettings = false; state.showAddNoteTheme = false; state.showNoteThemeSettings = false; render(); };
   });
 
   const content = document.getElementById('tab-content');
-  if(state.tab === 'overview') content.innerHTML = overviewHTML(w);
+  // The Home tab's hero deliberately touches the header (one continuous white band); every
+  // other page gets a small gap so the header doesn't butt directly against its content.
+  content.className = state.tab === 'overview' ? '' : 'tab-content-spaced';
+  if(state.tab === 'overview'){ content.innerHTML = overviewHTML(w); avoidLemonTextOverlap(); }
   else if(state.tab === 'checklist') content.innerHTML = tasksHTML();
   else if(state.tab === 'registry') content.innerHTML = registryHTML();
   else if(state.tab === 'names') content.innerHTML = namesHTML();
@@ -1280,32 +1812,38 @@ function overviewHTML(w){
   }
   const week = w.week;
   const pct = ((week-4)/(40-4))*100;
-  const currentMonthIdx = Math.min(9, Math.max(0, Math.round((week-4)/4)));
 
+  // Month dots (large, numbered 0-9) sit at weeks 4, 8, 12 ... 40. Small week dots fill in
+  // every individual week in between, so a specific week's development notes can be pulled up
+  // directly rather than only whole-month blocks. Whichever dot's week exactly matches the
+  // current pregnancy week gets the "current" ripple treatment.
   let dots = '';
   for(let i=0; i<=9; i++){
+    const dotWeek = Math.min(40, 4 + i*4);
     const left = (i/9)*100;
-    const isCurrent = i === currentMonthIdx;
+    const isCurrent = dotWeek === week;
     const stateClass = isCurrent ? 'current' : 'clickable';
-    const selectedClass = state.timelinePopupIdx === i ? 'selected' : '';
+    const selectedClass = state.selectedFactsWeek === dotWeek ? 'selected' : '';
     const tri = i === 0 ? 0 : (i <= 3 ? 1 : (i <= 6 ? 2 : 3));
-    dots += `<div class="vine-dot tri-${tri} ${stateClass} ${selectedClass}" data-idx="${i}" style="left:${left}%">${i}</div>`;
+    dots += `<div class="vine-dot tri-${tri} ${stateClass} ${selectedClass}" data-week="${dotWeek}" style="left:${left}%">${i}</div>`;
+  }
+  let weekDots = '';
+  for(let wk=5; wk<40; wk++){
+    if((wk-4) % 4 === 0) continue; // already has a month dot
+    const left = ((wk-4)/(40-4))*100;
+    const isCurrent = wk === week;
+    const stateClass = isCurrent ? 'current' : 'clickable';
+    const selectedClass = state.selectedFactsWeek === wk ? 'selected' : '';
+    weekDots += `<div class="vine-week-dot ${stateClass} ${selectedClass}" data-week="${wk}" style="left:${left}%" title="Week ${wk}"></div>`;
   }
 
-  let monthCol = '';
-  if(state.timelinePopupIdx !== null && state.timelinePopupIdx !== currentMonthIdx){
-    const pIdx = state.timelinePopupIdx;
-    const pWeek = Math.min(40, 4 + pIdx*4);
-    const pHighlights = WEEK_HIGHLIGHTS[pWeek] || [];
-    monthCol = `
-    <div class="dev-col dev-col-month">
-      <div class="dev-heading">This month (Month ${pIdx}), baby is...</div>
-      ${pHighlights.length ? `<ul>${pHighlights.map(h => `<li>${escapeHtml(h)}</li>`).join('')}</ul>` : `<div class="empty">No details for this month.</div>`}
-    </div>`;
-  }
+  // Baby Facts always shows the actual current week; clicking any dot (month or week) shows
+  // that week's facts alongside it, rather than replacing it.
+  const currentHighlights = WEEK_HIGHLIGHTS[week] || [];
+  const viewingOtherWeek = state.selectedFactsWeek !== null && state.selectedFactsWeek !== week;
+  const selectedHighlights = viewingOtherWeek ? (WEEK_HIGHLIGHTS[state.selectedFactsWeek] || []) : [];
 
   const fruitName = FRUITS[week] || 'small pumpkin';
-  const fruitPhoto = FRUIT_PHOTO[week];
   const fruitEmoji = FRUIT_EMOJI[week] || '🎃';
   const fruitArticle = /^[aeiou]/i.test(fruitName) ? 'an' : 'a';
   const fruitLink = `https://www.google.com/search?q=${encodeURIComponent(fruitName + ' dessert recipe')}`;
@@ -1343,11 +1881,10 @@ function overviewHTML(w){
       weekItems.map(i => homeItemRow(i, false)).join('');
   }
 
-  const highlights = WEEK_HIGHLIGHTS[week] || [];
-
   return `
-  <div class="overview-row">
-    <div class="card timeline-card">
+  <div class="home-hero">
+    ${fruitDecorHTML(fruitEmoji)}
+    <div class="home-hero-inner timeline-card">
       <div class="week-hero">
         <div class="week-num">Week ${week}</div>
         <div class="week-meta">
@@ -1358,41 +1895,63 @@ function overviewHTML(w){
       <div class="vine">
         <div class="vine-line"></div>
         <div class="vine-fill" style="width:${pct}%"></div>
+        <div class="vine-today-marker" style="left:${pct}%">
+          <span class="vine-today-label">Today</span>
+          <span class="vine-today-caret"></span>
+        </div>
+        ${weekDots}
         ${dots}
       </div>
-      ${(highlights.length || monthCol) ? `
-      <div class="dev-highlights ${monthCol ? 'split' : ''}">
-        ${highlights.length ? `
-        <div class="dev-col">
-          <div class="dev-heading">This week, baby is...</div>
-          <ul>${highlights.map(h => `<li>${escapeHtml(h)}</li>`).join('')}</ul>
-        </div>` : ''}
-        ${monthCol}
-      </div>` : ''}
+      <div class="hero-size-caption">Your baby is about the size of ${fruitArticle} <a href="${fruitLink}" target="_blank" rel="noopener" class="fruit-link">${escapeHtml(fruitName)}</a>!</div>
     </div>
-    <div class="card fruit-card">
-      <div class="fruit-visual">
-        <img class="fruit-img" src="${fruitPhoto || twemojiUrl(fruitEmoji)}" alt="${escapeHtml(fruitName)}" onerror="if(this.dataset.fallback!=='1'){this.dataset.fallback='1';this.src='${twemojiUrl(fruitEmoji)}';}else{this.outerHTML='<span class=\'fruit-emoji-fallback\'>${fruitEmoji}</span>'}" />
+  </div>
+  <div class="home-grid-wrap">
+    <div class="home-grid-row home-grid-row-full">
+      <div class="card">
+        <h2 style="margin-bottom:14px;">Key Checklist Items</h2>
+        ${checklistBody}
       </div>
-      <div class="fruit-caption">Baby is about the size of ${fruitArticle} <a href="${fruitLink}" target="_blank" rel="noopener" class="fruit-link">${escapeHtml(fruitName)}</a>.</div>
     </div>
-  </div>
-  <div class="card">
-    <h2 style="margin-bottom:14px;">Key Checklist Items</h2>
-    ${checklistBody}
-  </div>
-  <div class="name-of-day-row">
-    ${nameOfDayHTML()}
-    ${journalHomeHTML()}
-    ${notesHomeHTML()}
+    <div class="home-grid-row">
+      <div class="card">
+        <h2 style="margin-bottom:14px;">Baby Facts</h2>
+        ${viewingOtherWeek ? `<button type="button" class="btn ghost small" id="baby-facts-reset" style="margin-bottom:12px;">Clear week ${state.selectedFactsWeek}</button>` : ''}
+        <div class="dev-highlights ${viewingOtherWeek ? 'split' : ''}" style="margin-top:0;padding-top:0;border-top:none;">
+          <div class="dev-col">
+            <div class="dev-heading">This week, baby is...</div>
+            ${currentHighlights.length ? `<ul>${currentHighlights.map(h => `<li>${escapeHtml(h)}</li>`).join('')}</ul>` : `<div class="empty">No details for this week.</div>`}
+          </div>
+          ${viewingOtherWeek ? `
+          <div class="dev-col dev-col-month">
+            <div class="dev-heading">At week ${state.selectedFactsWeek}, baby is...</div>
+            ${selectedHighlights.length ? `<ul>${selectedHighlights.map(h => `<li>${escapeHtml(h)}</li>`).join('')}</ul>` : `<div class="empty">No details for this week.</div>`}
+          </div>` : ''}
+        </div>
+      </div>
+      ${nameOfDayHTML()}
+    </div>
+    <div class="home-grid-row home-grid-row-equal">
+      ${notesHomeHTML()}
+      ${journalHomeHTML()}
+    </div>
   </div>`;
 }
 
 function settingsHTML(){
+  const themePref = personalGet('theme-preference') || 'system';
   return `
   <div class="card">
     <h2 style="margin-bottom:14px;">Shared household code</h2>
     <div class="household-code-display">${escapeHtml(state.code)}</div>
+  </div>
+  <div class="card">
+    <h2 style="margin-bottom:14px;">Appearance</h2>
+    <label>Theme</label>
+    <select id="theme-pref-select">
+      <option value="system" ${themePref === 'system' ? 'selected' : ''}>Match my device</option>
+      <option value="light" ${themePref === 'light' ? 'selected' : ''}>Light</option>
+      <option value="dark" ${themePref === 'dark' ? 'selected' : ''}>Dark</option>
+    </select>
   </div>
   <div class="card">
     <h2 style="margin-bottom:14px;">When are you due?</h2>
@@ -2265,14 +2824,18 @@ function bindTabEvents(){
     };
   });
 
-  // Home — timeline: click a non-active month to see its development highlights
-  root.querySelectorAll('.vine-dot.clickable').forEach(dot => {
+  // Home — timeline: click any month or week dot to see that specific week's Baby Facts
+  root.querySelectorAll('.vine-dot.clickable, .vine-week-dot.clickable').forEach(dot => {
     dot.onclick = () => {
-      const idx = Number(dot.dataset.idx);
-      state.timelinePopupIdx = state.timelinePopupIdx === idx ? null : idx;
+      const wk = Number(dot.dataset.week);
+      state.selectedFactsWeek = state.selectedFactsWeek === wk ? null : wk;
       render();
     };
   });
+  const babyFactsReset = document.getElementById('baby-facts-reset');
+  if(babyFactsReset){
+    babyFactsReset.onclick = () => { state.selectedFactsWeek = null; render(); };
+  }
   // Home — baby name of the day
   const notdAdd = document.getElementById('notd-add');
   if(notdAdd){
@@ -2602,6 +3165,20 @@ function bindTabEvents(){
       render();
     };
   });
+
+  // Settings — appearance / theme preference
+  const themePrefSelect = document.getElementById('theme-pref-select');
+  if(themePrefSelect){
+    themePrefSelect.onchange = () => {
+      const val = themePrefSelect.value;
+      personalSet('theme-preference', val);
+      if(val === 'light' || val === 'dark'){
+        document.documentElement.setAttribute('data-theme', val);
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
+    };
+  }
 
   // Settings — leave household
   const switchBtn = document.getElementById('switch-btn');
@@ -3220,6 +3797,11 @@ function bindTabEvents(){
     };
   });
 }
+
+// Re-checks the hero lemon/text overlap on viewport resize (e.g. rotating a phone, resizing a
+// browser window) — cheap, and added once here rather than inside renderApp() so it doesn't
+// stack a duplicate listener on every re-render.
+window.addEventListener('resize', () => { if(state.tab === 'overview') avoidLemonTextOverlap(); });
 
 (async function init(){
   render();
