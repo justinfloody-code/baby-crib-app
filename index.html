@@ -688,8 +688,18 @@
     margin-top:0; margin-bottom:0;
     overflow:hidden;
   }
-  .home-hero-lemons{ position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
-  .home-hero-lemons img{ position:absolute; }
+  /* Outer layer spans the full 100vw hero band (the same proven inset:0 pattern as before) purely
+     so it has somewhere to sit; the inner wrapper is what actually matters — it's centered to the
+     SAME 1100px column as .home-hero-inner, using the exact same max-width+margin:auto technique,
+     rather than the full viewport. The decoration layer used to span the entire viewport while the
+     actual text content stayed centered in a 1100px column, so on wide browser windows the two
+     disagreed: lemons placed at "middle" percentages landed in the (now much wider) side gutters
+     instead of near the text, leaving a dead zone over the content and clustering everything out
+     at the true edges. Centering the inner wrapper to the same width the text actually uses keeps
+     every percentage position meaningful regardless of viewport width. */
+  .home-hero-lemons{ position:absolute; inset:0; z-index:0; pointer-events:none; }
+  .home-hero-lemons-inner{ position:relative; height:100%; max-width:1100px; margin:0 auto; }
+  .home-hero-lemons-inner img{ position:absolute; }
   .home-hero-inner{ position:relative; z-index:1; max-width:1100px; margin:0 auto; padding: 30px 32px; }
   @media(max-width: 700px){ .home-hero-inner{ padding: 22px 18px; } }
   .hero-size-caption{
@@ -1092,57 +1102,77 @@ function twemojiUrl(emoji){
 // these slots, doubling as the size indicator instead of a separate fruit-photo panel. Fixed
 // positions keep the pattern visually stable across re-renders — Home re-renders on every state
 // change (checking off a task, etc.), and random placement would make it noticeably jump around.
-// Deliberately spread across the FULL hero (not just the side gutters) — candidates that would
-// land on top of the actual text get hidden at runtime by avoidLemonTextOverlap() below, rather
-// than being conservatively excluded here, so the pattern can still read as "throughout" while
-// guaranteeing no visual collision with the week info or size caption.
+// Percentages are relative to .home-hero-lemons, which is now capped to the same 1100px centered
+// column as the actual text content (see its CSS) — NOT the full-bleed 100vw hero band — so these
+// numbers stay meaningful regardless of how wide the browser window is. Four rows: top (beside
+// the Week N heading), upper-middle and lower-middle (above/below the timeline), and bottom
+// (flanking the size caption). Candidates that still end up on top of the real text or the
+// timeline get hidden at runtime by avoidLemonTextOverlap() below, as a safety net for content
+// lengths / spacing that shift a bit between renders.
 const HERO_EMOJI_DECOR_LAYOUT = [
+  // Top row — beside/around "Week N" and the due-date line.
   { top:'4%',  left:'3%',  size:42, rot:-14, op:0.85 },
-  { top:'8%',  left:'18%', size:26, rot:20,  op:0.55 },
-  { top:'3%',  left:'35%', size:32, rot:-8,  op:0.65 },
-  { top:'6%',  left:'52%', size:24, rot:15,  op:0.5  },
-  { top:'10%', left:'68%', size:38, rot:-20, op:0.75 },
-  { top:'5%',  left:'85%', size:48, rot:10,  op:0.85 },
-  { top:'4%',  left:'96%', size:28, rot:-25, op:0.6  },
-  { top:'35%', left:'2%',  size:34, rot:18,  op:0.7  },
-  { top:'42%', left:'22%', size:22, rot:-12, op:0.5  },
-  { top:'38%', left:'78%', size:30, rot:25,  op:0.65 },
-  { top:'40%', left:'94%', size:44, rot:-10, op:0.8  },
-  { top:'65%', left:'5%',  size:40, rot:-15, op:0.8  },
-  { top:'70%', left:'28%', size:26, rot:12,  op:0.55 },
-  { top:'72%', left:'72%', size:34, rot:-22, op:0.65 },
-  { top:'68%', left:'90%', size:50, rot:16,  op:0.85 },
-  { top:'88%', left:'12%', size:36, rot:-8,  op:0.7  },
-  { top:'90%', left:'55%', size:24, rot:20,  op:0.5  },
-  { top:'86%', left:'93%', size:42, rot:-18, op:0.75 },
-  // A few more through the middle — kept out of the vine's own vertical band (roughly 30%-65%,
-  // which avoidLemonTextOverlap() below does NOT check since the timeline itself isn't "text"),
-  // so they sit clearly above or below the timeline rather than crowding right against it.
-  { top:'12%', left:'46%', size:28, rot:-10, op:0.6  },
-  { top:'16%', left:'59%', size:24, rot:15,  op:0.55 },
-  { top:'80%', left:'44%', size:34, rot:-18, op:0.7  },
-  { top:'84%', left:'61%', size:26, rot:12,  op:0.6  },
-  { top:'92%', left:'50%', size:30, rot:-8,  op:0.65 },
+  { top:'3%',  left:'15%', size:24, rot:20,  op:0.5  },
+  { top:'9%',  left:'28%', size:28, rot:-8,  op:0.6  },
+  { top:'5%',  left:'42%', size:32, rot:15,  op:0.7  },
+  { top:'10%', left:'58%', size:26, rot:-20, op:0.55 },
+  { top:'4%',  left:'72%', size:44, rot:10,  op:0.8  },
+  { top:'8%',  left:'85%', size:30, rot:-16, op:0.65 },
+  { top:'3%',  left:'96%', size:26, rot:22,  op:0.55 },
+  // Upper-middle — between the heading and the timeline.
+  { top:'19%', left:'10%', size:24, rot:14,  op:0.55 },
+  { top:'22%', left:'30%', size:20, rot:-18, op:0.45 },
+  { top:'17%', left:'50%', size:26, rot:8,   op:0.55 },
+  { top:'21%', left:'70%', size:22, rot:-12, op:0.5  },
+  { top:'18%', left:'90%', size:30, rot:18,  op:0.6  },
+  // Lower-middle — between the timeline and the size caption.
+  { top:'57%', left:'8%',  size:30, rot:-15, op:0.65 },
+  { top:'60%', left:'25%', size:22, rot:12,  op:0.5  },
+  { top:'55%', left:'45%', size:26, rot:-10, op:0.55 },
+  { top:'61%', left:'65%', size:20, rot:20,  op:0.45 },
+  { top:'56%', left:'85%', size:32, rot:-18, op:0.65 },
+  // Bottom row — flanking the "Your baby is about the size of..." caption on both sides.
+  { top:'80%', left:'5%',  size:38, rot:-15, op:0.75 },
+  { top:'88%', left:'16%', size:24, rot:10,  op:0.5  },
+  { top:'83%', left:'27%', size:28, rot:-20, op:0.6  },
+  { top:'85%', left:'73%', size:28, rot:16,  op:0.6  },
+  { top:'89%', left:'84%', size:24, rot:-12, op:0.5  },
+  { top:'80%', left:'95%', size:38, rot:18,  op:0.75 },
 ];
 function fruitDecorHTML(emoji){
   const url = twemojiUrl(emoji);
-  return `<div class="home-hero-lemons">${HERO_EMOJI_DECOR_LAYOUT.map(l =>
+  return `<div class="home-hero-lemons"><div class="home-hero-lemons-inner">${HERO_EMOJI_DECOR_LAYOUT.map(l =>
     `<img src="${url}" alt="" style="top:${l.top};left:${l.left};width:${l.size}px;height:${l.size}px;opacity:${l.op};transform:rotate(${l.rot}deg);" />`
-  ).join('')}</div>`;
+  ).join('')}</div></div>`;
 }
 
 // Runs right after the Home hero renders: hides any decorative emoji whose live rendered
 // position would visually collide with the hero's actual text (the week/due-date block and the
-// size caption). Measured via getBoundingClientRect rather than guessed with fixed CSS zones, so
-// it stays correct regardless of viewport width, font rendering, or how long this week's fruit
-// name / due-date string happens to be — a lemon only ever gets hidden, positions of the rest
-// never shift, so the pattern still reads as scattered "throughout" the hero.
+// size caption) OR the timeline itself (the line, dots, and Today marker) — a lemon sitting on
+// top of the vine looks like clutter just as much as one sitting on top of text. Measured via
+// getBoundingClientRect rather than guessed with fixed CSS zones, so it stays correct regardless
+// of viewport width, font rendering, or how long this week's fruit name / due-date string happens
+// to be — a lemon only ever gets hidden, positions of the rest never shift, so the pattern still
+// reads as scattered "throughout" the hero.
 function avoidLemonTextOverlap(){
   const hero = document.querySelector('.home-hero');
   if(!hero) return;
   const lemons = hero.querySelectorAll('.home-hero-lemons img');
   if(!lemons.length) return;
-  const textEls = [hero.querySelector('.week-hero'), hero.querySelector('.hero-size-caption')].filter(Boolean);
+  // Deliberately measuring the actual CONTENT elements here, not their containers — .week-hero
+  // and .hero-size-caption are both full-width block/flex boxes regardless of how little of that
+  // width their text actually fills (text-align:center, flex children that don't stretch), so
+  // using the container's own bounding rect would treat its entire row as off-limits edge to
+  // edge, hiding lemons that were nowhere near the real text. .week-num/.week-meta and the new
+  // .hero-size-caption-text span are sized to their actual rendered content instead. .vine is the
+  // one exception left as a full-width check on purpose — the timeline's line genuinely does run
+  // edge to edge, so avoiding its whole row is correct there. .vine-today-marker is included
+  // separately since it floats above .vine's own box (top:-24px, for the "TODAY" pill).
+  const textEls = [
+    hero.querySelector('.week-num'), hero.querySelector('.week-meta'),
+    hero.querySelector('.vine'), hero.querySelector('.vine-today-marker'),
+    hero.querySelector('.hero-size-caption-text'),
+  ].filter(Boolean);
   if(!textEls.length) return;
   const buffer = 10; // px breathing room around each text block
   const textRects = textEls.map(el => {
@@ -2158,7 +2188,7 @@ function overviewHTML(w){
         ${weekDots}
         ${dots}
       </div>
-      <div class="hero-size-caption">${heroSubject} is about the size of ${fruitArticle} <a href="${fruitLink}" target="_blank" rel="noopener" class="fruit-link">${escapeHtml(fruitName)}</a>!</div>
+      <div class="hero-size-caption"><span class="hero-size-caption-text">${heroSubject} is about the size of ${fruitArticle} <a href="${fruitLink}" target="_blank" rel="noopener" class="fruit-link">${escapeHtml(fruitName)}</a>!</span></div>
     </div>
   </div>
   <div class="home-grid-wrap">
