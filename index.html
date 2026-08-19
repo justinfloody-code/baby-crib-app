@@ -18,6 +18,10 @@
     var __t = JSON.parse(localStorage.getItem('crib:theme-preference') || '"system"');
     if(__t === 'light' || __t === 'dark') document.documentElement.setAttribute('data-theme', __t);
   }catch(e){}
+  try{
+    var __ct = JSON.parse(localStorage.getItem('crib:color-theme') || '""');
+    if(__ct === 'boy' || __ct === 'girl') document.documentElement.setAttribute('data-color-theme', __ct);
+  }catch(e){}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -210,6 +214,87 @@
   }
 
   :root[data-theme="light"]{ color-scheme: light; }
+
+  /* ==================== Gender-aligned color themes ====================
+     Optional alternate palettes, selectable in Settings > Appearance, generated from
+     Material Theme Builder exports. The default/base theme (no data-color-theme attribute)
+     is the original terracotta colorway above and remains untouched. Each alt theme supplies
+     its own light tokens plus a dark override (both for explicit data-theme="dark" and for
+     prefers-color-scheme when no explicit light/dark preference is set), following the same
+     pattern as the base theme's dark blocks. */
+
+  :root[data-color-theme="boy"]{
+    --md-primary: #415E91; --md-on-primary: #FFFFFF; --md-primary-container: #D7E3FF; --md-on-primary-container: #284777;
+    --md-secondary: #565E71; --md-on-secondary: #FFFFFF; --md-secondary-container: #DAE2F9; --md-on-secondary-container: #3E4759;
+    --md-tertiary: #00696B; --md-on-tertiary: #FFFFFF; --md-tertiary-container: #9CF1F2; --md-on-tertiary-container: #004F51;
+    --md-error: #BA1A1A; --md-on-error: #FFFFFF; --md-error-container: #FFDAD6; --md-on-error-container: #93000A;
+    --md-surface: #F9F9FF; --md-surface-dim: #D9D9E0; --md-surface-bright: #F9F9FF;
+    --md-surface-container-lowest: #FFFFFF; --md-surface-container-low: #F3F3FA; --md-surface-container: #EDEDF4;
+    --md-surface-container-high: #E7E8EE; --md-surface-container-highest: #E2E2E9;
+    --md-on-surface: #191C20; --md-on-surface-variant: #44474E; --md-outline: #74777F; --md-outline-variant: #C4C6D0;
+    --tri-mid: #80D4D6; --eg-dark: var(--md-on-tertiary-container);
+  }
+  :root[data-color-theme="boy"][data-theme="dark"]{
+    --md-primary: #AAC7FF; --md-on-primary: #0B305F; --md-primary-container: #284777; --md-on-primary-container: #D7E3FF;
+    --md-secondary: #BEC6DC; --md-on-secondary: #283141; --md-secondary-container: #3E4759; --md-on-secondary-container: #DAE2F9;
+    --md-tertiary: #80D4D6; --md-on-tertiary: #003738; --md-tertiary-container: #004F51; --md-on-tertiary-container: #9CF1F2;
+    --md-error: #FFB4AB; --md-on-error: #690005; --md-error-container: #93000A; --md-on-error-container: #FFDAD6;
+    --md-surface: #111318; --md-surface-dim: #111318; --md-surface-bright: #37393E;
+    --md-surface-container-lowest: #0C0E13; --md-surface-container-low: #191C20; --md-surface-container: #1E2025;
+    --md-surface-container-high: #282A2F; --md-surface-container-highest: #33353A;
+    --md-on-surface: #E2E2E9; --md-on-surface-variant: #C4C6D0; --md-outline: #8E9099; --md-outline-variant: #44474E;
+    --tri-mid: #80D4D6; --eg-dark: var(--md-on-tertiary-container);
+  }
+  @media (prefers-color-scheme: dark){
+    :root[data-color-theme="boy"]:not([data-theme]){
+      --md-primary: #AAC7FF; --md-on-primary: #0B305F; --md-primary-container: #284777; --md-on-primary-container: #D7E3FF;
+      --md-secondary: #BEC6DC; --md-on-secondary: #283141; --md-secondary-container: #3E4759; --md-on-secondary-container: #DAE2F9;
+      --md-tertiary: #80D4D6; --md-on-tertiary: #003738; --md-tertiary-container: #004F51; --md-on-tertiary-container: #9CF1F2;
+      --md-error: #FFB4AB; --md-on-error: #690005; --md-error-container: #93000A; --md-on-error-container: #FFDAD6;
+      --md-surface: #111318; --md-surface-dim: #111318; --md-surface-bright: #37393E;
+      --md-surface-container-lowest: #0C0E13; --md-surface-container-low: #191C20; --md-surface-container: #1E2025;
+      --md-surface-container-high: #282A2F; --md-surface-container-highest: #33353A;
+      --md-on-surface: #E2E2E9; --md-on-surface-variant: #C4C6D0; --md-outline: #8E9099; --md-outline-variant: #44474E;
+      --tri-mid: #80D4D6; --eg-dark: var(--md-on-tertiary-container);
+    }
+  }
+
+  :root[data-color-theme="girl"]{
+    --md-primary: #8C4A60; --md-on-primary: #FFFFFF; --md-primary-container: #FFD9E2; --md-on-primary-container: #703348;
+    --md-secondary: #74565F; --md-on-secondary: #FFFFFF; --md-secondary-container: #FFD9E2; --md-on-secondary-container: #5B3F47;
+    --md-tertiary: #5E5791; --md-on-tertiary: #FFFFFF; --md-tertiary-container: #E4DFFF; --md-on-tertiary-container: #463F77;
+    --md-error: #BA1A1A; --md-on-error: #FFFFFF; --md-error-container: #FFDAD6; --md-on-error-container: #93000A;
+    --md-surface: #FFF8F8; --md-surface-dim: #E6D6D9; --md-surface-bright: #FFF8F8;
+    --md-surface-container-lowest: #FFFFFF; --md-surface-container-low: #FFF0F2; --md-surface-container: #FBEAED;
+    --md-surface-container-high: #F5E4E7; --md-surface-container-highest: #EFDFE1;
+    --md-on-surface: #22191B; --md-on-surface-variant: #514347; --md-outline: #837377; --md-outline-variant: #D5C2C6;
+    --tri-mid: #C7BFFF; --eg-dark: var(--md-on-tertiary-container);
+  }
+  :root[data-color-theme="girl"][data-theme="dark"],
+  html[data-color-theme="girl"][data-theme="dark"]{
+    --md-primary: #FFB1C8; --md-on-primary: #541D32; --md-primary-container: #703348; --md-on-primary-container: #FFD9E2;
+    --md-secondary: #E3BDC6; --md-on-secondary: #422931; --md-secondary-container: #5B3F47; --md-on-secondary-container: #FFD9E2;
+    --md-tertiary: #C7BFFF; --md-on-tertiary: #2F295F; --md-tertiary-container: #463F77; --md-on-tertiary-container: #E4DFFF;
+    --md-error: #FFB4AB; --md-on-error: #690005; --md-error-container: #93000A; --md-on-error-container: #FFDAD6;
+    --md-surface: #191113; --md-surface-dim: #191113; --md-surface-bright: #413739;
+    --md-surface-container-lowest: #140C0E; --md-surface-container-low: #22191B; --md-surface-container: #261D1F;
+    --md-surface-container-high: #31282A; --md-surface-container-highest: #3C3235;
+    --md-on-surface: #EFDFE1; --md-on-surface-variant: #D5C2C6; --md-outline: #9E8C90; --md-outline-variant: #514347;
+    --tri-mid: #C7BFFF; --eg-dark: var(--md-on-tertiary-container);
+  }
+  @media (prefers-color-scheme: dark){
+    :root[data-color-theme="girl"]:not([data-theme]){
+      --md-primary: #FFB1C8; --md-on-primary: #541D32; --md-primary-container: #703348; --md-on-primary-container: #FFD9E2;
+      --md-secondary: #E3BDC6; --md-on-secondary: #422931; --md-secondary-container: #5B3F47; --md-on-secondary-container: #FFD9E2;
+      --md-tertiary: #C7BFFF; --md-on-tertiary: #2F295F; --md-tertiary-container: #463F77; --md-on-tertiary-container: #E4DFFF;
+      --md-error: #FFB4AB; --md-on-error: #690005; --md-error-container: #93000A; --md-on-error-container: #FFDAD6;
+      --md-surface: #191113; --md-surface-dim: #191113; --md-surface-bright: #413739;
+      --md-surface-container-lowest: #140C0E; --md-surface-container-low: #22191B; --md-surface-container: #261D1F;
+      --md-surface-container-high: #31282A; --md-surface-container-highest: #3C3235;
+      --md-on-surface: #EFDFE1; --md-on-surface-variant: #D5C2C6; --md-outline: #9E8C90; --md-outline-variant: #514347;
+      --tri-mid: #C7BFFF; --eg-dark: var(--md-on-tertiary-container);
+    }
+  }
 
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -649,6 +734,13 @@
   .notd-add-btn{ font: var(--md-type-label-lg); border:none; }
   .notd-add-btn.girl{ background:#f6d3de; color:#8a4a5e; }
   .notd-add-btn.boy{ background:#d2e3f6; color:#3f5f80; }
+  /* Plain text, not a pill button — same font size as the "Add to my ... list" button above it. */
+  .notd-skip-btn{
+    background:none; border:none; padding:2px; cursor:pointer;
+    font-family:'Public Sans', sans-serif; font-size:13px; font-weight:700; letter-spacing:.02em;
+    color: var(--md-on-surface-variant); text-decoration:underline;
+  }
+  .notd-skip-btn:hover{ color: var(--md-primary); }
 
   .journal-card{ display:flex; flex-direction:column; }
   .journal-card textarea{ resize:vertical; min-height:110px; }
@@ -1302,17 +1394,21 @@ function nameOfTheDay(){
   // already added), with nothing remembered per-device — otherwise two phones on the same
   // household end up with different "memory" of what was last shown and drift out of sync,
   // which is exactly the bug this replaced. Day-of-year parity still alternates Girl/Boy every
-  // single day, same as before, but it's the same answer on every device for a given date.
+  // single day the same as before when the gender is unknown; once the household has told us
+  // the baby's gender in Settings, suggestions stick to that gender every day instead.
   const today = todayKey();
   const d = new Date();
   const startOfYear = new Date(d.getFullYear(), 0, 0);
   const dayOfYear = Math.floor((d - startOfYear) / (24*60*60*1000));
-  const gender = dayOfYear % 2 === 0 ? 'Girl' : 'Boy';
+  const knownGender = (state.info.gender === 'Boy' || state.info.gender === 'Girl') ? state.info.gender : null;
+  const gender = knownGender || (dayOfYear % 2 === 0 ? 'Girl' : 'Boy');
   const usedLower = new Set((state.names||[]).map(n => n.name.trim().toLowerCase()));
   const pool = NAME_SUGGESTIONS[gender].filter(n => !usedLower.has(n.toLowerCase()));
   if(pool.length === 0) return { gender, name: null };
   const rand = mulberry32(hashString(today + gender));
-  const idx = Math.floor(rand() * pool.length);
+  // "Skip name" cycles to the next candidate for this viewing session only (in-memory, never
+  // persisted or synced) — the shared cross-device default for the day is unaffected.
+  const idx = (Math.floor(rand() * pool.length) + (state.notdSkipOffset || 0)) % pool.length;
   return { gender, name: pool[idx] };
 }
 
@@ -1412,6 +1508,10 @@ function attachLiveSync(){
     if(val.info) state.info = val.info;
     if(state.info.motherName === undefined) state.info.motherName = '';
     if(state.info.fatherName === undefined) state.info.fatherName = '';
+    if(state.info.gender === undefined) state.info.gender = null;
+    if(state.info.babyFirstName === undefined) state.info.babyFirstName = '';
+    if(state.info.babyMiddleName === undefined) state.info.babyMiddleName = '';
+    if(state.info.babyLastName === undefined) state.info.babyLastName = '';
     if(val.checklists) state.checklists = normalizeChecklists(val.checklists);
     if(val.registry) state.registry = val.registry;
     if(val.names) state.names = val.names;
@@ -1436,7 +1536,7 @@ const root = document.getElementById('root');
 let state = {
   code: null,
   name: null,
-  info: { dueDate: null, motherName: '', fatherName: '' },
+  info: { dueDate: null, motherName: '', fatherName: '', gender: null, babyFirstName: '', babyMiddleName: '', babyLastName: '' },
   // Each checklist owns its own tasks, categories, and assignable people — kept fully separate
   // per checklist. Shape: { id, name, tasks, catList, catColors, assigneeList, assigneeColors }.
   checklists: [],
@@ -1476,6 +1576,9 @@ let state = {
   selectedFactsWeek: null,
   showCatSettings: false,
   menuOpen: false,
+  // In-memory only (never persisted or synced) — lets "Skip name" cycle to a new suggestion for
+  // this viewing session without disturbing the shared, date-derived default for other devices.
+  notdSkipOffset: 0,
 };
 
 function currentWeekNum(){
@@ -1581,6 +1684,10 @@ async function loadHousehold(){
   state.info = results.info || { dueDate: null };
   if(state.info.motherName === undefined) state.info.motherName = '';
   if(state.info.fatherName === undefined) state.info.fatherName = '';
+  if(state.info.gender === undefined) state.info.gender = null;
+  if(state.info.babyFirstName === undefined) state.info.babyFirstName = '';
+  if(state.info.babyMiddleName === undefined) state.info.babyMiddleName = '';
+  if(state.info.babyLastName === undefined) state.info.babyLastName = '';
   state.names = results.names || [];
   state.rankings = results.rankings || {};
   state.journal = results.journal || [];
@@ -1817,6 +1924,9 @@ function overviewHTML(w){
   // every individual week in between, so a specific week's development notes can be pulled up
   // directly rather than only whole-month blocks. Whichever dot's week exactly matches the
   // current pregnancy week gets the "current" ripple treatment.
+  // Labeled 1-10 (not 0-9) so the final dot explicitly reads "10" at week 40 — a full-term
+  // pregnancy is 10 lunar months / 40 weeks, and the dot positions/weeks themselves were already
+  // correct (week 40 was always the last dot), this just makes that read accurately at a glance.
   let dots = '';
   for(let i=0; i<=9; i++){
     const dotWeek = Math.min(40, 4 + i*4);
@@ -1825,7 +1935,7 @@ function overviewHTML(w){
     const stateClass = isCurrent ? 'current' : 'clickable';
     const selectedClass = state.selectedFactsWeek === dotWeek ? 'selected' : '';
     const tri = i === 0 ? 0 : (i <= 3 ? 1 : (i <= 6 ? 2 : 3));
-    dots += `<div class="vine-dot tri-${tri} ${stateClass} ${selectedClass}" data-week="${dotWeek}" style="left:${left}%">${i}</div>`;
+    dots += `<div class="vine-dot tri-${tri} ${stateClass} ${selectedClass}" data-week="${dotWeek}" style="left:${left}%" title="Month ${i+1} (week ${dotWeek})">${i+1}</div>`;
   }
   let weekDots = '';
   for(let wk=5; wk<40; wk++){
@@ -1847,6 +1957,12 @@ function overviewHTML(w){
   const fruitEmoji = FRUIT_EMOJI[week] || '🎃';
   const fruitArticle = /^[aeiou]/i.test(fruitName) ? 'an' : 'a';
   const fruitLink = `https://www.google.com/search?q=${encodeURIComponent(fruitName + ' dessert recipe')}`;
+  // Last name wins if both are set; middle name is never used in this sentence. Falls back to
+  // "Your baby" when no name has been entered at all.
+  const babyDisplayName = (state.info.babyLastName && state.info.babyLastName.trim())
+    || (state.info.babyFirstName && state.info.babyFirstName.trim())
+    || null;
+  const heroSubject = babyDisplayName ? `Baby ${escapeHtml(babyDisplayName)}` : 'Your baby';
 
   // Pulls "this week"/"overdue" tasks from every checklist combined, so the Home page stays a
   // single at-a-glance summary regardless of how many checklists exist.
@@ -1902,7 +2018,7 @@ function overviewHTML(w){
         ${weekDots}
         ${dots}
       </div>
-      <div class="hero-size-caption">Your baby is about the size of ${fruitArticle} <a href="${fruitLink}" target="_blank" rel="noopener" class="fruit-link">${escapeHtml(fruitName)}</a>!</div>
+      <div class="hero-size-caption">${heroSubject} is about the size of ${fruitArticle} <a href="${fruitLink}" target="_blank" rel="noopener" class="fruit-link">${escapeHtml(fruitName)}</a>!</div>
     </div>
   </div>
   <div class="home-grid-wrap">
@@ -1939,36 +2055,50 @@ function overviewHTML(w){
 
 function settingsHTML(){
   const themePref = personalGet('theme-preference') || 'system';
+  const colorThemePref = personalGet('color-theme') || '';
   return `
   <div class="card">
-    <h2 style="margin-bottom:14px;">Shared household code</h2>
-    <div class="household-code-display">${escapeHtml(state.code)}</div>
+    <h2 style="margin-bottom:14px;">Baby's Info</h2>
+    <label>Due date</label>
+    <input type="date" id="due-input" value="${state.info.dueDate || ''}" />
+    <label>Mother's name</label>
+    <input type="text" id="mother-name" value="${escapeHtml(state.info.motherName || '')}" placeholder="e.g. Jamie" />
+    <label>Father's name</label>
+    <input type="text" id="father-name" value="${escapeHtml(state.info.fatherName || '')}" placeholder="e.g. Alex" />
+    <label>Baby's gender</label>
+    <select id="baby-gender-select">
+      <option value="Boy" ${state.info.gender === 'Boy' ? 'selected' : ''}>Boy</option>
+      <option value="Girl" ${state.info.gender === 'Girl' ? 'selected' : ''}>Girl</option>
+      <option value="" ${!state.info.gender ? 'selected' : ''}>Don't know yet</option>
+    </select>
+    <label>Baby's Name <span style="text-transform:none;font-weight:400;">(optional)</span></label>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <input type="text" id="baby-first-name" value="${escapeHtml(state.info.babyFirstName || '')}" placeholder="First" style="flex:1; min-width:90px;" />
+      <input type="text" id="baby-middle-name" value="${escapeHtml(state.info.babyMiddleName || '')}" placeholder="Middle" style="flex:1; min-width:90px;" />
+      <input type="text" id="baby-last-name" value="${escapeHtml(state.info.babyLastName || '')}" placeholder="Last" style="flex:1; min-width:90px;" />
+    </div>
+    <button class="btn small" id="baby-info-save" style="margin-top:14px;">Save info</button>
   </div>
   <div class="card">
-    <h2 style="margin-bottom:14px;">Appearance</h2>
+    <h2 style="margin-bottom:14px;">App Appearance</h2>
     <label>Theme</label>
     <select id="theme-pref-select">
       <option value="system" ${themePref === 'system' ? 'selected' : ''}>Match my device</option>
       <option value="light" ${themePref === 'light' ? 'selected' : ''}>Light</option>
       <option value="dark" ${themePref === 'dark' ? 'selected' : ''}>Dark</option>
     </select>
+    <label>Color theme <span style="text-transform:none;font-weight:400;">(just for this device)</span></label>
+    <select id="color-theme-select">
+      <option value="" ${colorThemePref === '' ? 'selected' : ''}>Default</option>
+      <option value="boy" ${colorThemePref === 'boy' ? 'selected' : ''}>Boy</option>
+      <option value="girl" ${colorThemePref === 'girl' ? 'selected' : ''}>Girl</option>
+    </select>
   </div>
   <div class="card">
-    <h2 style="margin-bottom:14px;">When are you due?</h2>
-    <input type="date" id="due-input" value="${state.info.dueDate || ''}" />
-    <button class="btn ghost small" id="due-save" style="margin-top:10px;">Update due date</button>
-  </div>
-  <div class="card">
-    <h2 style="margin-bottom:14px;">Parent names</h2>
-    <label>Mother's name</label>
-    <input type="text" id="mother-name" value="${escapeHtml(state.info.motherName || '')}" placeholder="e.g. Jamie" />
-    <label>Father's name</label>
-    <input type="text" id="father-name" value="${escapeHtml(state.info.fatherName || '')}" placeholder="e.g. Alex" />
-    <button class="btn small" id="parents-save" style="margin-top:14px;">Save names</button>
-  </div>
-  <div class="card">
-    <h2 style="margin-bottom:14px;">Start fresh</h2>
-    <button class="btn ghost small" id="switch-btn">Make a new baby</button>
+    <h2 style="margin-bottom:14px;">Account Settings</h2>
+    <label>Shared household code</label>
+    <div class="household-code-display">${escapeHtml(state.code)}</div>
+    <button class="btn ghost small" id="switch-btn" style="margin-top:14px;">Make a new baby</button>
   </div>`;
 }
 
@@ -2482,7 +2612,8 @@ function nameOfDayHTML(){
     <span class="notd-label">Baby name of the day</span>
     ${name
       ? `<div class="notd-name">${escapeHtml(name)}</div>
-         <button class="btn small notd-add-btn ${gender.toLowerCase()}" id="notd-add" data-name="${escapeHtml(name)}" data-gender="${gender}" style="margin-top:14px;">Add to my ${gender} list</button>`
+         <button class="btn small notd-add-btn ${gender.toLowerCase()}" id="notd-add" data-name="${escapeHtml(name)}" data-gender="${gender}" style="margin-top:14px;">Add to my ${gender} list</button>
+         <button type="button" class="notd-skip-btn" id="notd-skip" style="margin-top:10px;">Skip name</button>`
       : `<div class="empty">All our suggestions are already on your list — nice taste!</div>`}
   </div>`;
 }
@@ -2853,6 +2984,13 @@ function bindTabEvents(){
       render();
     };
   }
+  const notdSkip = document.getElementById('notd-skip');
+  if(notdSkip){
+    notdSkip.onclick = () => {
+      state.notdSkipOffset = (state.notdSkipOffset || 0) + 1;
+      render();
+    };
+  }
 
   // Home — journal quick entry
   const homeJournalSave = document.getElementById('home-journal-save');
@@ -3180,6 +3318,20 @@ function bindTabEvents(){
     };
   }
 
+  // Settings — appearance / color theme (per-device, aligns with baby gender if picked)
+  const colorThemeSelect = document.getElementById('color-theme-select');
+  if(colorThemeSelect){
+    colorThemeSelect.onchange = () => {
+      const val = colorThemeSelect.value;
+      personalSet('color-theme', val);
+      if(val === 'boy' || val === 'girl'){
+        document.documentElement.setAttribute('data-color-theme', val);
+      } else {
+        document.documentElement.removeAttribute('data-color-theme');
+      }
+    };
+  }
+
   // Settings — leave household
   const switchBtn = document.getElementById('switch-btn');
   if(switchBtn){
@@ -3192,12 +3344,19 @@ function bindTabEvents(){
     };
   }
 
-  // Settings — parent names
-  const parentsSave = document.getElementById('parents-save');
-  if(parentsSave){
-    parentsSave.onclick = async () => {
+  // Settings — Baby's Info (due date, parent names, gender) saved together
+  const babyInfoSave = document.getElementById('baby-info-save');
+  if(babyInfoSave){
+    babyInfoSave.onclick = async () => {
+      const dueVal = document.getElementById('due-input').value;
+      state.info.dueDate = dueVal || null;
       state.info.motherName = document.getElementById('mother-name').value.trim();
       state.info.fatherName = document.getElementById('father-name').value.trim();
+      const genderVal = document.getElementById('baby-gender-select').value;
+      state.info.gender = genderVal || null;
+      state.info.babyFirstName = document.getElementById('baby-first-name').value.trim();
+      state.info.babyMiddleName = document.getElementById('baby-middle-name').value.trim();
+      state.info.babyLastName = document.getElementById('baby-last-name').value.trim();
       await saveHousehold('info');
       render();
     };
