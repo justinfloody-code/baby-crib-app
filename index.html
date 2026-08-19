@@ -1003,6 +1003,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
 <script>
 const BRAND = "Crib";
@@ -1018,9 +1019,17 @@ const firebaseConfig = {
   appId: "1:165438769173:web:53aedd16bfa586e485a61c"
 };
 let fbDb = null;
+// Anonymous auth doesn't identify anyone or require sign-up — it just gives each browser tab a
+// Firebase auth token, so the database rules can require "auth != null" and reject unauthenticated
+// scanners/bots hitting the database directly, while still letting the app itself (which has no
+// login system of its own — the household code is the only "password") work exactly as before.
+// loadHousehold() awaits this before touching the database, so every read/write is guaranteed to
+// happen after sign-in completes.
+let fbAuthReady = Promise.resolve();
 try{
   firebase.initializeApp(firebaseConfig);
   fbDb = firebase.database();
+  fbAuthReady = firebase.auth().signInAnonymously().catch(e => console.error('Anonymous auth failed', e));
 }catch(e){ console.error('Firebase init failed', e); }
 
 function cribIcon(size){
@@ -1649,6 +1658,12 @@ let state = {
   // controls are always shown regardless of this flag.
   checklistControlsOpen: false,
   registryControlsOpen: false,
+  // Set when loadHousehold() couldn't actually read the household's data from Firebase (e.g. a
+  // permissions/auth error) — see loadHousehold(). Deliberately kept separate from "loading" so
+  // render() can show a distinct, honest error screen instead of silently falling through to
+  // fresh-household defaults, which would risk writing empty/default data over real data that
+  // simply couldn't be read.
+  loadError: false,
 };
 
 function currentWeekNum(){
@@ -1728,11 +1743,20 @@ async function loadPersonal(){
 
 async function loadHousehold(){
   if(!state.code) return;
+  state.loadError = false;
+  await fbAuthReady; // make sure we're signed in (anonymously) before the rules-gated reads/writes below
 
   const fields = ['info','tasks','registry','names','rankings','journal','notes','noteThemes','customTaskCats','customRegistryCats','taskCatList','registryCatList','catColors','sourceList','sourceColors','taskAssigneeList','assigneeColors','checklists'];
   const results = {};
+  let hadReadError = false;
   for(const f of fields){
     let r = await fbFetch(f);
+    // ok:false means the read genuinely failed (permission denied, offline, etc) — NOT that the
+    // field is simply empty. Treating those the same used to mean a blocked/denied read looked
+    // identical to "this is a brand-new household," which would cascade into writing fresh
+    // empty/default data for every field below, potentially clobbering real data that was just
+    // temporarily unreadable. So: track failures separately and never treat them as "empty."
+    if(!r.ok) hadReadError = true;
     if(!r.exists && r.ok){
       // Nothing in Firebase yet for this field — migrate an existing local copy up
       // (this covers people who used the app before live sync existed).
@@ -1743,6 +1767,14 @@ async function loadHousehold(){
       }
     }
     results[f] = r.value;
+  }
+
+  if(hadReadError){
+    // Bail out here, before any of the "nothing found, write in defaults" migration logic below
+    // runs — we don't actually know whether the household is empty or just unreadable right now,
+    // so the safe thing is to change nothing and tell the user, rather than guess.
+    state.loadError = true;
+    return;
   }
 
   // Even older installs stored tasks+registry combined under a single "checklist" key.
@@ -1871,7 +1903,40 @@ function render(){
     renderSetup();
     return;
   }
+  if(state.loadError){
+    renderLoadError();
+    return;
+  }
   renderApp();
+}
+
+// Shown instead of the app when loadHousehold() couldn't actually read your data (most often a
+// Firebase rules/auth problem) — deliberately NOT the normal app UI, so it's never mistaken for
+// "your data is empty," and nothing gets a chance to write default/empty data over the top of it.
+function renderLoadError(){
+  root.innerHTML = `
+  <div class="setup-wrap">
+    <div class="setup-card">
+      <div class="brand-icon" style="margin-bottom:10px;">${cribIcon(34)}</div>
+      <span class="eyebrow">${BRAND}</span>
+      <h1>Couldn't load your data</h1>
+      <p class="sub">We reached Firebase but the read was rejected — this is almost always a database rules or sign-in issue, not deleted data. Your household code is still <b>${escapeHtml(state.code)}</b>. Check your Firebase Console (Realtime Database rules, and that Anonymous auth is enabled), then try again. Nothing has been changed or overwritten.</p>
+      <button class="btn block" id="load-error-retry">Try again</button>
+      <button class="btn ghost block" id="load-error-switch" style="margin-top:10px;">Use a different household code</button>
+    </div>
+  </div>`;
+  document.getElementById('load-error-retry').onclick = async () => {
+    state.loading = true; render();
+    await loadHousehold();
+    state.loading = false;
+    render();
+  };
+  document.getElementById('load-error-switch').onclick = () => {
+    state.loadError = false;
+    state.name = null; state.code = null;
+    personalSet('household-code', '');
+    render();
+  };
 }
 
 function renderSetup(){
