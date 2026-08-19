@@ -407,6 +407,14 @@
     transition: border-color var(--md-duration-short) var(--md-easing-standard);
   }
   input:focus, select:focus, textarea:focus{ outline:none; border-color: var(--md-primary); border-width:2px; }
+  /* Mobile only: native date-picker controls (esp. iOS/Android Safari/Chrome) can render their
+     internal segments at a minimum intrinsic width that ignores our width:100%, pushing the box
+     past its card's border on narrow screens. Shrinking the field's own font-size/padding shrinks
+     that native minimum along with it; box-sizing/max-width are a defensive backstop. Desktop
+     (where there's always enough room) is untouched. */
+  @media(max-width:700px){
+    input[type=date]{ max-width:100%; box-sizing:border-box; font-size:14px; padding:10px 8px; }
+  }
   select{
     appearance: none; -webkit-appearance: none; -moz-appearance: none;
     padding-right: 30px;
@@ -653,6 +661,19 @@
   .vine-week-dot.current{ background: var(--md-secondary); width:11px; height:11px; top:30px; }
   .vine-week-dot.selected{ background: var(--md-primary); width:11px; height:11px; top:30px; }
 
+  /* Mobile only: shrink the timeline bubbles so all 10 month dots (plus the week dots between
+     them) fit the narrow screen without crowding/overlapping — desktop sizing above is untouched.
+     Each dot's `top` is recalculated to keep it vertically centered on the same line position. */
+  @media(max-width:700px){
+    .vine-dot{ width:26px; height:26px; top:21px; font-size:10px; border-width:1.5px; }
+    .vine-dot.current{
+      width:32px; height:32px; top:18px; font-size:11px;
+      box-shadow: 0 0 0 2px var(--md-surface-container-lowest), 0 0 0 4px rgba(92,106,97,0.25);
+    }
+    .vine-week-dot{ width:6px; height:6px; }
+    .vine-week-dot.current, .vine-week-dot.selected{ width:8px; height:8px; top:30px; }
+  }
+
   /* Home page: the header band and the timeline hero share one continuous white
      (dark-mode-adaptive via surface-container-lowest) canvas from the very top of the page —
      no card border/shadow/radius, edge-to-edge across the full browser width regardless of
@@ -689,6 +710,11 @@
   .home-grid-row:last-child{ margin-bottom:0; }
   .home-grid-row > .card{ flex:1 1 320px; }
   .home-grid-row > .name-of-day-card{ flex:0 1 260px; max-width:320px; }
+  /* Mobile only: once the row wraps to a single column, let Name of the Day fill the same
+     width as its siblings instead of staying capped at the narrower desktop max-width. */
+  @media(max-width:700px){
+    .home-grid-row > .name-of-day-card{ flex:1 1 100%; max-width:none; }
+  }
   .home-grid-row-full > .card{ flex:1 1 100%; }
   /* Notes + Journal: equal-size boxes regardless of how much either one's content wants. */
   .home-grid-row-equal > .journal-card{ flex:1 1 0; min-width:280px; }
@@ -747,6 +773,20 @@
   .journal-controls{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center; }
   .journal-controls select{ flex:1; min-width:170px; }
 
+  /* Mobile only: the Notes/Journal quick-entry boxes on Home collapse down to a single link
+     button pointing at the full tab, instead of showing the whole textarea+controls form —
+     desktop keeps the full inline entry form exactly as before. */
+  .home-quick-entry-link-btn{ display:none; }
+  @media(max-width:700px){
+    .journal-card .home-quick-entry-full{ display:none; }
+    .journal-card .home-quick-entry-link-btn{
+      display:flex; align-items:center; justify-content:center; width:100%; min-height:56px;
+      font: var(--md-type-title-sm); font-size:15px; border:none; border-radius: var(--md-shape-md);
+      background: var(--md-secondary-container); color: var(--md-on-secondary-container); cursor:pointer;
+    }
+    .journal-card .home-quick-entry-link-btn:hover{ filter: brightness(0.96); }
+  }
+
   .journal-entry{ padding:14px 0; border-bottom:1px solid var(--md-outline-variant); }
   .journal-entry:last-child{ border-bottom:none; }
   .journal-entry-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; flex-wrap:wrap; }
@@ -803,6 +843,24 @@
   .filter-row{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
   .filter-row select{ flex:1; min-width:130px; }
   .filter-row .new-cat-input{ flex:1; min-width:130px; width:auto; }
+
+  /* Mobile only: on Checklist/Registry, the add-item box + filter row together can take up a
+     third of a small screen before you even reach any actual list items. Tuck them behind a
+     toggle button there; desktop always shows them open exactly as before (the toggle button
+     itself is hidden on desktop, and .mobile-controls has no display override outside the
+     media query, so it just renders as a normal block there). */
+  .mobile-controls-toggle{ display:none; }
+  @media(max-width:700px){
+    .mobile-controls-toggle{
+      display:flex; align-items:center; justify-content:space-between; width:100%;
+      margin-top:14px; padding:12px 16px; border:1.5px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-sm); background: var(--md-surface-container);
+      font: var(--md-type-label-lg); color: var(--md-on-surface); cursor:pointer;
+    }
+    .mobile-controls-toggle-caret{ color: var(--md-on-surface-variant); font-size:11px; }
+    .mobile-controls{ display:none; }
+    .mobile-controls.open{ display:block; }
+  }
   .hide-completed-toggle{
     display:flex; align-items:center; gap:7px; font-size:13px; font-weight:600;
     color: var(--md-on-surface); font-family:'Public Sans',sans-serif; white-space:nowrap; cursor:pointer;
@@ -925,7 +983,14 @@
   .unranked-pill{ font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--md-on-surface-variant); }
 
   .fav-panels-row{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px; align-items:stretch; margin-bottom:16px; }
-  @media(max-width:800px){ .fav-panels-row{ grid-template-columns: 1fr; } }
+  /* Mobile only: once this stacks to a single column, put Baby Name of the Day first instead of
+     leaving it sitting between the two favorites panels in source order — desktop's 3-column
+     row (where `order` has no visible effect between three same-height columns anyway) is
+     unaffected since this rule only exists inside this same mobile-only media query. */
+  @media(max-width:800px){
+    .fav-panels-row{ grid-template-columns: 1fr; }
+    .fav-panels-row > .name-of-day-card{ order:-1; }
+  }
   .fav-panel h3{ font: var(--md-type-title-sm); font-size:15px; color: var(--md-on-surface); margin:0 0 10px; }
   .fav-panel ol{ margin:0; padding-left:20px; font-size:13.5px; line-height:1.8; color: var(--md-on-surface); }
 
@@ -1579,6 +1644,11 @@ let state = {
   // In-memory only (never persisted or synced) — lets "Skip name" cycle to a new suggestion for
   // this viewing session without disturbing the shared, date-derived default for other devices.
   notdSkipOffset: 0,
+  // In-memory only, per-device view state for the mobile-only collapsed add/filter panel on the
+  // Checklist and Registry tabs (see .mobile-controls-toggle). Irrelevant on desktop, where those
+  // controls are always shown regardless of this flag.
+  checklistControlsOpen: false,
+  registryControlsOpen: false,
 };
 
 function currentWeekNum(){
@@ -1688,6 +1758,11 @@ async function loadHousehold(){
   if(state.info.babyFirstName === undefined) state.info.babyFirstName = '';
   if(state.info.babyMiddleName === undefined) state.info.babyMiddleName = '';
   if(state.info.babyLastName === undefined) state.info.babyLastName = '';
+  // Default the Names tab to the known gender on first load, so parents land on the names
+  // that matter to them. The existing Boy/Girl tabs (rendered in namesHTML) remain fully
+  // switchable, so seeing the other gender's list again is just a click away — this only
+  // sets the initial view, it never forces it on every render.
+  if(state.info.gender === 'Boy' || state.info.gender === 'Girl') state.namesGender = state.info.gender;
   state.names = results.names || [];
   state.rankings = results.rankings || {};
   state.journal = results.journal || [];
@@ -2361,32 +2436,38 @@ function tasksHTML(){
       <h2 style="margin-bottom:0;">${escapeHtml(cl.name)}</h2>
       <button type="button" class="settings-icon-btn" id="cat-settings-btn" title="Manage categories">${legoIconSVG()}</button>
     </div>
-    <div class="add-row" style="margin-top:14px;">
-      <input type="text" id="new-task" placeholder="Add a to-do…" />
-      <input type="number" id="new-task-week" class="week-input" placeholder="Week" min="1" max="42" />
-      <select id="new-task-cat">
-        ${allCats.map(c => `<option>${c}</option>`).join('')}
-      </select>
-      <select id="new-task-assignee">
-        <option value="">Assign to… (optional)</option>
-        ${allAssignees.map(p => `<option>${p}</option>`).join('')}
-      </select>
-      <button class="btn small" id="add-task">Add</button>
-    </div>
-    <div class="filter-row">
-      <select id="task-filter-cat">
-        ${catOptions.map(c => `<option value="${c}" ${fs.filterCat===c?'selected':''}>${c==='All'?'All categories':c}</option>`).join('')}
-      </select>
-      <select id="task-filter-time">
-        ${timeOptions.map(t => `<option value="${t}" ${fs.filterTime===t?'selected':''}>${t==='All'?'All timeframes':t}</option>`).join('')}
-      </select>
-      <select id="task-filter-assignee">
-        ${assigneeOptions.map(p => `<option value="${p}" ${fs.filterAssignee===p?'selected':''}>${p==='All'?'All assignees':p}</option>`).join('')}
-      </select>
-      <label class="hide-completed-toggle">
-        <input type="checkbox" id="task-hide-completed" ${fs.hideCompleted ? 'checked' : ''}/>
-        Hide completed
-      </label>
+    <button type="button" class="mobile-controls-toggle" id="checklist-controls-toggle">
+      <span>${state.checklistControlsOpen ? 'Hide add & filter' : 'Add task / filter'}</span>
+      <span class="mobile-controls-toggle-caret">${state.checklistControlsOpen ? '▲' : '▼'}</span>
+    </button>
+    <div class="mobile-controls ${state.checklistControlsOpen ? 'open' : ''}">
+      <div class="add-row" style="margin-top:14px;">
+        <input type="text" id="new-task" placeholder="Add a to-do…" />
+        <input type="number" id="new-task-week" class="week-input" placeholder="Week" min="1" max="42" />
+        <select id="new-task-cat">
+          ${allCats.map(c => `<option>${c}</option>`).join('')}
+        </select>
+        <select id="new-task-assignee">
+          <option value="">Assign to… (optional)</option>
+          ${allAssignees.map(p => `<option>${p}</option>`).join('')}
+        </select>
+        <button class="btn small" id="add-task">Add</button>
+      </div>
+      <div class="filter-row">
+        <select id="task-filter-cat">
+          ${catOptions.map(c => `<option value="${c}" ${fs.filterCat===c?'selected':''}>${c==='All'?'All categories':c}</option>`).join('')}
+        </select>
+        <select id="task-filter-time">
+          ${timeOptions.map(t => `<option value="${t}" ${fs.filterTime===t?'selected':''}>${t==='All'?'All timeframes':t}</option>`).join('')}
+        </select>
+        <select id="task-filter-assignee">
+          ${assigneeOptions.map(p => `<option value="${p}" ${fs.filterAssignee===p?'selected':''}>${p==='All'?'All assignees':p}</option>`).join('')}
+        </select>
+        <label class="hide-completed-toggle">
+          <input type="checkbox" id="task-hide-completed" ${fs.hideCompleted ? 'checked' : ''}/>
+          Hide completed
+        </label>
+      </div>
     </div>
     ${rows}
   </div>
@@ -2467,25 +2548,31 @@ function registryHTML(){
       <h2 style="margin-bottom:0;">What to buy or borrow</h2>
       <button type="button" class="settings-icon-btn" id="cat-settings-btn" title="Manage categories">${legoIconSVG()}</button>
     </div>
-    <div class="add-row" style="margin-top:14px;">
-      <input type="text" id="new-reg" placeholder="Add a registry item…" />
-      <input type="text" id="new-reg-notes" placeholder="Additional details (optional)" />
-      <select id="new-reg-cat">
-        ${allRegCats.map(c => `<option>${c}</option>`).join('')}
-      </select>
-      <select id="new-reg-source">
-        <option value="">Source…</option>
-        ${allSources.map(s => `<option>${s}</option>`).join('')}
-      </select>
-      <button class="btn small" id="add-reg">Add</button>
-    </div>
-    <div class="filter-row">
-      <select id="reg-filter-cat">
-        ${catOptions.map(c => `<option value="${c}" ${state.registryFilterCat===c?'selected':''}>${c==='All'?'All categories':c}</option>`).join('')}
-      </select>
-      <select id="reg-filter-source">
-        ${sourceOptions.map(s => `<option value="${s}" ${state.registryFilterSource===s?'selected':''}>${s==='All'?'All sources':s}</option>`).join('')}
-      </select>
+    <button type="button" class="mobile-controls-toggle" id="registry-controls-toggle">
+      <span>${state.registryControlsOpen ? 'Hide add & filter' : 'Add item / filter'}</span>
+      <span class="mobile-controls-toggle-caret">${state.registryControlsOpen ? '▲' : '▼'}</span>
+    </button>
+    <div class="mobile-controls ${state.registryControlsOpen ? 'open' : ''}">
+      <div class="add-row" style="margin-top:14px;">
+        <input type="text" id="new-reg" placeholder="Add a registry item…" />
+        <input type="text" id="new-reg-notes" placeholder="Additional details (optional)" />
+        <select id="new-reg-cat">
+          ${allRegCats.map(c => `<option>${c}</option>`).join('')}
+        </select>
+        <select id="new-reg-source">
+          <option value="">Source…</option>
+          ${allSources.map(s => `<option>${s}</option>`).join('')}
+        </select>
+        <button class="btn small" id="add-reg">Add</button>
+      </div>
+      <div class="filter-row">
+        <select id="reg-filter-cat">
+          ${catOptions.map(c => `<option value="${c}" ${state.registryFilterCat===c?'selected':''}>${c==='All'?'All categories':c}</option>`).join('')}
+        </select>
+        <select id="reg-filter-source">
+          ${sourceOptions.map(s => `<option value="${s}" ${state.registryFilterSource===s?'selected':''}>${s==='All'?'All sources':s}</option>`).join('')}
+        </select>
+      </div>
     </div>
     ${html}
   </div>
@@ -2621,15 +2708,18 @@ function nameOfDayHTML(){
 function journalHomeHTML(){
   return `
   <div class="card journal-card">
-    <h2 style="margin-bottom:14px;">Journal</h2>
-    <textarea id="home-journal-text" rows="7" placeholder="How are you feeling today?"></textarea>
-    <div class="journal-controls">
-      <select id="home-journal-visibility">
-        <option value="public">Shared with my partner</option>
-        <option value="private" selected>Private — just for me</option>
-      </select>
-      <button class="btn small" id="home-journal-save">Save entry</button>
+    <div class="home-quick-entry-full">
+      <h2 style="margin-bottom:14px;">Journal</h2>
+      <textarea id="home-journal-text" rows="7" placeholder="How are you feeling today?"></textarea>
+      <div class="journal-controls">
+        <select id="home-journal-visibility">
+          <option value="public">Shared with my partner</option>
+          <option value="private" selected>Private — just for me</option>
+        </select>
+        <button class="btn small" id="home-journal-save">Save entry</button>
+      </div>
     </div>
+    <button type="button" class="home-quick-entry-link-btn" data-tab="journal">Open Journal</button>
   </div>`;
 }
 
@@ -2637,18 +2727,21 @@ function notesHomeHTML(){
   const theme = activeNoteTheme();
   return `
   <div class="card journal-card">
-    <h2 style="margin-bottom:14px;">Notes</h2>
-    <textarea id="home-notes-text" rows="7" placeholder="What's on your mind?"></textarea>
-    <div class="journal-controls">
-      <select id="home-notes-section">
-        ${(state.noteThemes || []).map(t => `<option value="${t.id}" ${theme && t.id===theme.id?'selected':''}>${escapeHtml(t.name)}</option>`).join('')}
-      </select>
-      <select id="home-notes-visibility">
-        <option value="public" selected>Shared with my partner</option>
-        <option value="private">Private — just for me</option>
-      </select>
-      <button class="btn small" id="home-notes-save">Save note</button>
+    <div class="home-quick-entry-full">
+      <h2 style="margin-bottom:14px;">Notes</h2>
+      <textarea id="home-notes-text" rows="7" placeholder="What's on your mind?"></textarea>
+      <div class="journal-controls">
+        <select id="home-notes-section">
+          ${(state.noteThemes || []).map(t => `<option value="${t.id}" ${theme && t.id===theme.id?'selected':''}>${escapeHtml(t.name)}</option>`).join('')}
+        </select>
+        <select id="home-notes-visibility">
+          <option value="public" selected>Shared with my partner</option>
+          <option value="private">Private — just for me</option>
+        </select>
+        <button class="btn small" id="home-notes-save">Save note</button>
+      </div>
     </div>
+    <button type="button" class="home-quick-entry-link-btn" data-tab="notes">Open Notes</button>
   </div>`;
 }
 
@@ -2966,6 +3059,21 @@ function bindTabEvents(){
   const babyFactsReset = document.getElementById('baby-facts-reset');
   if(babyFactsReset){
     babyFactsReset.onclick = () => { state.selectedFactsWeek = null; render(); };
+  }
+  // Home — mobile-only Notes/Journal "open" links (the full quick-entry box is hidden at that
+  // breakpoint via CSS; these buttons exist in the markup at every width but are only visible
+  // on mobile).
+  root.querySelectorAll('.home-quick-entry-link-btn').forEach(btn => {
+    btn.onclick = () => { state.tab = btn.dataset.tab; render(); };
+  });
+  // Checklist / Registry — mobile-only collapsed add & filter panel toggle.
+  const checklistControlsToggle = document.getElementById('checklist-controls-toggle');
+  if(checklistControlsToggle){
+    checklistControlsToggle.onclick = () => { state.checklistControlsOpen = !state.checklistControlsOpen; render(); };
+  }
+  const registryControlsToggle = document.getElementById('registry-controls-toggle');
+  if(registryControlsToggle){
+    registryControlsToggle.onclick = () => { state.registryControlsOpen = !state.registryControlsOpen; render(); };
   }
   // Home — baby name of the day
   const notdAdd = document.getElementById('notd-add');
