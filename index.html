@@ -708,20 +708,27 @@
      or content, so they just stay hidden rather than guess. */
   .home-hero-edge-lemon{ position:absolute; display:none; }
   @media(min-width:1300px){ .home-hero-edge-lemon{ display:block; } }
-  /* Below 700px, swap the dense 24-lemon desktop pattern for the small curated mobile set instead
-     of letting the runtime overlap-avoidance whittle it down on its own — on a narrow phone the
-     heading/caption text (and its wrapping) eats up proportionally so much more of the width that
-     the desktop pattern can end up with nothing surviving at all. */
-  .home-hero-mobile-lemon{ position:absolute; display:none; }
-  @media(max-width:700px){
-    .home-hero-lemons-inner{ display:none; }
-    .home-hero-mobile-lemon{ display:block; }
-  }
+  /* Below 700px, the absolutely-positioned scatter pattern is dropped entirely — two rounds of
+     guessing "safe" percentage coordinates for this layer both still ended up visually colliding
+     with the heading text once measured on a real device, because mobile text takes up a much
+     less predictable share of the (much narrower) width than on desktop. Instead, the fruit is
+     shown inline within the existing caption sentence below (see .fruit-name-emoji), which is
+     normal-flow and can't overlap anything by construction. */
+  @media(max-width:700px){ .home-hero-lemons{ display:none; } }
   .home-hero-inner{ position:relative; z-index:1; max-width:1100px; margin:0 auto; padding: 30px 32px; }
   @media(max-width: 700px){ .home-hero-inner{ padding: 22px 18px; } }
   .hero-size-caption{
     text-align:center; font: var(--md-type-title-md); font-size:18px; color: var(--md-on-surface);
     margin-top:20px;
+  }
+  /* On mobile there's no room to reliably scatter fruit emoji around the hero (see above), so the
+     caption sentence itself carries the fruit image instead of the fruit's name — swapped via
+     these two classes rather than a separate badge, so it reads as part of the sentence. */
+  .fruit-name-emoji{ display:none; }
+  .fruit-name-emoji img{ width:22px; height:22px; vertical-align:-4px; margin:0 2px; }
+  @media(max-width:700px){
+    .fruit-name-text{ display:none; }
+    .fruit-name-emoji{ display:inline-block; }
   }
   .home-grid-wrap{
     position:relative; left:50%; right:50%; width:100vw; margin-left:-50vw; margin-right:-50vw;
@@ -1178,37 +1185,18 @@ const HERO_EMOJI_EDGE_DECOR = [
   { top:'60%', right:'42px', size:26, rot:-10, op:0.55 },
 ];
 
-// Mobile gets its own small, deliberately-curated set instead of the dense 24-lemon desktop
-// pattern (see .home-hero-lemons-inner's CSS, which is hidden below 700px in favor of this).
-// On a narrow phone screen, the SAME text takes up a much bigger fraction of the width (and the
-// heading/caption are much more likely to wrap to a second line), so the desktop layout's runtime
-// overlap-avoidance ends up hiding nearly all of it — not a bad guess in one spot, just a
-// fundamentally too-dense pattern for the available room. These four sit pinned to the hero's own
-// top/bottom edges (top:2%/bottom:2%, not tied to any content height estimate) so they stay clear
-// of the heading and caption no matter how many lines either one wraps to.
-const HERO_EMOJI_MOBILE_DECOR = [
-  { top:'2%', left:'4%',    size:28, rot:-14, op:0.75 },
-  { top:'2%', right:'4%',   size:24, rot:18,  op:0.6  },
-  { bottom:'2%', left:'6%',  size:26, rot:12,  op:0.65 },
-  { bottom:'2%', right:'6%', size:30, rot:-16, op:0.7  },
-];
 function fruitDecorHTML(emoji){
   const url = twemojiUrl(emoji);
   const edgeLemons = HERO_EMOJI_EDGE_DECOR.map(l => {
     const h = l.left !== undefined ? `left:${l.left};` : `right:${l.right};`;
     return `<img class="home-hero-edge-lemon" src="${url}" alt="" style="top:${l.top};${h}width:${l.size}px;height:${l.size}px;opacity:${l.op};transform:rotate(${l.rot}deg);" />`;
   }).join('');
-  const mobileLemons = HERO_EMOJI_MOBILE_DECOR.map(l => {
-    const h = l.left !== undefined ? `left:${l.left};` : `right:${l.right};`;
-    const v = l.top !== undefined ? `top:${l.top};` : `bottom:${l.bottom};`;
-    return `<img class="home-hero-mobile-lemon" src="${url}" alt="" style="${v}${h}width:${l.size}px;height:${l.size}px;opacity:${l.op};transform:rotate(${l.rot}deg);" />`;
-  }).join('');
   const innerLemons = HERO_EMOJI_DECOR_LAYOUT.map(l => {
     const h = l.left !== undefined ? `left:${l.left};` : `right:${l.right};`;
     const v = l.top !== undefined ? `top:${l.top};` : `bottom:${l.bottom};`;
     return `<img src="${url}" alt="" style="${v}${h}width:${l.size}px;height:${l.size}px;opacity:${l.op};transform:rotate(${l.rot}deg);" />`;
   }).join('');
-  return `<div class="home-hero-lemons">${edgeLemons}${mobileLemons}<div class="home-hero-lemons-inner">${innerLemons}</div></div>`;
+  return `<div class="home-hero-lemons">${edgeLemons}<div class="home-hero-lemons-inner">${innerLemons}</div></div>`;
 }
 
 // Runs right after the Home hero renders: hides any decorative emoji whose live rendered
@@ -2257,7 +2245,7 @@ function overviewHTML(w){
         ${weekDots}
         ${dots}
       </div>
-      <div class="hero-size-caption"><span class="hero-size-caption-text">${heroSubject} is about the size of ${fruitArticle} <a href="${fruitLink}" target="_blank" rel="noopener" class="fruit-link">${escapeHtml(fruitName)}</a>!</span></div>
+      <div class="hero-size-caption"><span class="hero-size-caption-text">${heroSubject} is about the size of ${fruitArticle} <a href="${fruitLink}" target="_blank" rel="noopener" class="fruit-link fruit-name-text">${escapeHtml(fruitName)}</a><a href="${fruitLink}" target="_blank" rel="noopener" class="fruit-link fruit-name-emoji"><img src="${twemojiUrl(fruitEmoji)}" alt="${escapeHtml(fruitName)}" /></a>!</span></div>
     </div>
   </div>
   <div class="home-grid-wrap">
