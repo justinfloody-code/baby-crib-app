@@ -708,6 +708,15 @@
      or content, so they just stay hidden rather than guess. */
   .home-hero-edge-lemon{ position:absolute; display:none; }
   @media(min-width:1300px){ .home-hero-edge-lemon{ display:block; } }
+  /* Below 700px, swap the dense 24-lemon desktop pattern for the small curated mobile set instead
+     of letting the runtime overlap-avoidance whittle it down on its own — on a narrow phone the
+     heading/caption text (and its wrapping) eats up proportionally so much more of the width that
+     the desktop pattern can end up with nothing surviving at all. */
+  .home-hero-mobile-lemon{ position:absolute; display:none; }
+  @media(max-width:700px){
+    .home-hero-lemons-inner{ display:none; }
+    .home-hero-mobile-lemon{ display:block; }
+  }
   .home-hero-inner{ position:relative; z-index:1; max-width:1100px; margin:0 auto; padding: 30px 32px; }
   @media(max-width: 700px){ .home-hero-inner{ padding: 22px 18px; } }
   .hero-size-caption{
@@ -1168,18 +1177,38 @@ const HERO_EMOJI_EDGE_DECOR = [
   { top:'42%', right:'16px', size:36, rot:14,  op:0.75 },
   { top:'60%', right:'42px', size:26, rot:-10, op:0.55 },
 ];
+
+// Mobile gets its own small, deliberately-curated set instead of the dense 24-lemon desktop
+// pattern (see .home-hero-lemons-inner's CSS, which is hidden below 700px in favor of this).
+// On a narrow phone screen, the SAME text takes up a much bigger fraction of the width (and the
+// heading/caption are much more likely to wrap to a second line), so the desktop layout's runtime
+// overlap-avoidance ends up hiding nearly all of it — not a bad guess in one spot, just a
+// fundamentally too-dense pattern for the available room. These four sit pinned to the hero's own
+// top/bottom edges (top:2%/bottom:2%, not tied to any content height estimate) so they stay clear
+// of the heading and caption no matter how many lines either one wraps to.
+const HERO_EMOJI_MOBILE_DECOR = [
+  { top:'2%', left:'4%',    size:28, rot:-14, op:0.75 },
+  { top:'2%', right:'4%',   size:24, rot:18,  op:0.6  },
+  { bottom:'2%', left:'6%',  size:26, rot:12,  op:0.65 },
+  { bottom:'2%', right:'6%', size:30, rot:-16, op:0.7  },
+];
 function fruitDecorHTML(emoji){
   const url = twemojiUrl(emoji);
   const edgeLemons = HERO_EMOJI_EDGE_DECOR.map(l => {
     const h = l.left !== undefined ? `left:${l.left};` : `right:${l.right};`;
     return `<img class="home-hero-edge-lemon" src="${url}" alt="" style="top:${l.top};${h}width:${l.size}px;height:${l.size}px;opacity:${l.op};transform:rotate(${l.rot}deg);" />`;
   }).join('');
+  const mobileLemons = HERO_EMOJI_MOBILE_DECOR.map(l => {
+    const h = l.left !== undefined ? `left:${l.left};` : `right:${l.right};`;
+    const v = l.top !== undefined ? `top:${l.top};` : `bottom:${l.bottom};`;
+    return `<img class="home-hero-mobile-lemon" src="${url}" alt="" style="${v}${h}width:${l.size}px;height:${l.size}px;opacity:${l.op};transform:rotate(${l.rot}deg);" />`;
+  }).join('');
   const innerLemons = HERO_EMOJI_DECOR_LAYOUT.map(l => {
     const h = l.left !== undefined ? `left:${l.left};` : `right:${l.right};`;
     const v = l.top !== undefined ? `top:${l.top};` : `bottom:${l.bottom};`;
     return `<img src="${url}" alt="" style="${v}${h}width:${l.size}px;height:${l.size}px;opacity:${l.op};transform:rotate(${l.rot}deg);" />`;
   }).join('');
-  return `<div class="home-hero-lemons">${edgeLemons}<div class="home-hero-lemons-inner">${innerLemons}</div></div>`;
+  return `<div class="home-hero-lemons">${edgeLemons}${mobileLemons}<div class="home-hero-lemons-inner">${innerLemons}</div></div>`;
 }
 
 // Runs right after the Home hero renders: hides any decorative emoji whose live rendered
