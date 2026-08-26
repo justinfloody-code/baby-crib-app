@@ -999,7 +999,8 @@
   .gender-tab.boy{ background:#d2e3f6; color:#3f5f80; }
   .gender-tab.boy.active{ background:#9cc0e8; color:#1f3c58; }
 
-  .name-card{ display:flex; align-items:center; padding:10px 0; border-bottom:1px solid var(--md-outline-variant); gap:10px; flex-wrap:wrap;}
+  .rank-list{ position:relative; }
+  .name-card{ position:relative; display:flex; align-items:center; padding:10px 0; border-bottom:1px solid var(--md-outline-variant); gap:10px; flex-wrap:wrap; }
   .name-card .row-menu{ margin-left:auto; }
   .name-card:last-child{ border-bottom:none; }
   .name-card.editing{ gap:8px; }
@@ -1015,6 +1016,27 @@
   }
   .rank-controls button:disabled{ opacity:.3; cursor:default; }
   .unranked-pill{ font-family:'JetBrains Mono',monospace; font-size:10px; color: var(--md-on-surface-variant); }
+  /* Drag handle — same 3-bar icon as the hamburger menu button, sized down and placed just left
+     of the rank arrows, so its meaning ("this is grabbable") is immediately familiar. Pointer
+     Events (not HTML5 drag-and-drop) power the actual reordering in JS below, since that API
+     works identically for mouse and touch without a separate touch codepath. */
+  .rank-drag-handle{
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    width:26px; height:28px; color: var(--md-on-surface-variant); cursor:grab;
+    touch-action:none; -webkit-user-select:none; user-select:none;
+  }
+  .rank-drag-handle svg{ width:16px; height:16px; }
+  .rank-drag-handle:active{ cursor:grabbing; }
+  /* While a row is being dragged it lifts off the list as its own tile: translucent, elevated
+     above its siblings, and it drops the border-bottom that ties it into the normal row stack. */
+  .name-card.dragging{
+    z-index:30; opacity:0.85; background: var(--md-surface-container-lowest); border-radius: var(--md-shape-md);
+    box-shadow: 0 10px 24px rgba(0,0,0,.22), 0 3px 8px rgba(0,0,0,.16);
+    border-bottom-color: transparent; cursor:grabbing;
+  }
+  /* Siblings animate out of the way to open a gap where the dragged tile will land, instead of
+     just snapping into place once the pointer is released. */
+  .name-card.drag-shift{ transition: transform .15s var(--md-easing-standard); }
 
   .fav-panels-row{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px; align-items:stretch; margin-bottom:16px; }
   /* Mobile only: once this stacks to a single column, put Baby Name of the Day first instead of
@@ -1564,12 +1586,15 @@ function nameOfTheDay(){
   const knownGender = (state.info.gender === 'Boy' || state.info.gender === 'Girl') ? state.info.gender : null;
   const gender = knownGender || (dayOfYear % 2 === 0 ? 'Girl' : 'Boy');
   const usedLower = new Set((state.names||[]).map(n => n.name.trim().toLowerCase()));
-  const pool = NAME_SUGGESTIONS[gender].filter(n => !usedLower.has(n.toLowerCase()));
+  // Names skipped via "Skip name" are excluded permanently (synced to the whole household, not
+  // just this device) — including ones later "Delete Forever"-ed off the visible Skipped names
+  // list, which stay excluded even though they're no longer shown there. This is what keeps a
+  // skipped name from reappearing as tomorrow's (or any future day's) suggestion.
+  const skippedLower = new Set(((state.skippedNames && state.skippedNames[gender]) || []).map(e => e.name.trim().toLowerCase()));
+  const pool = NAME_SUGGESTIONS[gender].filter(n => !usedLower.has(n.toLowerCase()) && !skippedLower.has(n.toLowerCase()));
   if(pool.length === 0) return { gender, name: null };
   const rand = mulberry32(hashString(today + gender));
-  // "Skip name" cycles to the next candidate for this viewing session only (in-memory, never
-  // persisted or synced) — the shared cross-device default for the day is unaffected.
-  const idx = (Math.floor(rand() * pool.length) + (state.notdSkipOffset || 0)) % pool.length;
+  const idx = Math.floor(rand() * pool.length);
   return { gender, name: pool[idx] };
 }
 
@@ -1677,6 +1702,7 @@ function attachLiveSync(){
     if(val.registry) state.registry = val.registry;
     if(val.names) state.names = val.names;
     if(val.rankings) state.rankings = val.rankings;
+    if(val.skippedNames) state.skippedNames = val.skippedNames;
     if(val.journal) state.journal = val.journal;
     if(val.noteThemes) state.noteThemes = normalizeNoteThemes(val.noteThemes);
     if(val.registryCatList) state.registryCatList = val.registryCatList;
@@ -1710,6 +1736,12 @@ let state = {
   registry: [],
   names: [],
   rankings: {},   // { Girl: { [userName]: [nameId,...] }, Boy: {...}, Neutral: {...} }
+  // Names dismissed from the "Baby name of the day" suggestion pool — shared/synced across the
+  // household (like rankings and names), NOT per-device, so once anyone skips a name it stays
+  // skipped for everyone and never resurfaces on a later day. Shape: { Girl: [{name, hidden}],
+  // Boy: [...] }. `hidden` is set by "Delete Forever" — the name stays excluded from suggestions
+  // permanently, it's just removed from the visible Skipped names list on the Names page.
+  skippedNames: { Girl: [], Boy: [] },
   journal: [],
   // Notes tab — entries grouped into themes (like Checklist's multiple checklists). Shape:
   // { id, name, notes: [{id, text, authorName, createdAt, visibility}] }. Kept entirely separate
@@ -1737,9 +1769,6 @@ let state = {
   selectedFactsWeek: null,
   showCatSettings: false,
   menuOpen: false,
-  // In-memory only (never persisted or synced) — lets "Skip name" cycle to a new suggestion for
-  // this viewing session without disturbing the shared, date-derived default for other devices.
-  notdSkipOffset: 0,
   // In-memory only, per-device view state for the mobile-only collapsed add/filter panel on the
   // Checklist and Registry tabs (see .mobile-controls-toggle). Irrelevant on desktop, where those
   // controls are always shown regardless of this flag.
@@ -1833,7 +1862,7 @@ async function loadHousehold(){
   state.loadError = false;
   await fbAuthReady; // make sure we're signed in (anonymously) before the rules-gated reads/writes below
 
-  const fields = ['info','tasks','registry','names','rankings','journal','notes','noteThemes','customTaskCats','customRegistryCats','taskCatList','registryCatList','catColors','sourceList','sourceColors','taskAssigneeList','assigneeColors','checklists'];
+  const fields = ['info','tasks','registry','names','rankings','skippedNames','journal','notes','noteThemes','customTaskCats','customRegistryCats','taskCatList','registryCatList','catColors','sourceList','sourceColors','taskAssigneeList','assigneeColors','checklists'];
   const results = {};
   let hadReadError = false;
   for(const f of fields){
@@ -1884,6 +1913,9 @@ async function loadHousehold(){
   if(state.info.gender === 'Boy' || state.info.gender === 'Girl') state.namesGender = state.info.gender;
   state.names = results.names || [];
   state.rankings = results.rankings || {};
+  state.skippedNames = results.skippedNames || { Girl: [], Boy: [] };
+  if(!state.skippedNames.Girl) state.skippedNames.Girl = [];
+  if(!state.skippedNames.Boy) state.skippedNames.Boy = [];
   state.journal = results.journal || [];
 
   // ---- Notes tab themes (multiple themes, each holding its own notes) ----
@@ -2770,15 +2802,16 @@ function namesHTML(){
       if(!n) return '';
       if(state.editingId === id){
         return `
-        <div class="name-card editing">
+        <div class="name-card editing" data-id="${id}">
           <input type="text" class="edit-name-text" value="${escapeHtml(n.name)}" />
           <button class="btn small edit-name-save" data-id="${id}">Save</button>
           <button class="btn ghost small edit-name-cancel">Cancel</button>
         </div>`;
       }
       return `
-      <div class="name-card">
+      <div class="name-card" data-id="${id}">
         <div class="rank-controls">
+          <div class="rank-drag-handle" data-id="${id}" aria-hidden="true" title="Drag to reorder">${hamburgerIconSVG()}</div>
           <button class="rank-up" data-id="${id}" ${idx===0?'disabled':''}>▲</button>
           <span class="rank-num">${idx+1}</span>
           <button class="rank-down" data-id="${id}" ${idx===order.length-1?'disabled':''}>▼</button>
@@ -2798,6 +2831,31 @@ function namesHTML(){
       </div>`;
     }).join('');
   }
+
+  // Names dismissed via "Skip name" — shown read-only (no ranking) below the ranked list, with
+  // their own dropdown offering "Add to ranked" (promotes it into state.names + rankings, same
+  // as the Add-to-list flow) or "Delete Forever" (hides it here permanently; it stays excluded
+  // from future day suggestions either way — see nameOfTheDay()).
+  const skippedEntries = ((state.skippedNames && state.skippedNames[gender]) || []).filter(e => !e.hidden);
+  const skippedHTML = skippedEntries.length
+    ? skippedEntries.map(e => {
+        const sid = `skip:${gender}:${e.name}`;
+        return `
+        <div class="name-card">
+          <div class="name-left">
+            <div class="nm">${escapeHtml(e.name)}</div>
+          </div>
+          <div class="row-menu">
+            <button class="row-menu-btn" data-id="${escapeHtml(sid)}">▾</button>
+            ${state.openMenuId === sid ? `
+            <div class="row-menu-dropdown">
+              <button class="menu-unskip" data-name="${escapeHtml(e.name)}" data-gender="${gender}">Add to ranked</button>
+              <button class="menu-delete-skip" data-name="${escapeHtml(e.name)}" data-gender="${gender}">Delete Forever</button>
+            </div>` : ''}
+          </div>
+        </div>`;
+      }).join('')
+    : `<div class="empty">No skipped ${gender.toLowerCase()} names.</div>`;
 
   // Exactly two favorites panels — you (always left) and your partner (always right) — instead
   // of one column per every known contributor. Partner is whichever parent name isn't yours;
@@ -2837,8 +2895,13 @@ function namesHTML(){
       <input type="text" id="n-name" placeholder="Name idea…" />
       <button class="btn small" id="n-add">Add</button>
     </div>
-    <div style="font-size:13px;color:var(--sage);margin-bottom:10px;">Use ▲ ▼ to rank in order of preference — #1 is your favorite.</div>
-    ${myList}
+    <div style="font-size:13px;color:var(--sage);margin-bottom:10px;">Drag ☰, or use ▲ ▼, to rank in order of preference — #1 is your favorite.</div>
+    <div class="rank-list">${myList}</div>
+  </div>
+  <div class="card">
+    <h2 style="margin-bottom:14px;">Skipped names</h2>
+    <div style="font-size:13px;color:var(--sage);margin-bottom:10px;">Names you've skipped as a suggestion — add one to your ranked list, or delete it forever so it's never suggested again.</div>
+    ${skippedHTML}
   </div>`;
 }
 
@@ -2852,7 +2915,7 @@ function nameOfDayHTML(){
     ${name
       ? `<div class="notd-name">${escapeHtml(name)}</div>
          <button class="btn small notd-add-btn ${gender.toLowerCase()}" id="notd-add" data-name="${escapeHtml(name)}" data-gender="${gender}" style="margin-top:14px;">Add to my ${gender} list</button>
-         <button type="button" class="notd-skip-btn" id="notd-skip" style="margin-top:10px;">Skip name</button>`
+         <button type="button" class="notd-skip-btn" id="notd-skip" data-name="${escapeHtml(name)}" data-gender="${gender}" style="margin-top:10px;">Skip name</button>`
       : `<div class="empty">All our suggestions are already on your list — nice taste!</div>`}
   </div>`;
 }
@@ -3246,8 +3309,20 @@ function bindTabEvents(){
   }
   const notdSkip = document.getElementById('notd-skip');
   if(notdSkip){
-    notdSkip.onclick = () => {
-      state.notdSkipOffset = (state.notdSkipOffset || 0) + 1;
+    notdSkip.onclick = async () => {
+      const name = notdSkip.dataset.name;
+      const gender = notdSkip.dataset.gender;
+      if(name && gender){
+        if(!state.skippedNames) state.skippedNames = { Girl: [], Boy: [] };
+        if(!state.skippedNames[gender]) state.skippedNames[gender] = [];
+        const lower = name.trim().toLowerCase();
+        if(!state.skippedNames[gender].some(e => e.name.trim().toLowerCase() === lower)){
+          state.skippedNames[gender].push({ name, hidden: false });
+          await saveHousehold('skippedNames');
+        }
+      }
+      // No local counter to bump anymore — persisting the skip above already shrinks tomorrow's
+      // (and this render's) suggestion pool, so a re-render alone shows a fresh name.
       render();
     };
   }
@@ -4124,6 +4199,43 @@ function bindTabEvents(){
       render();
     };
   });
+  // Skipped names row menu — "Add to ranked" promotes a skipped suggestion into state.names +
+  // rankings (same push-then-append pattern as the notd-add / n-add handlers), and removes it
+  // from skippedNames since it's no longer merely "skipped". "Delete Forever" just hides it from
+  // this list (nameOfTheDay() already excludes every skippedNames entry regardless of hidden).
+  root.querySelectorAll('.menu-unskip').forEach(btn => {
+    btn.onclick = async () => {
+      const name = btn.dataset.name;
+      const gender = btn.dataset.gender;
+      const id = uid();
+      state.names.push({id, name, gender, addedBy: state.name});
+      if(!state.rankings[gender]) state.rankings[gender] = {};
+      const order = orderFor(gender, state.name).filter(x => x !== id);
+      order.push(id);
+      state.rankings[gender][state.name] = order;
+      if(state.skippedNames && state.skippedNames[gender]){
+        const lower = name.trim().toLowerCase();
+        state.skippedNames[gender] = state.skippedNames[gender].filter(e => e.name.trim().toLowerCase() !== lower);
+      }
+      await saveHouseholdFields({ names: state.names, rankings: state.rankings, skippedNames: state.skippedNames });
+      state.openMenuId = null;
+      render();
+    };
+  });
+  root.querySelectorAll('.menu-delete-skip').forEach(btn => {
+    btn.onclick = async () => {
+      const name = btn.dataset.name;
+      const gender = btn.dataset.gender;
+      if(state.skippedNames && state.skippedNames[gender]){
+        const lower = name.trim().toLowerCase();
+        const entry = state.skippedNames[gender].find(e => e.name.trim().toLowerCase() === lower);
+        if(entry) entry.hidden = true;
+      }
+      await saveHousehold('skippedNames');
+      state.openMenuId = null;
+      render();
+    };
+  });
   root.querySelectorAll('.edit-cancel').forEach(btn => {
     btn.onclick = () => { state.editingId = null; render(); };
   });
@@ -4215,12 +4327,114 @@ function bindTabEvents(){
       render();
     };
   });
+
+  // Names: drag-to-reorder via the 3-bar handle. Vertical counterpart to the horizontal
+  // checklist-tab / note-theme-tab drag patterns elsewhere in this file, built on the same
+  // Pointer Events approach (works for mouse and touch alike, no separate touch codepath).
+  // Unlike those tab-row draggers this one also shifts the other rows out of the way live, so
+  // the list visibly opens a gap where the dragged row will land instead of only reacting once
+  // the pointer is released.
+  const RANK_DRAG_THRESHOLD = 6;
+  root.querySelectorAll('.rank-drag-handle').forEach(handle => {
+    const row = handle.closest('.name-card');
+    const list = row ? row.parentElement : null;
+    if(!row || !list) return;
+
+    let pressed = false;
+    let dragging = false;
+    let startY = 0;
+    let rowHeight = 0;
+    let originalIndex = 0;
+    let targetIndex = 0;
+    let orderIds = [];
+    let siblingEls = [];
+
+    const resetVisuals = () => {
+      row.classList.remove('dragging');
+      row.style.transform = '';
+      list.querySelectorAll('.name-card').forEach(el => {
+        el.classList.remove('drag-shift');
+        el.style.transform = '';
+      });
+    };
+
+    handle.onpointerdown = (e) => {
+      pressed = true;
+      dragging = false;
+      startY = e.clientY;
+      rowHeight = row.getBoundingClientRect().height;
+      siblingEls = [...list.querySelectorAll('.name-card')];
+      orderIds = siblingEls.map(el => el.dataset.id);
+      originalIndex = orderIds.indexOf(row.dataset.id);
+      targetIndex = originalIndex;
+      try{ handle.setPointerCapture(e.pointerId); }catch(err){}
+    };
+
+    handle.onpointermove = (e) => {
+      if(!pressed) return;
+      const dy = e.clientY - startY;
+      if(!dragging && Math.abs(dy) > RANK_DRAG_THRESHOLD){
+        dragging = true;
+        row.classList.add('dragging');
+      }
+      if(!dragging) return;
+      row.style.transform = `translateY(${dy}px)`;
+      const rawTarget = originalIndex + Math.round(dy / rowHeight);
+      targetIndex = Math.max(0, Math.min(orderIds.length - 1, rawTarget));
+      siblingEls.forEach((el, i) => {
+        if(el === row) return;
+        let shift = 0;
+        if(originalIndex < targetIndex && i > originalIndex && i <= targetIndex) shift = -rowHeight;
+        else if(originalIndex > targetIndex && i >= targetIndex && i < originalIndex) shift = rowHeight;
+        el.classList.add('drag-shift');
+        el.style.transform = shift ? `translateY(${shift}px)` : '';
+      });
+    };
+
+    const endDrag = async (e) => {
+      const wasDragging = dragging;
+      pressed = false;
+      dragging = false;
+      try{ handle.releasePointerCapture(e.pointerId); }catch(err){}
+      resetVisuals();
+      if(!wasDragging || targetIndex === originalIndex) return;
+      const newOrder = orderIds.slice();
+      newOrder.splice(originalIndex, 1);
+      newOrder.splice(targetIndex, 0, row.dataset.id);
+      const gender = state.namesGender;
+      const user = state.name;
+      if(!state.rankings[gender]) state.rankings[gender] = {};
+      state.rankings[gender][user] = newOrder;
+      await saveHousehold('rankings');
+      render();
+    };
+
+    handle.onpointerup = endDrag;
+    handle.onpointercancel = () => {
+      pressed = false;
+      dragging = false;
+      resetVisuals();
+    };
+  });
 }
 
 // Re-checks the hero lemon/text overlap on viewport resize (e.g. rotating a phone, resizing a
 // browser window) — cheap, and added once here rather than inside renderApp() so it doesn't
 // stack a duplicate listener on every re-render.
 window.addEventListener('resize', () => { if(state.tab === 'overview') avoidLemonTextOverlap(); });
+
+// Closes any open row-menu-dropdown (the Edit/Delete menu on Checklist, Registry, Names,
+// Journal, and Notes rows) when clicking anywhere outside it. Added once here — rather than
+// inside bindTabEvents(), which reruns on every render — so it never stacks duplicate listeners.
+// Clicking the toggle button itself is unaffected: that button lives inside .row-menu, so this
+// check simply no-ops and lets the button's own onclick (which already flipped state.openMenuId)
+// stand.
+document.addEventListener('click', (e) => {
+  if(state.openMenuId != null && !e.target.closest('.row-menu')){
+    state.openMenuId = null;
+    render();
+  }
+});
 
 (async function init(){
   render();
