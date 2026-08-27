@@ -324,13 +324,13 @@
      (M3's default feedback mechanism) instead of one-off hover color swaps, plus a visible
      focus-visible ring for keyboard users. Controls with their own meaningful hover color (e.g.
      delete buttons going red) keep that AND layer this on top. */
-  .btn, nav.tabs button, .checklist-tab, .note-theme-tab, .settings-icon-btn,
+  .btn, nav.tabs button, .checklist-tab, .note-theme-tab, .names-list-tab, .fav-mobile-tab, .settings-icon-btn,
   .checklist-add-btn, .cat-rename-btn, .cat-delete-btn, .modal-close-btn,
   .row-menu-btn, .fmt-btn, .gender-tab, .rank-controls button, .who button,
   .hamburger-btn, .nav-drawer-links button{
     position: relative; isolation: isolate;
   }
-  .btn::after, nav.tabs button::after, .checklist-tab::after, .note-theme-tab::after,
+  .btn::after, nav.tabs button::after, .checklist-tab::after, .note-theme-tab::after, .names-list-tab::after, .fav-mobile-tab::after,
   .settings-icon-btn::after, .checklist-add-btn::after, .cat-rename-btn::after,
   .cat-delete-btn::after, .modal-close-btn::after, .row-menu-btn::after,
   .fmt-btn::after, .gender-tab::after, .rank-controls button::after,
@@ -339,7 +339,7 @@
     background: currentColor; opacity:0; pointer-events:none; z-index:-1;
     transition: opacity var(--md-duration-short) var(--md-easing-standard);
   }
-  .btn:hover::after, nav.tabs button:hover::after, .checklist-tab:hover::after, .note-theme-tab:hover::after,
+  .btn:hover::after, nav.tabs button:hover::after, .checklist-tab:hover::after, .note-theme-tab:hover::after, .names-list-tab:hover::after, .fav-mobile-tab:hover::after,
   .settings-icon-btn:hover::after, .checklist-add-btn:hover::after, .cat-rename-btn:hover::after,
   .cat-delete-btn:hover::after, .modal-close-btn:hover::after, .row-menu-btn:hover::after,
   .fmt-btn:hover::after, .gender-tab:hover::after, .rank-controls button:hover::after,
@@ -347,20 +347,20 @@
     opacity: var(--md-state-hover);
   }
   .btn:focus-visible::after, nav.tabs button:focus-visible::after, .checklist-tab:focus-visible::after,
-  .note-theme-tab:focus-visible::after, .settings-icon-btn:focus-visible::after, .checklist-add-btn:focus-visible::after,
+  .note-theme-tab:focus-visible::after, .names-list-tab:focus-visible::after, .fav-mobile-tab:focus-visible::after, .settings-icon-btn:focus-visible::after, .checklist-add-btn:focus-visible::after,
   .cat-rename-btn:focus-visible::after, .cat-delete-btn:focus-visible::after, .modal-close-btn:focus-visible::after,
   .row-menu-btn:focus-visible::after, .fmt-btn:focus-visible::after, .gender-tab:focus-visible::after,
   .rank-controls button:focus-visible::after, .hamburger-btn:focus-visible::after, .nav-drawer-links button:focus-visible::after{
     opacity: var(--md-state-focus);
   }
-  .btn:active::after, nav.tabs button:active::after, .checklist-tab:active::after, .note-theme-tab:active::after,
+  .btn:active::after, nav.tabs button:active::after, .checklist-tab:active::after, .note-theme-tab:active::after, .names-list-tab:active::after, .fav-mobile-tab:active::after,
   .settings-icon-btn:active::after, .checklist-add-btn:active::after, .cat-rename-btn:active::after,
   .cat-delete-btn:active::after, .modal-close-btn:active::after, .row-menu-btn:active::after,
   .fmt-btn:active::after, .gender-tab:active::after, .rank-controls button:active::after,
   .hamburger-btn:active::after, .nav-drawer-links button:active::after{
     opacity: var(--md-state-pressed);
   }
-  .btn:focus-visible, nav.tabs button:focus-visible, .checklist-tab:focus-visible, .note-theme-tab:focus-visible,
+  .btn:focus-visible, nav.tabs button:focus-visible, .checklist-tab:focus-visible, .note-theme-tab:focus-visible, .names-list-tab:focus-visible, .fav-mobile-tab:focus-visible,
   .settings-icon-btn:focus-visible, .checklist-add-btn:focus-visible, .cat-rename-btn:focus-visible,
   .cat-delete-btn:focus-visible, .modal-close-btn:focus-visible, .row-menu-btn:focus-visible,
   .fmt-btn:focus-visible, .gender-tab:focus-visible, .rank-controls button:focus-visible,
@@ -557,6 +557,19 @@
     touch-action:none; user-select:none; -webkit-user-select:none;
   }
   .note-theme-tab.active{ color: var(--md-primary); border-bottom-color: var(--md-primary); font-weight:700; }
+
+  /* Names page — Favorites / Maybe / Skipped switcher. Same underline-tab look as the Checklist
+     and Notes tab rows, but plain (fixed, non-reorderable, non-editable) buttons — there's no
+     drag-wrap here since these 3 sections aren't user-created or reordered. */
+  .names-list-tab-row{ display:flex; align-items:center; gap:2px; margin-bottom:14px; flex-wrap:wrap; }
+  .names-list-tab{
+    font: var(--md-type-label-md); font-size:13.5px;
+    background:none; color: var(--md-on-surface-variant); border:none;
+    border-radius: var(--md-shape-sm) var(--md-shape-sm) 0 0;
+    border-bottom:2px solid transparent;
+    padding: 8px 12px 6px; cursor:pointer; white-space:nowrap; min-height:32px;
+  }
+  .names-list-tab.active{ color: var(--md-primary); border-bottom-color: var(--md-primary); font-weight:700; }
 
   /* M3 elevated card: surface-container-lowest tone + a level-1 tonal shadow */
   .card{
@@ -1042,13 +1055,35 @@
   /* Mobile only: once this stacks to a single column, put Baby Name of the Day first instead of
      leaving it sitting between the two favorites panels in source order — desktop's 3-column
      row (where `order` has no visible effect between three same-height columns anyway) is
-     unaffected since this rule only exists inside this same mobile-only media query. */
+     unaffected since this rule only exists inside this same mobile-only media query. The two
+     favorites panels themselves are hidden here (not just reordered) because mobile shows them
+     combined into one tabbed panel instead — see .fav-mobile-combined below. */
   @media(max-width:800px){
     .fav-panels-row{ grid-template-columns: 1fr; }
     .fav-panels-row > .name-of-day-card{ order:-1; }
+    .fav-panels-row > .fav-panel{ display:none; }
   }
   .fav-panel h3{ font: var(--md-type-title-sm); font-size:15px; color: var(--md-on-surface); margin:0 0 10px; }
   .fav-panel ol{ margin:0; padding-left:20px; font-size:13.5px; line-height:1.8; color: var(--md-on-surface); }
+
+  /* Mobile-only combined You/Partner favorites panel — hidden entirely on desktop, where the two
+     .fav-panel columns above already show side by side. */
+  .fav-mobile-combined{ display:none; }
+  @media(max-width:800px){
+    .fav-mobile-combined{ display:block; margin-bottom:16px; }
+  }
+  /* Same underline-tab look as .names-list-tab-row/.names-list-tab (Favorites/Maybe/Skipped
+     switcher) — kept as its own class so its click handler and this switcher's stay independent,
+     but the CSS is written to always match (see the shared M3 state-layer selector lists too). */
+  .fav-mobile-tab-row{ display:flex; align-items:center; gap:2px; margin-bottom:14px; flex-wrap:wrap; }
+  .fav-mobile-tab{
+    font: var(--md-type-label-md); font-size:13.5px;
+    background:none; color: var(--md-on-surface-variant); border:none;
+    border-radius: var(--md-shape-sm) var(--md-shape-sm) 0 0;
+    border-bottom:2px solid transparent;
+    padding: 8px 12px 6px; cursor:pointer; white-space:nowrap; min-height:32px;
+  }
+  .fav-mobile-tab.active{ color: var(--md-primary); border-bottom-color: var(--md-primary); font-weight:700; }
 
   .empty{ color: var(--md-on-surface-variant); font-size:13.5px; text-align:center; padding: 20px 0; }
   ::placeholder{ color: var(--md-on-surface-variant); opacity:.8; }
@@ -1585,13 +1620,13 @@ function nameOfTheDay(){
   const dayOfYear = Math.floor((d - startOfYear) / (24*60*60*1000));
   const knownGender = (state.info.gender === 'Boy' || state.info.gender === 'Girl') ? state.info.gender : null;
   const gender = knownGender || (dayOfYear % 2 === 0 ? 'Girl' : 'Boy');
+  // Excludes any name already known to the household in ANY of the 3 Names-page lists —
+  // Favorites, Maybe, and (crucially) Skipped, since a skipped name lives in state.names too
+  // (see the "Skip name" handler) and stays there, synced to the whole household, even if it's
+  // later moved between lists. This is what keeps a skipped name from reappearing as tomorrow's
+  // (or any future day's) suggestion.
   const usedLower = new Set((state.names||[]).map(n => n.name.trim().toLowerCase()));
-  // Names skipped via "Skip name" are excluded permanently (synced to the whole household, not
-  // just this device) — including ones later "Delete Forever"-ed off the visible Skipped names
-  // list, which stay excluded even though they're no longer shown there. This is what keeps a
-  // skipped name from reappearing as tomorrow's (or any future day's) suggestion.
-  const skippedLower = new Set(((state.skippedNames && state.skippedNames[gender]) || []).map(e => e.name.trim().toLowerCase()));
-  const pool = NAME_SUGGESTIONS[gender].filter(n => !usedLower.has(n.toLowerCase()) && !skippedLower.has(n.toLowerCase()));
+  const pool = NAME_SUGGESTIONS[gender].filter(n => !usedLower.has(n.toLowerCase()));
   if(pool.length === 0) return { gender, name: null };
   const rand = mulberry32(hashString(today + gender));
   const idx = Math.floor(rand() * pool.length);
@@ -1702,7 +1737,7 @@ function attachLiveSync(){
     if(val.registry) state.registry = val.registry;
     if(val.names) state.names = val.names;
     if(val.rankings) state.rankings = val.rankings;
-    if(val.skippedNames) state.skippedNames = val.skippedNames;
+    if(val.nameListOverrides) state.nameListOverrides = val.nameListOverrides;
     if(val.journal) state.journal = val.journal;
     if(val.noteThemes) state.noteThemes = normalizeNoteThemes(val.noteThemes);
     if(val.registryCatList) state.registryCatList = val.registryCatList;
@@ -1734,14 +1769,20 @@ let state = {
   checklistFilters: {},
   showAddChecklist: false,
   registry: [],
+  // Each entry: { id, name, gender, addedBy, list }, where list is 'favorite' | 'maybe' | 'skipped'
+  // (missing/undefined list on older entries is treated as 'favorite' everywhere it's read).
+  // Every name the household has ever added or skipped lives in this one array. `list` here is
+  // only the SHARED DEFAULT for anyone who hasn't personally moved it (see nameListOverrides
+  // below) — a name being present in this array at all is what keeps it excluded from future
+  // "Baby name of the day" suggestions for the whole household (see nameOfTheDay()), regardless
+  // of which list it's currently sitting in for any particular person.
   names: [],
-  rankings: {},   // { Girl: { [userName]: [nameId,...] }, Boy: {...}, Neutral: {...} }
-  // Names dismissed from the "Baby name of the day" suggestion pool — shared/synced across the
-  // household (like rankings and names), NOT per-device, so once anyone skips a name it stays
-  // skipped for everyone and never resurfaces on a later day. Shape: { Girl: [{name, hidden}],
-  // Boy: [...] }. `hidden` is set by "Delete Forever" — the name stays excluded from suggestions
-  // permanently, it's just removed from the visible Skipped names list on the Names page.
-  skippedNames: { Girl: [], Boy: [] },
+  rankings: {},   // { Girl: { [userName]: [nameId,...] }, Boy: {...}, Neutral: {...} } — favorites only
+  // Personal, per-user overrides of which Names-page list (Favorites/Maybe/Skipped) a name shows
+  // up under — moving a name via the Names page dropdown only ever writes here, never to the
+  // shared `list` field on the name itself, so one person's move never changes what their partner
+  // sees. Shape: { Girl: { [userName]: { [nameId]: 'favorite'|'maybe'|'skipped' } }, Boy: {...} }.
+  nameListOverrides: {},
   journal: [],
   // Notes tab — entries grouped into themes (like Checklist's multiple checklists). Shape:
   // { id, name, notes: [{id, text, authorName, createdAt, visibility}] }. Kept entirely separate
@@ -1760,6 +1801,14 @@ let state = {
   journalFilterVisibility: 'All',
   tab: 'overview',
   namesGender: 'Girl',
+  // Which of the 3 Names-page sections (Favorites / Maybe / Skipped) is currently shown — plain
+  // per-device view state, same reasoning as namesGender: never synced, never in the fields[]
+  // migration list.
+  namesListView: 'favorite',
+  // Mobile-only: which side of the combined You/Partner favorites panel is showing (see
+  // .fav-mobile-combined) — 'me' | 'partner'. Same ephemeral, per-device, never-synced treatment
+  // as namesListView; desktop ignores this entirely since it still shows both panels side by side.
+  favMobileWho: 'me',
   registryFilterCat: 'All',
   registryFilterSource: 'All',
   loading: true,
@@ -1862,7 +1911,7 @@ async function loadHousehold(){
   state.loadError = false;
   await fbAuthReady; // make sure we're signed in (anonymously) before the rules-gated reads/writes below
 
-  const fields = ['info','tasks','registry','names','rankings','skippedNames','journal','notes','noteThemes','customTaskCats','customRegistryCats','taskCatList','registryCatList','catColors','sourceList','sourceColors','taskAssigneeList','assigneeColors','checklists'];
+  const fields = ['info','tasks','registry','names','rankings','nameListOverrides','journal','notes','noteThemes','customTaskCats','customRegistryCats','taskCatList','registryCatList','catColors','sourceList','sourceColors','taskAssigneeList','assigneeColors','checklists'];
   const results = {};
   let hadReadError = false;
   for(const f of fields){
@@ -1913,9 +1962,22 @@ async function loadHousehold(){
   if(state.info.gender === 'Boy' || state.info.gender === 'Girl') state.namesGender = state.info.gender;
   state.names = results.names || [];
   state.rankings = results.rankings || {};
-  state.skippedNames = results.skippedNames || { Girl: [], Boy: [] };
-  if(!state.skippedNames.Girl) state.skippedNames.Girl = [];
-  if(!state.skippedNames.Boy) state.skippedNames.Boy = [];
+  // One-time migration: names used to move between Favorites/Maybe/Skipped by rewriting the
+  // shared `list` field directly on the name object, which meant one person's move changed what
+  // everyone saw. Any 'maybe'/'skipped' value written under that shared model reflects only
+  // whoever was testing it, not a decision both partners necessarily want kept — so the first
+  // time a household loads under the new per-user model (nameListOverrides not present in
+  // Firebase yet), every name's shared default is reset back to 'favorite' (restoring everyone's
+  // previous ranking) and the per-user override table starts fresh and empty. This runs at most
+  // once per household — as soon as nameListOverrides exists (even empty), this branch is skipped
+  // for good, so it never disturbs genuine future use of the per-user Move-to-list feature.
+  if(results.nameListOverrides === undefined || results.nameListOverrides === null){
+    state.names.forEach(n => { n.list = 'favorite'; });
+    state.nameListOverrides = {};
+    await saveHouseholdFields({ names: state.names, nameListOverrides: state.nameListOverrides });
+  } else {
+    state.nameListOverrides = results.nameListOverrides;
+  }
   state.journal = results.journal || [];
 
   // ---- Notes tab themes (multiple themes, each holding its own notes) ----
@@ -2777,85 +2839,107 @@ function knownUsersFor(gender){
   return Array.from(set);
 }
 
+// The 3 Names-page sections a name can live in. Missing/undefined `list` on a name object
+// (from before this field existed) is always treated as 'favorite'.
+const NAME_LISTS = ['favorite','maybe','skipped'];
+const NAME_LIST_LABELS = { favorite: 'Favorites', maybe: 'Maybe', skipped: 'Skipped' };
+
+// A name's `list` field is only the SHARED DEFAULT (set once, at creation — 'favorite' for a
+// typed-in/added name, 'skipped' for one dismissed via the "Skip name" suggestion widget). Which
+// section it actually shows up in for a given viewer is personal: state.nameListOverrides lets
+// each user move a name between Favorites/Maybe/Skipped without changing what anyone else sees.
+// Shape: { Girl: { [userName]: { [nameId]: 'favorite'|'maybe'|'skipped' } }, Boy: {...} }.
+function effectiveList(n, gender, user){
+  const perUser = state.nameListOverrides && state.nameListOverrides[gender] && state.nameListOverrides[gender][user];
+  if(perUser && perUser[n.id]) return perUser[n.id];
+  return n.list || 'favorite';
+}
+
 function orderFor(gender, user){
-  const namesInGender = state.names.filter(n => n.gender === gender).map(n => n.id);
+  const namesInGender = state.names.filter(n => n.gender === gender && effectiveList(n, gender, user) === 'favorite').map(n => n.id);
   const saved = (state.rankings[gender] && state.rankings[gender][user]) || [];
   const savedValid = saved.filter(id => namesInGender.includes(id));
   const missing = namesInGender.filter(id => !savedValid.includes(id));
   return [...savedValid, ...missing];
 }
 
+// Unordered names for the Maybe / Skipped sections — no per-user ranking applies there, but the
+// LIST they show up under is still per-user (see effectiveList above).
+function namesByList(gender, user, list){
+  return state.names.filter(n => n.gender === gender && effectiveList(n, gender, user) === list);
+}
+
 function nameById(id){ return state.names.find(n => n.id === id); }
+
+// Shared row renderer for all 3 Names-page sections. Favorites rows get the drag handle + up/down
+// rank controls (opts.ranked); Maybe/Skipped rows are plain, unranked rows. Every row's dropdown
+// is the same shape regardless of which list it's in: Edit, "Move to <the other two lists>", Delete.
+function nameRowHTML(n, opts){
+  if(state.editingId === n.id){
+    return `
+    <div class="name-card editing" data-id="${n.id}">
+      <input type="text" class="edit-name-text" value="${escapeHtml(n.name)}" />
+      <button class="btn small edit-name-save" data-id="${n.id}">Save</button>
+      <button class="btn ghost small edit-name-cancel">Cancel</button>
+    </div>`;
+  }
+  // The row is always rendered from the current viewer's (state.name's) perspective, since each
+  // person's Names page reflects only their own overrides.
+  const list = effectiveList(n, n.gender, state.name);
+  const rankControls = opts.ranked ? `
+    <div class="rank-controls">
+      <div class="rank-drag-handle" data-id="${n.id}" aria-hidden="true" title="Drag to reorder">${hamburgerIconSVG()}</div>
+      <button class="rank-up" data-id="${n.id}" ${opts.idx===0?'disabled':''}>▲</button>
+      <span class="rank-num">${opts.idx+1}</span>
+      <button class="rank-down" data-id="${n.id}" ${opts.idx===opts.total-1?'disabled':''}>▼</button>
+    </div>` : '';
+  const moveButtons = NAME_LISTS.filter(l => l !== list).map(l =>
+    `<button class="menu-move-list" data-id="${n.id}" data-gender="${n.gender}" data-target="${l}">Move to ${NAME_LIST_LABELS[l]}</button>`
+  ).join('');
+  return `
+  <div class="name-card" data-id="${n.id}">
+    ${rankControls}
+    <div class="name-left">
+      <div class="nm">${escapeHtml(n.name)}</div>
+      <div class="meta">added by ${escapeHtml(n.addedBy)}</div>
+    </div>
+    <div class="row-menu">
+      <button class="row-menu-btn" data-id="${n.id}">▾</button>
+      ${state.openMenuId === n.id ? `
+      <div class="row-menu-dropdown">
+        <button class="menu-edit" data-id="${n.id}" data-kind="name">Edit</button>
+        ${moveButtons}
+        <button class="menu-delete" data-id="${n.id}" data-kind="name">Delete</button>
+      </div>` : ''}
+    </div>
+  </div>`;
+}
 
 function namesHTML(){
   const gender = state.namesGender;
   const user = state.name;
-  const order = orderFor(gender, user);
   const users = knownUsersFor(gender);
+  const view = NAME_LISTS.includes(state.namesListView) ? state.namesListView : 'favorite';
 
-  let myList;
-  if(order.length === 0){
-    myList = `<div class="empty">No ${gender.toLowerCase()} names yet — add your first idea below.</div>`;
+  let bodyHTML;
+  if(view === 'favorite'){
+    const order = orderFor(gender, user);
+    const rows = order.length
+      ? order.map((id, idx) => {
+          const n = nameById(id);
+          return n ? nameRowHTML(n, { ranked: true, idx, total: order.length }) : '';
+        }).join('')
+      : `<div class="empty">No ${gender.toLowerCase()} favorites yet — add your first idea below.</div>`;
+    bodyHTML = `
+    <div style="font-size:13px;color:var(--sage);margin-bottom:10px;">Drag ☰, or use ▲ ▼, to rank in order of preference — #1 is your favorite.</div>
+    <div class="rank-list">${rows}</div>`;
   } else {
-    myList = order.map((id, idx) => {
-      const n = nameById(id);
-      if(!n) return '';
-      if(state.editingId === id){
-        return `
-        <div class="name-card editing" data-id="${id}">
-          <input type="text" class="edit-name-text" value="${escapeHtml(n.name)}" />
-          <button class="btn small edit-name-save" data-id="${id}">Save</button>
-          <button class="btn ghost small edit-name-cancel">Cancel</button>
-        </div>`;
-      }
-      return `
-      <div class="name-card" data-id="${id}">
-        <div class="rank-controls">
-          <div class="rank-drag-handle" data-id="${id}" aria-hidden="true" title="Drag to reorder">${hamburgerIconSVG()}</div>
-          <button class="rank-up" data-id="${id}" ${idx===0?'disabled':''}>▲</button>
-          <span class="rank-num">${idx+1}</span>
-          <button class="rank-down" data-id="${id}" ${idx===order.length-1?'disabled':''}>▼</button>
-        </div>
-        <div class="name-left">
-          <div class="nm">${escapeHtml(n.name)}</div>
-          <div class="meta">added by ${escapeHtml(n.addedBy)}</div>
-        </div>
-        <div class="row-menu">
-          <button class="row-menu-btn" data-id="${id}">▾</button>
-          ${state.openMenuId === id ? `
-          <div class="row-menu-dropdown">
-            <button class="menu-edit" data-id="${id}" data-kind="name">Edit</button>
-            <button class="menu-delete" data-id="${id}" data-kind="name">Delete</button>
-          </div>` : ''}
-        </div>
-      </div>`;
-    }).join('');
+    const list = namesByList(gender, user, view);
+    const rows = list.length
+      ? list.map(n => nameRowHTML(n, { ranked: false })).join('')
+      : `<div class="empty">No ${gender.toLowerCase()} names in ${NAME_LIST_LABELS[view].toLowerCase()} yet.</div>`;
+    bodyHTML = `<div class="rank-list">${rows}</div>`;
   }
-
-  // Names dismissed via "Skip name" — shown read-only (no ranking) below the ranked list, with
-  // their own dropdown offering "Add to ranked" (promotes it into state.names + rankings, same
-  // as the Add-to-list flow) or "Delete Forever" (hides it here permanently; it stays excluded
-  // from future day suggestions either way — see nameOfTheDay()).
-  const skippedEntries = ((state.skippedNames && state.skippedNames[gender]) || []).filter(e => !e.hidden);
-  const skippedHTML = skippedEntries.length
-    ? skippedEntries.map(e => {
-        const sid = `skip:${gender}:${e.name}`;
-        return `
-        <div class="name-card">
-          <div class="name-left">
-            <div class="nm">${escapeHtml(e.name)}</div>
-          </div>
-          <div class="row-menu">
-            <button class="row-menu-btn" data-id="${escapeHtml(sid)}">▾</button>
-            ${state.openMenuId === sid ? `
-            <div class="row-menu-dropdown">
-              <button class="menu-unskip" data-name="${escapeHtml(e.name)}" data-gender="${gender}">Add to ranked</button>
-              <button class="menu-delete-skip" data-name="${escapeHtml(e.name)}" data-gender="${gender}">Delete Forever</button>
-            </div>` : ''}
-          </div>
-        </div>`;
-      }).join('')
-    : `<div class="empty">No skipped ${gender.toLowerCase()} names.</div>`;
 
   // Exactly two favorites panels — you (always left) and your partner (always right) — instead
   // of one column per every known contributor. Partner is whichever parent name isn't yours;
@@ -2880,6 +2964,20 @@ function namesHTML(){
     </div>`;
   }
 
+  // Mobile-only combined You/Partner favorites panel — desktop keeps the two side-by-side
+  // .fav-panel columns (hidden here via CSS instead), mobile instead gets one panel with an
+  // underline tab row (same look as the Favorites/Maybe/Skipped switcher below) to flip between
+  // them, since two full-width stacked panels ate too much vertical space on a phone.
+  const favMobileWho = state.favMobileWho === 'partner' ? 'partner' : 'me';
+  const mobileFavCombinedHTML = `
+  <div class="fav-mobile-combined">
+    <div class="fav-mobile-tab-row">
+      <button type="button" class="fav-mobile-tab ${favMobileWho==='me'?'active':''}" data-person="me">You</button>
+      <button type="button" class="fav-mobile-tab ${favMobileWho==='partner'?'active':''}" data-person="partner">${partner ? escapeHtml(partner) : 'Partner'}</button>
+    </div>
+    ${favoritesPanelHTML(favMobileWho === 'me' ? user : partner)}
+  </div>`;
+
   return `
   <div class="gender-tab-row">
     ${NAME_GENDERS.map(g => `<button data-gender="${g}" class="gender-tab ${g.toLowerCase()} ${gender===g?'active':''}">${g}</button>`).join('')}
@@ -2889,19 +2987,18 @@ function namesHTML(){
     ${nameOfDayHTML()}
     ${favoritesPanelHTML(partner)}
   </div>
+  ${mobileFavCombinedHTML}
+  <div class="names-list-tab-row">
+    ${NAME_LISTS.map(l => `<button type="button" class="names-list-tab ${view===l?'active':''}" data-list="${l}">${NAME_LIST_LABELS[l]}</button>`).join('')}
+  </div>
   <div class="card">
-    <h2 style="margin-bottom:14px;">Rank your favorites</h2>
+    <h2 style="margin-bottom:14px;">${NAME_LIST_LABELS[view]}</h2>
+    ${view === 'favorite' ? `
     <div class="add-row">
       <input type="text" id="n-name" placeholder="Name idea…" />
       <button class="btn small" id="n-add">Add</button>
-    </div>
-    <div style="font-size:13px;color:var(--sage);margin-bottom:10px;">Drag ☰, or use ▲ ▼, to rank in order of preference — #1 is your favorite.</div>
-    <div class="rank-list">${myList}</div>
-  </div>
-  <div class="card">
-    <h2 style="margin-bottom:14px;">Skipped names</h2>
-    <div style="font-size:13px;color:var(--sage);margin-bottom:10px;">Names you've skipped as a suggestion — add one to your ranked list, or delete it forever so it's never suggested again.</div>
-    ${skippedHTML}
+    </div>` : ''}
+    ${bodyHTML}
   </div>`;
 }
 
@@ -3297,7 +3394,7 @@ function bindTabEvents(){
       const name = notdAdd.dataset.name;
       const gender = notdAdd.dataset.gender;
       const id = uid();
-      state.names.push({id, name, gender, addedBy: state.name});
+      state.names.push({id, name, gender, addedBy: state.name, list: 'favorite'});
       await saveHousehold('names');
       if(!state.rankings[gender]) state.rankings[gender] = {};
       const order = orderFor(gender, state.name).filter(x => x !== id);
@@ -3313,16 +3410,17 @@ function bindTabEvents(){
       const name = notdSkip.dataset.name;
       const gender = notdSkip.dataset.gender;
       if(name && gender){
-        if(!state.skippedNames) state.skippedNames = { Girl: [], Boy: [] };
-        if(!state.skippedNames[gender]) state.skippedNames[gender] = [];
         const lower = name.trim().toLowerCase();
-        if(!state.skippedNames[gender].some(e => e.name.trim().toLowerCase() === lower)){
-          state.skippedNames[gender].push({ name, hidden: false });
-          await saveHousehold('skippedNames');
+        // Skipping now just adds the name straight into the shared names list, tagged as
+        // 'skipped' — the Names page's Skipped section reads this directly, and nameOfTheDay()'s
+        // pool exclusion (which checks state.names as a whole) picks it up automatically, so it
+        // never resurfaces as a suggestion for anyone in the household. Guarded against a
+        // duplicate push in case the same name is somehow skipped twice.
+        if(!state.names.some(n => n.gender === gender && n.name.trim().toLowerCase() === lower)){
+          state.names.push({ id: uid(), name, gender, addedBy: state.name, list: 'skipped' });
+          await saveHousehold('names');
         }
       }
-      // No local counter to bump anymore — persisting the skip above already shrinks tomorrow's
-      // (and this render's) suggestion pool, so a re-render alone shows a fresh name.
       render();
     };
   }
@@ -4193,45 +4291,42 @@ function bindTabEvents(){
             state.rankings[g][u] = state.rankings[g][u].filter(x=>x!==id);
           });
         });
-        await saveHouseholdFields({ names: state.names, rankings: state.rankings });
+        Object.keys(state.nameListOverrides).forEach(g => {
+          Object.keys(state.nameListOverrides[g]).forEach(u => {
+            delete state.nameListOverrides[g][u][id];
+          });
+        });
+        await saveHouseholdFields({ names: state.names, rankings: state.rankings, nameListOverrides: state.nameListOverrides });
       }
       state.openMenuId = null;
       render();
     };
   });
-  // Skipped names row menu — "Add to ranked" promotes a skipped suggestion into state.names +
-  // rankings (same push-then-append pattern as the notd-add / n-add handlers), and removes it
-  // from skippedNames since it's no longer merely "skipped". "Delete Forever" just hides it from
-  // this list (nameOfTheDay() already excludes every skippedNames entry regardless of hidden).
-  root.querySelectorAll('.menu-unskip').forEach(btn => {
+  // Move a name between Favorites / Maybe / Skipped (the "Move to <list>" dropdown options,
+  // available on every row regardless of which list it's currently in). Moving INTO Favorites
+  // also appends it to the current user's ranking order, same as the old Add-to-list flow —
+  // moving OUT of Favorites needs no cleanup there, since orderFor() only ever includes names
+  // whose list is currently 'favorite', so a stale id left in an old rankings array is simply
+  // ignored.
+  root.querySelectorAll('.menu-move-list').forEach(btn => {
     btn.onclick = async () => {
-      const name = btn.dataset.name;
+      const id = btn.dataset.id;
       const gender = btn.dataset.gender;
-      const id = uid();
-      state.names.push({id, name, gender, addedBy: state.name});
-      if(!state.rankings[gender]) state.rankings[gender] = {};
-      const order = orderFor(gender, state.name).filter(x => x !== id);
-      order.push(id);
-      state.rankings[gender][state.name] = order;
-      if(state.skippedNames && state.skippedNames[gender]){
-        const lower = name.trim().toLowerCase();
-        state.skippedNames[gender] = state.skippedNames[gender].filter(e => e.name.trim().toLowerCase() !== lower);
+      const target = btn.dataset.target;
+      const n = state.names.find(x => x.id === id);
+      if(!n) return;
+      // Per-user only — this never touches n.list (the shared default everyone else still sees),
+      // so moving a name here never changes what your partner's Names page shows.
+      if(!state.nameListOverrides[gender]) state.nameListOverrides[gender] = {};
+      if(!state.nameListOverrides[gender][state.name]) state.nameListOverrides[gender][state.name] = {};
+      state.nameListOverrides[gender][state.name][id] = target;
+      if(target === 'favorite'){
+        if(!state.rankings[gender]) state.rankings[gender] = {};
+        const order = orderFor(gender, state.name).filter(x => x !== id);
+        order.push(id);
+        state.rankings[gender][state.name] = order;
       }
-      await saveHouseholdFields({ names: state.names, rankings: state.rankings, skippedNames: state.skippedNames });
-      state.openMenuId = null;
-      render();
-    };
-  });
-  root.querySelectorAll('.menu-delete-skip').forEach(btn => {
-    btn.onclick = async () => {
-      const name = btn.dataset.name;
-      const gender = btn.dataset.gender;
-      if(state.skippedNames && state.skippedNames[gender]){
-        const lower = name.trim().toLowerCase();
-        const entry = state.skippedNames[gender].find(e => e.name.trim().toLowerCase() === lower);
-        if(entry) entry.hidden = true;
-      }
-      await saveHousehold('skippedNames');
+      await saveHouseholdFields({ rankings: state.rankings, nameListOverrides: state.nameListOverrides });
       state.openMenuId = null;
       render();
     };
@@ -4277,15 +4372,29 @@ function bindTabEvents(){
   root.querySelectorAll('.gender-tab-row button').forEach(btn => {
     btn.onclick = () => { state.namesGender = btn.dataset.gender; render(); };
   });
+  root.querySelectorAll('.names-list-tab').forEach(btn => {
+    btn.onclick = () => {
+      state.namesListView = btn.dataset.list;
+      state.openMenuId = null;
+      state.editingId = null;
+      render();
+    };
+  });
+  // Mobile-only You/Partner switcher for the combined favorites panel (see .fav-mobile-combined
+  // in namesHTML()) — a separate class/handler from .names-list-tab above so the two switchers
+  // never interfere with each other despite the identical look.
+  root.querySelectorAll('.fav-mobile-tab').forEach(btn => {
+    btn.onclick = () => { state.favMobileWho = btn.dataset.person; render(); };
+  });
   const nAdd = document.getElementById('n-add');
   if(nAdd){
     nAdd.onclick = async () => {
       const name = document.getElementById('n-name').value.trim();
       if(!name) return;
       const gender = state.namesGender;
+      // The add form only renders on the Favorites tab now, so every new name starts there.
       const id = uid();
-      state.names.push({id, name, gender, addedBy: state.name});
-      // Append to the current user's ranking at the end.
+      state.names.push({id, name, gender, addedBy: state.name, list: 'favorite'});
       if(!state.rankings[gender]) state.rankings[gender] = {};
       const order = orderFor(gender, state.name).filter(x => x !== id);
       order.push(id);
