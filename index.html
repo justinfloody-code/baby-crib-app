@@ -324,13 +324,13 @@
      (M3's default feedback mechanism) instead of one-off hover color swaps, plus a visible
      focus-visible ring for keyboard users. Controls with their own meaningful hover color (e.g.
      delete buttons going red) keep that AND layer this on top. */
-  .btn, nav.tabs button, .checklist-tab, .note-theme-tab, .names-list-tab, .fav-mobile-tab, .settings-icon-btn,
+  .btn, nav.tabs button, .checklist-tab, .note-theme-tab, .names-list-tab, .fav-mobile-tab, .settings-tab, .settings-icon-btn,
   .checklist-add-btn, .cat-rename-btn, .cat-delete-btn, .modal-close-btn,
   .row-menu-btn, .fmt-btn, .gender-tab, .rank-controls button, .who button,
   .hamburger-btn, .nav-drawer-links button{
     position: relative; isolation: isolate;
   }
-  .btn::after, nav.tabs button::after, .checklist-tab::after, .note-theme-tab::after, .names-list-tab::after, .fav-mobile-tab::after,
+  .btn::after, nav.tabs button::after, .checklist-tab::after, .note-theme-tab::after, .names-list-tab::after, .fav-mobile-tab::after, .settings-tab::after,
   .settings-icon-btn::after, .checklist-add-btn::after, .cat-rename-btn::after,
   .cat-delete-btn::after, .modal-close-btn::after, .row-menu-btn::after,
   .fmt-btn::after, .gender-tab::after, .rank-controls button::after,
@@ -339,7 +339,7 @@
     background: currentColor; opacity:0; pointer-events:none; z-index:-1;
     transition: opacity var(--md-duration-short) var(--md-easing-standard);
   }
-  .btn:hover::after, nav.tabs button:hover::after, .checklist-tab:hover::after, .note-theme-tab:hover::after, .names-list-tab:hover::after, .fav-mobile-tab:hover::after,
+  .btn:hover::after, nav.tabs button:hover::after, .checklist-tab:hover::after, .note-theme-tab:hover::after, .names-list-tab:hover::after, .fav-mobile-tab:hover::after, .settings-tab:hover::after,
   .settings-icon-btn:hover::after, .checklist-add-btn:hover::after, .cat-rename-btn:hover::after,
   .cat-delete-btn:hover::after, .modal-close-btn:hover::after, .row-menu-btn:hover::after,
   .fmt-btn:hover::after, .gender-tab:hover::after, .rank-controls button:hover::after,
@@ -347,20 +347,20 @@
     opacity: var(--md-state-hover);
   }
   .btn:focus-visible::after, nav.tabs button:focus-visible::after, .checklist-tab:focus-visible::after,
-  .note-theme-tab:focus-visible::after, .names-list-tab:focus-visible::after, .fav-mobile-tab:focus-visible::after, .settings-icon-btn:focus-visible::after, .checklist-add-btn:focus-visible::after,
+  .note-theme-tab:focus-visible::after, .names-list-tab:focus-visible::after, .fav-mobile-tab:focus-visible::after, .settings-tab:focus-visible::after, .settings-icon-btn:focus-visible::after, .checklist-add-btn:focus-visible::after,
   .cat-rename-btn:focus-visible::after, .cat-delete-btn:focus-visible::after, .modal-close-btn:focus-visible::after,
   .row-menu-btn:focus-visible::after, .fmt-btn:focus-visible::after, .gender-tab:focus-visible::after,
   .rank-controls button:focus-visible::after, .hamburger-btn:focus-visible::after, .nav-drawer-links button:focus-visible::after{
     opacity: var(--md-state-focus);
   }
-  .btn:active::after, nav.tabs button:active::after, .checklist-tab:active::after, .note-theme-tab:active::after, .names-list-tab:active::after, .fav-mobile-tab:active::after,
+  .btn:active::after, nav.tabs button:active::after, .checklist-tab:active::after, .note-theme-tab:active::after, .names-list-tab:active::after, .fav-mobile-tab:active::after, .settings-tab:active::after,
   .settings-icon-btn:active::after, .checklist-add-btn:active::after, .cat-rename-btn:active::after,
   .cat-delete-btn:active::after, .modal-close-btn:active::after, .row-menu-btn:active::after,
   .fmt-btn:active::after, .gender-tab:active::after, .rank-controls button:active::after,
   .hamburger-btn:active::after, .nav-drawer-links button:active::after{
     opacity: var(--md-state-pressed);
   }
-  .btn:focus-visible, nav.tabs button:focus-visible, .checklist-tab:focus-visible, .note-theme-tab:focus-visible, .names-list-tab:focus-visible, .fav-mobile-tab:focus-visible,
+  .btn:focus-visible, nav.tabs button:focus-visible, .checklist-tab:focus-visible, .note-theme-tab:focus-visible, .names-list-tab:focus-visible, .fav-mobile-tab:focus-visible, .settings-tab:focus-visible,
   .settings-icon-btn:focus-visible, .checklist-add-btn:focus-visible, .cat-rename-btn:focus-visible,
   .cat-delete-btn:focus-visible, .modal-close-btn:focus-visible, .row-menu-btn:focus-visible,
   .fmt-btn:focus-visible, .gender-tab:focus-visible, .rank-controls button:focus-visible,
@@ -590,6 +590,19 @@
     padding: 8px 12px 6px; cursor:pointer; white-space:nowrap; min-height:32px;
   }
   .names-list-tab.active{ color: var(--md-primary); border-bottom-color: var(--md-primary); font-weight:700; }
+
+  /* Settings page sections (Baby's Info / Appearance / Notifications / Account) — same
+     underline-tab look as .names-list-tab-row/.names-list-tab, no drag-wrap since these 4
+     sections are fixed, not user-created or reordered. */
+  .settings-tab-row{ display:flex; align-items:center; gap:2px; margin-bottom:14px; flex-wrap:wrap; }
+  .settings-tab{
+    font: var(--md-type-label-md); font-size:13.5px;
+    background:none; color: var(--md-on-surface-variant); border:none;
+    border-radius: var(--md-shape-sm) var(--md-shape-sm) 0 0;
+    border-bottom:2px solid transparent;
+    padding: 8px 12px 6px; cursor:pointer; white-space:nowrap; min-height:32px;
+  }
+  .settings-tab.active{ color: var(--md-primary); border-bottom-color: var(--md-primary); font-weight:700; }
 
   /* M3 elevated card: surface-container-lowest tone + a level-1 tonal shadow */
   .card{
@@ -1167,13 +1180,43 @@ try{
   }
 }catch(e){ console.error('Firebase messaging init failed', e); }
 
+// The four independently-toggleable push notification categories. Each has its own on/off
+// switch in Settings; `key` is what's stored in this device's token record under
+// households/{code}/pushTokens/{token}/prefs, and is what the Cloud Function checks before
+// sending that category of push to this device.
+const NOTIF_TYPES = [
+  { key: 'dailyName', label: 'Daily Baby Name of the Day' },
+  { key: 'weeklyUpdate', label: 'New pregnancy week' },
+  { key: 'newNote', label: 'Partner adds a note' },
+  { key: 'newChecklist', label: 'Partner adds a checklist' },
+];
+
+// All-true defaults — used ONLY as the assumed state for a device that already has a token from
+// before per-category prefs existed (so upgrading doesn't silently turn off categories someone
+// already opted into under the old single on/off toggle).
+function defaultNotifPrefs(){
+  const obj = {};
+  NOTIF_TYPES.forEach(t => { obj[t.key] = true; });
+  return obj;
+}
+
+// This device's current per-category preferences. No token yet means every category reads as
+// off (nothing has ever been requested from the browser). A token with no stored prefs (a
+// pre-existing install from before per-category toggles existed) reads as all-on, matching what
+// that single old toggle used to mean.
+function getNotifPrefs(){
+  if(!personalGet('push-token')) return {};
+  return personalGet('notif-prefs') || defaultNotifPrefs();
+}
+
 // Turns notifications on for THIS DEVICE: asks the browser for permission, registers the
 // service worker that handles background pushes, gets a device-specific token from FCM, and
-// stores that token under the shared household record (keyed by the token itself, so re-enabling
-// on the same device is naturally a no-op rather than a duplicate entry) so the daily Cloud
-// Function knows where to send the "name of the day" push. Returns a short status string the
-// Settings UI can show the user; never throws.
-async function enableNotifications(){
+// stores that token — along with which notification categories are enabled — under the shared
+// household record (keyed by the token itself, so re-enabling on the same device is naturally a
+// no-op rather than a duplicate entry) so each Cloud Function knows where, and whether, to send
+// its particular kind of push. Returns a short status string the Settings UI can show the user;
+// never throws.
+async function enableNotifications(initialPrefs){
   if(!('Notification' in window) || !('serviceWorker' in navigator)){
     return 'unsupported';
   }
@@ -1186,9 +1229,9 @@ async function enableNotifications(){
     const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
     const token = await fbMessaging.getToken({ vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: reg });
     if(!token) return 'error';
-    await householdRef(`pushTokens/${token}`).set({ user: state.name, addedAt: Date.now() });
+    await householdRef(`pushTokens/${token}`).set({ user: state.name, addedAt: Date.now(), prefs: initialPrefs });
     personalSet('push-token', token);
-    personalSet('notifications-enabled', true);
+    personalSet('notif-prefs', initialPrefs);
     return 'enabled';
   }catch(e){
     console.error('enableNotifications failed', e);
@@ -1197,14 +1240,37 @@ async function enableNotifications(){
 }
 
 // Turns notifications off for THIS DEVICE only — removes just this device's token from the
-// shared household record (other devices/parents are unaffected) and clears the local flag.
+// shared household record (other devices/parents are unaffected) and clears the local flags.
 async function disableNotifications(){
   const token = personalGet('push-token');
-  personalSet('notifications-enabled', false);
+  personalSet('notif-prefs', null);
   personalSet('push-token', '');
   if(token && fbDb && state.code){
     try{ await householdRef(`pushTokens/${token}`).remove(); }catch(e){ console.error(e); }
   }
+}
+
+// Flips one notification category on or off for THIS DEVICE. If no token exists yet and the
+// user is turning something on, this is the first category they've ever enabled, so it triggers
+// the full permission/registration flow (enableNotifications) with just that one category set.
+// If a token already exists, it's a lightweight partial update to that token's stored prefs. If
+// turning a category off leaves every category off, the device is fully deregistered — same end
+// state as the old single toggle being switched off.
+async function setNotifPref(key, value){
+  const token = personalGet('push-token');
+  const current = getNotifPrefs();
+  const updated = { ...current, [key]: value };
+  if(!token){
+    if(!value) return 'noop';
+    return await enableNotifications(updated);
+  }
+  personalSet('notif-prefs', updated);
+  if(fbDb && state.code){
+    try{ await householdRef(`pushTokens/${token}/prefs/${key}`).set(value); }catch(e){ console.error(e); }
+  }
+  const anyOn = NOTIF_TYPES.some(t => updated[t.key]);
+  if(!anyOn) await disableNotifications();
+  return 'enabled';
 }
 
 function cribIcon(size){
@@ -1662,17 +1728,77 @@ function assigneeStyle(name, colorMap){
 const NAME_GENDERS = ["Girl","Boy"];
 
 // ---------- Baby name of the day ----------
+// Curated from the Social Security Administration's official 2024 top-1000 baby names ranking
+// (ssa.gov/oact/babynames) — top 300 most popular of each gender that year, most-popular first.
+// Was a hand-picked 50-per-gender list; expanded to 300 (no duplicates within either list) so
+// "Baby name of the day" doesn't run out of fresh suggestions nearly as fast. If you ever refresh
+// this again from a newer year's data, update the SAME array in functions/index.js too — they're
+// meant to stay byte-identical so the push notification always matches what the app shows.
 const NAME_SUGGESTIONS = {
-  Boy: ["Liam","Noah","Oliver","Elijah","James","William","Benjamin","Lucas","Henry","Theodore",
-        "Jack","Levi","Alexander","Jackson","Mateo","Daniel","Michael","Mason","Sebastian","Ethan",
-        "Logan","Owen","Samuel","Jacob","Asher","Aiden","John","Joseph","Wyatt","David",
-        "Leo","Luke","Julian","Hudson","Grayson","Matthew","Ezra","Gabriel","Carter","Isaac",
-        "Jayden","Luca","Anthony","Dylan","Lincoln","Thomas","Maverick","Elias","Josiah","Charles"],
-  Girl: ["Olivia","Emma","Charlotte","Amelia","Sophia","Isabella","Ava","Mia","Evelyn","Luna",
-         "Harper","Camila","Sofia","Scarlett","Elizabeth","Eleanor","Emily","Chloe","Mila","Violet",
-         "Penelope","Gianna","Aria","Abigail","Ella","Avery","Hazel","Nora","Layla","Lily",
-         "Addison","Willow","Zoey","Stella","Aurora","Natalie","Grace","Maya","Nova","Paisley",
-         "Ivy","Everly","Ellie","Isla","Naomi","Elena","Ruby","Claire","Sadie","Skylar"],
+  Boy: [
+        "Liam","Noah","Oliver","Theodore","James","Henry","Mateo","Elijah","Lucas","William",
+        "Benjamin","Levi","Ezra","Sebastian","Jack","Daniel","Samuel","Michael","Ethan","Asher",
+        "John","Hudson","Luca","Leo","Elias","Owen","Alexander","Dylan","Santiago","Julian",
+        "David","Joseph","Matthew","Luke","Jackson","Maverick","Miles","Wyatt","Thomas","Isaac",
+        "Jacob","Mason","Gabriel","Anthony","Carter","Logan","Aiden","Grayson","Caleb","Cooper",
+        "Charles","Roman","Josiah","Ezekiel","Thiago","Isaiah","Joshua","Wesley","Jayden","Bennett",
+        "Christopher","Nathan","Angel","Nolan","Waylon","Cameron","Brooks","Andrew","Beau","Weston",
+        "Rowan","Adrian","Lincoln","Enzo","Ian","Kai","Christian","Axel","Aaron","Theo",
+        "Silas","Walker","Jonathan","Leonardo","Everett","Micah","Ryan","August","Gael","Robert",
+        "Jose","Eli","Jeremiah","Luka","Amir","Jaxon","Parker","Colton","Myles","Adam",
+        "Atlas","Xavier","Easton","Jordan","Arthur","Landon","Austin","Dominic","Adriel","Damian",
+        "Vincent","River","Emiliano","Jace","Archer","Lorenzo","Jameson","Nicholas","Emmett","Milo",
+        "Harrison","Giovanni","Carson","George","Kayden","Jonah","Greyson","Hunter","Graham","Luis",
+        "Declan","Sawyer","Jasper","Ryder","Carlos","Connor","Juan","Matteo","Dawson","Calvin",
+        "Leon","Dean","Evan","Nathaniel","Diego","Arlo","Bryson","Jason","Malachi","Elliot",
+        "Zion","Emilio","Ivan","Hayden","Stetson","Jude","Legend","Matias","Callum","Hayes",
+        "Jett","Cole","Elliott","Jesus","Ace","Beckett","Alan","Beckham","Jayce","Braxton",
+        "Jaxson","Amari","Chase","Rhett","Max","Charlie","Felix","Kingston","Judah","Antonio",
+        "Emmanuel","Maxwell","Ryker","Alejandro","Nicolas","Barrett","Jesse","Ashton","Miguel","Brayden",
+        "Tyler","Peter","Camden","Zachary","Tatum","Kevin","Andres","Finn","Justin","Tucker",
+        "Bentley","Zayden","Messiah","Abraham","Alex","Adonis","Kaiden","Timothy","Knox","Tate",
+        "Caden","Ayden","Nico","Victor","Maddox","Xander","Oscar","Colter","Joel","Abel",
+        "Patrick","Rafael","Griffin","Brody","Jaziel","Rory","Eithan","Edward","Riley","Brandon",
+        "Milan","Richard","Malakai","Ismael","Kyrie","Louis","Elian","Kairo","Cohen","Nash",
+        "Grant","Callan","Dallas","Harvey","Muhammad","Mark","Javier","Karter","Zayn","Crew",
+        "Eric","Simon","Aziel","Cyrus","Gavin","Marcus","Ronan","Derek","Avery","Omar",
+        "Lane","Warren","Lennox","Paul","Blake","Jeremy","Tristan","Lukas","Steven","Emerson",
+        "Walter","Cade","Ellis","Otto","Phoenix","Colt","Atticus","Kaleb","Israel","Tobias",
+        "Holden","Saint","Romeo","Kenneth","Jorge","Angelo","Remington","Paxton","Cody","Finley",
+        "Kayson","Koa","Kash","Josue","Ares","Hendrix","Bryce","Maximiliano","Zyaire","Reid"
+  ],
+  Girl: [
+         "Olivia","Emma","Amelia","Charlotte","Mia","Sophia","Isabella","Evelyn","Ava","Sofia",
+         "Camila","Harper","Luna","Eleanor","Violet","Aurora","Elizabeth","Eliana","Hazel","Chloe",
+         "Ellie","Nora","Gianna","Lily","Emily","Aria","Scarlett","Penelope","Zoe","Ella",
+         "Avery","Abigail","Mila","Lucy","Isla","Ivy","Layla","Lainey","Nova","Grace",
+         "Willow","Riley","Emilia","Naomi","Elena","Madison","Valentina","Victoria","Stella","Delilah",
+         "Maya","Hannah","Leah","Lillian","Genesis","Josephine","Sadie","Adeline","Zoey","Sophie",
+         "Paisley","Alice","Ruby","Eloise","Madelyn","Leilani","Claire","Addison","Ayla","Emery",
+         "Iris","Eden","Natalie","Maria","Maeve","Daisy","Vivian","Clara","Autumn","Liliana",
+         "Everly","Audrey","Lyla","Jade","Kinsley","Millie","Madeline","Josie","Kennedy","Athena",
+         "Melody","Caroline","Aaliyah","Anna","Sarah","Quinn","Lydia","Lucia","Allison","Hailey",
+         "Ailany","Cora","Ariana","Parker","Natalia","Gabriella","Savannah","Brooklyn","Bella","Georgia",
+         "Juniper","Alaia","Raelynn","Hadley","Rose","Julia","Serenity","Eliza","Margaret","Eva",
+         "Amara","Melanie","Cecilia","Ashley","Rylee","Margot","Samantha","Catalina","Juliette","Aubrey",
+         "Esther","Mary","Nevaeh","Skylar","Alina","Amira","Ember","Magnolia","Sienna","Charlie",
+         "Elliana","Summer","Alana","Brielle","Remi","Sage","Valerie","Hallie","Wrenley","Kehlani",
+         "Emerson","June","Sloane","Emersyn","Elsie","Oaklynn","Oakley","Blakely","Freya","Piper",
+         "Valeria","Arya","Adalynn","Everleigh","Genevieve","Anastasia","Isabel","Peyton","Amaya","Isabelle",
+         "Olive","Ruth","Ximena","Evangeline","Katherine","Callie","Rosalie","Alani","Lilah","Kaia",
+         "Brianna","Bailey","Phoebe","Vivienne","Andrea","Myla","Lia","Sara","Kylie","Reese",
+         "Annie","Daphne","Ada","Adaline","Arianna","Ariella","Sutton","Celeste","Jasmine","Mackenzie",
+         "Haven","Scottie","Gemma","Ana","Tatum","Arabella","Lila","Molly","Stevie","Blake",
+         "Aitana","Alaina","Wren","River","Noelle","Delaney","Journee","Blair","Adalyn","Kaylee",
+         "Alexandra","Mabel","Norah","Presley","Alora","Vera","Celine","Amy","Brynlee","Nyla",
+         "Saylor","Khloe","Antonella","Zara","Aliyah","Cataleya","Lennon","Kiara","Camille","Dahlia",
+         "Kaylani","Mariana","Diana","Reagan","Selena","Kimberly","Rachel","Gracie","Faith","Juliana",
+         "Miriam","Elise","Noa","Elaina","Maisie","Lilith","Collins","Palmer","Lilly","Shiloh",
+         "Ophelia","Elianna","Lena","Harmony","Aspen","Rowan","Gia","Leila","Jane","Talia",
+         "Adelaide","Dakota","Lola","Lucille","Kailani","Morgan","Zuri","Milani","Daniela","Selah",
+         "Alessia","Angela","Juliet","Evie","Amora","Rory","Marley","Sydney","Alanna","Leia",
+         "Luciana","Kamila","Harlow","Kali","Octavia","Amari","Sawyer","Gabriela","Ariel","Maggie"
+  ],
 };
 function hashString(s){
   let h = 0;
@@ -1907,6 +2033,9 @@ let state = {
   // controls are always shown regardless of this flag.
   checklistControlsOpen: false,
   registryControlsOpen: false,
+  // Which Settings section is currently shown (underline tabs, same pattern as Checklist's
+  // multiple-checklists switcher) — plain per-device view state, never synced, never persisted.
+  settingsTab: 'info',
   // Set when loadHousehold() couldn't actually read the household's data from Firebase (e.g. a
   // permissions/auth error) — see loadHousehold(). Deliberately kept separate from "loading" so
   // render() can show a distinct, honest error screen instead of silently falling through to
@@ -1937,6 +2066,9 @@ function newChecklist(name){
     catColors: {},
     assigneeList: [state.info.motherName, state.info.fatherName].filter(n => n && n.trim()),
     assigneeColors: {},
+    // Who created this checklist — lets the "new checklist" push notification credit the right
+    // parent and avoid pinging that same parent's own devices about their own action.
+    createdBy: state.name,
   };
 }
 // Firebase Realtime Database silently drops empty arrays/objects (a node with no children is
@@ -2462,6 +2594,20 @@ function overviewHTML(w){
   </div>`;
 }
 
+const SETTINGS_TABS = [
+  { key: 'info', label: "Baby's Info" },
+  { key: 'appearance', label: 'Appearance' },
+  { key: 'notifications', label: 'Notifications' },
+  { key: 'account', label: 'Account' },
+];
+
+function settingsTabRowHTML(){
+  return `
+  <div class="settings-tab-row">
+    ${SETTINGS_TABS.map(t => `<button type="button" class="settings-tab ${state.settingsTab===t.key?'active':''}" data-tab="${t.key}">${t.label}</button>`).join('')}
+  </div>`;
+}
+
 function settingsHTML(){
   const themePref = personalGet('theme-preference') || 'system';
   const colorThemePref = personalGet('color-theme') || '';
@@ -2470,66 +2616,73 @@ function settingsHTML(){
   // browser's own settings (outside the app), this reflects that as off rather than showing a
   // stale "on" toggle that silently does nothing.
   const notifPermission = (typeof Notification !== 'undefined') ? Notification.permission : 'unsupported';
-  const notifOn = !!personalGet('notifications-enabled') && notifPermission === 'granted';
-  return `
-  <div class="card">
-    <h2 style="margin-bottom:14px;">Baby's Info</h2>
-    <label>Due date</label>
-    <input type="date" id="due-input" value="${state.info.dueDate || ''}" />
-    <label>Mother's name</label>
-    <input type="text" id="mother-name" value="${escapeHtml(state.info.motherName || '')}" placeholder="e.g. Jamie" />
-    <label>Father's name</label>
-    <input type="text" id="father-name" value="${escapeHtml(state.info.fatherName || '')}" placeholder="e.g. Alex" />
-    <label>Baby's gender</label>
-    <select id="baby-gender-select">
-      <option value="Boy" ${state.info.gender === 'Boy' ? 'selected' : ''}>Boy</option>
-      <option value="Girl" ${state.info.gender === 'Girl' ? 'selected' : ''}>Girl</option>
-      <option value="" ${!state.info.gender ? 'selected' : ''}>Don't know yet</option>
-    </select>
-    <label>Baby's Name <span style="text-transform:none;font-weight:400;">(optional)</span></label>
-    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <input type="text" id="baby-first-name" value="${escapeHtml(state.info.babyFirstName || '')}" placeholder="First" style="flex:1; min-width:90px;" />
-      <input type="text" id="baby-middle-name" value="${escapeHtml(state.info.babyMiddleName || '')}" placeholder="Middle" style="flex:1; min-width:90px;" />
-      <input type="text" id="baby-last-name" value="${escapeHtml(state.info.babyLastName || '')}" placeholder="Last" style="flex:1; min-width:90px;" />
-    </div>
-    <button class="btn small" id="baby-info-save" style="margin-top:14px;">Save info</button>
-  </div>
-  <div class="card">
-    <h2 style="margin-bottom:14px;">App Appearance</h2>
-    <label>Theme</label>
-    <select id="theme-pref-select">
-      <option value="system" ${themePref === 'system' ? 'selected' : ''}>Match my device</option>
-      <option value="light" ${themePref === 'light' ? 'selected' : ''}>Light</option>
-      <option value="dark" ${themePref === 'dark' ? 'selected' : ''}>Dark</option>
-    </select>
-    <label>Color theme <span style="text-transform:none;font-weight:400;">(just for this device)</span></label>
-    <select id="color-theme-select">
-      <option value="" ${colorThemePref === '' ? 'selected' : ''}>Default</option>
-      <option value="boy" ${colorThemePref === 'boy' ? 'selected' : ''}>Boy</option>
-      <option value="girl" ${colorThemePref === 'girl' ? 'selected' : ''}>Girl</option>
-    </select>
-  </div>
-  <div class="card">
-    <h2 style="margin-bottom:14px;">Notifications</h2>
-    <div class="switch-row">
-      <div>
-        <div class="switch-row-label">Daily Baby Name of the Day</div>
-        <div class="switch-row-sub">A push notification each morning with the new suggested name — this device only, your partner turns it on separately on theirs.</div>
+  const notifPrefs = getNotifPrefs();
+  const activeTab = SETTINGS_TABS.some(t => t.key === state.settingsTab) ? state.settingsTab : 'info';
+
+  let body;
+  if(activeTab === 'info'){
+    body = `
+    <div class="card">
+      <label>Due date</label>
+      <input type="date" id="due-input" value="${state.info.dueDate || ''}" />
+      <label>Mother's name</label>
+      <input type="text" id="mother-name" value="${escapeHtml(state.info.motherName || '')}" placeholder="e.g. Jamie" />
+      <label>Father's name</label>
+      <input type="text" id="father-name" value="${escapeHtml(state.info.fatherName || '')}" placeholder="e.g. Alex" />
+      <label>Baby's gender</label>
+      <select id="baby-gender-select">
+        <option value="Boy" ${state.info.gender === 'Boy' ? 'selected' : ''}>Boy</option>
+        <option value="Girl" ${state.info.gender === 'Girl' ? 'selected' : ''}>Girl</option>
+        <option value="" ${!state.info.gender ? 'selected' : ''}>Don't know yet</option>
+      </select>
+      <label>Baby's Name <span style="text-transform:none;font-weight:400;">(optional)</span></label>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <input type="text" id="baby-first-name" value="${escapeHtml(state.info.babyFirstName || '')}" placeholder="First" style="flex:1; min-width:90px;" />
+        <input type="text" id="baby-middle-name" value="${escapeHtml(state.info.babyMiddleName || '')}" placeholder="Middle" style="flex:1; min-width:90px;" />
+        <input type="text" id="baby-last-name" value="${escapeHtml(state.info.babyLastName || '')}" placeholder="Last" style="flex:1; min-width:90px;" />
       </div>
-      <label class="switch">
-        <input type="checkbox" id="notif-toggle" ${notifOn ? 'checked' : ''} />
-        <span class="switch-track"></span>
-      </label>
-    </div>
-    ${state.notifMessage ? `<div class="notif-status">${escapeHtml(state.notifMessage)}</div>` : ''}
-    ${notifPermission === 'denied' ? `<div class="notif-status">Notifications are blocked for this site in your browser. Change that in your browser's site settings, then try the toggle again.</div>` : ''}
-  </div>
-  <div class="card">
-    <h2 style="margin-bottom:14px;">Account Settings</h2>
-    <label>Shared household code</label>
-    <div class="household-code-display">${escapeHtml(state.code)}</div>
-    <button class="btn ghost small" id="switch-btn" style="margin-top:14px;">Make a new baby</button>
-  </div>`;
+      <button class="btn small" id="baby-info-save" style="margin-top:14px;">Save info</button>
+    </div>`;
+  } else if(activeTab === 'appearance'){
+    body = `
+    <div class="card">
+      <label>Theme</label>
+      <select id="theme-pref-select">
+        <option value="system" ${themePref === 'system' ? 'selected' : ''}>Match my device</option>
+        <option value="light" ${themePref === 'light' ? 'selected' : ''}>Light</option>
+        <option value="dark" ${themePref === 'dark' ? 'selected' : ''}>Dark</option>
+      </select>
+      <label>Color theme <span style="text-transform:none;font-weight:400;">(just for this device)</span></label>
+      <select id="color-theme-select">
+        <option value="" ${colorThemePref === '' ? 'selected' : ''}>Default</option>
+        <option value="boy" ${colorThemePref === 'boy' ? 'selected' : ''}>Boy</option>
+        <option value="girl" ${colorThemePref === 'girl' ? 'selected' : ''}>Girl</option>
+      </select>
+    </div>`;
+  } else if(activeTab === 'notifications'){
+    body = `
+    <div class="card">
+      ${NOTIF_TYPES.map(t => `
+      <div class="switch-row" style="margin-bottom:14px;">
+        <div class="switch-row-label">${t.label}</div>
+        <label class="switch">
+          <input type="checkbox" class="notif-toggle" data-key="${t.key}" ${(notifPrefs[t.key] && notifPermission === 'granted') ? 'checked' : ''} />
+          <span class="switch-track"></span>
+        </label>
+      </div>`).join('')}
+      ${state.notifMessage ? `<div class="notif-status">${escapeHtml(state.notifMessage)}</div>` : ''}
+      ${notifPermission === 'denied' ? `<div class="notif-status">Notifications are blocked for this site in your browser. Change that in your browser's site settings, then try a toggle again.</div>` : ''}
+    </div>`;
+  } else {
+    body = `
+    <div class="card">
+      <label>Shared household code</label>
+      <div class="household-code-display">${escapeHtml(state.code)}</div>
+      <button class="btn ghost small" id="switch-btn" style="margin-top:14px;">Make a new baby</button>
+    </div>`;
+  }
+
+  return `${settingsTabRowHTML()}${body}`;
 }
 
 // Small wireframe lego-block icon used for the category settings button — an isometric cube
@@ -3846,6 +3999,11 @@ function bindTabEvents(){
     };
   });
 
+  // Settings — section tabs (Baby's Info / Appearance / Notifications / Account)
+  document.querySelectorAll('.settings-tab').forEach(btn => {
+    btn.onclick = () => { state.settingsTab = btn.dataset.tab; render(); };
+  });
+
   // Settings — appearance / theme preference
   const themePrefSelect = document.getElementById('theme-pref-select');
   if(themePrefSelect){
@@ -3874,29 +4032,29 @@ function bindTabEvents(){
     };
   }
 
-  // Settings — notifications (this device only)
-  const notifToggle = document.getElementById('notif-toggle');
-  if(notifToggle){
-    notifToggle.onchange = async () => {
-      notifToggle.disabled = true;
-      if(notifToggle.checked){
-        const result = await enableNotifications();
+  // Settings — notifications (this device only) — one independent toggle per category.
+  document.querySelectorAll('.notif-toggle').forEach(cb => {
+    cb.onchange = async () => {
+      const key = cb.dataset.key;
+      const turningOn = cb.checked;
+      cb.disabled = true;
+      const result = await setNotifPref(key, turningOn);
+      if(turningOn){
         if(result === 'enabled'){
           state.notifMessage = 'Notifications are on for this device.';
         } else {
-          notifToggle.checked = false;
+          cb.checked = false;
           state.notifMessage =
             result === 'denied' ? 'Notifications were blocked — allow them for this site in your browser settings, then try again.' :
             result === 'unsupported' ? "This browser doesn't support push notifications." :
-            'Something went wrong turning notifications on. Try again in a moment.';
+            'Something went wrong turning that on. Try again in a moment.';
         }
       } else {
-        await disableNotifications();
-        state.notifMessage = 'Notifications are off for this device.';
+        state.notifMessage = 'Updated your notification settings for this device.';
       }
       render();
     };
-  }
+  });
 
   // Settings — leave household
   const switchBtn = document.getElementById('switch-btn');
