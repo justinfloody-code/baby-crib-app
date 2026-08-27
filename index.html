@@ -484,6 +484,26 @@
     padding:10px 14px; letter-spacing:0.5px; display:inline-block;
   }
 
+  /* Notifications toggle (Settings) — the only on/off switch in the app, so its own small
+     component rather than reusing the <select> pattern the other Settings rows use; a binary
+     on/off reads more clearly as a switch than a 2-option dropdown. */
+  .switch-row{ display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .switch-row-label{ font-family:'Public Sans',sans-serif; font-size:14px; color: var(--md-on-surface); font-weight:600; }
+  .switch-row-sub{ font-size:12px; color: var(--md-on-surface-variant); margin-top:2px; max-width:380px; }
+  .switch{ position:relative; display:inline-block; width:44px; height:26px; flex-shrink:0; }
+  .switch input{ opacity:0; position:absolute; width:100%; height:100%; margin:0; cursor:pointer; }
+  .switch-track{ position:absolute; inset:0; background: var(--md-outline-variant); border-radius:999px; pointer-events:none; transition: background var(--md-duration-short) var(--md-easing-standard); }
+  .switch-track::before{
+    content:''; position:absolute; width:20px; height:20px; left:3px; top:3px;
+    background: var(--md-surface-container-lowest); border-radius:50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,.25);
+    transition: transform var(--md-duration-short) var(--md-easing-standard);
+  }
+  .switch input:checked + .switch-track{ background: var(--md-primary); }
+  .switch input:checked + .switch-track::before{ transform: translateX(18px); }
+  .switch input:focus-visible + .switch-track{ outline: 2px solid var(--md-primary); outline-offset: 2px; }
+  .notif-status{ margin-top:10px; font-size:12.5px; color: var(--md-on-surface-variant); }
+
   /* M3 primary tabs: pill-shaped, filled-container inactive state, primary fill when active.
      No longer shown directly in the page (navigation now lives in the hamburger drawer below),
      kept defined in case any other spot wants the same pill-tab look. */
@@ -1095,6 +1115,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
 
 <script>
 const BRAND = "Crib";
@@ -1122,6 +1143,69 @@ try{
   fbDb = firebase.database();
   fbAuthReady = firebase.auth().signInAnonymously().catch(e => console.error('Anonymous auth failed', e));
 }catch(e){ console.error('Firebase init failed', e); }
+
+// ---------- Push notifications (Firebase Cloud Messaging) ----------
+// Get this from Firebase Console → Project Settings → Cloud Messaging → Web configuration →
+// "Web Push certificates" → generate a key pair, then paste the public key string here. Without
+// a real key, getToken() below will fail and the Notifications toggle in Settings will show an
+// error — everything else in the app works fine regardless.
+const FCM_VAPID_KEY = "BAi-Ssqp8wlskRXqwtacAh7D0vN1Gm5LngokbbUkw_j2-T_G9UfRty1BRwtqB9su0eNw4AKQWdbgPXzDyZ3qigE";
+let fbMessaging = null;
+try{
+  if(firebase.messaging && firebase.messaging.isSupported && firebase.messaging.isSupported()){
+    fbMessaging = firebase.messaging();
+    // Foreground messages (the tab is open and focused) don't trigger the service worker's
+    // background handler at all — Firebase hands them straight to the page instead, so we show
+    // the notification ourselves here for a consistent experience whether the tab is open or not.
+    fbMessaging.onMessage((payload) => {
+      const title = (payload.notification && payload.notification.title) || 'Crib';
+      const body = (payload.notification && payload.notification.body) || '';
+      if(Notification.permission === 'granted'){
+        try{ new Notification(title, { body, icon: 'icon-192.png' }); }catch(e){}
+      }
+    });
+  }
+}catch(e){ console.error('Firebase messaging init failed', e); }
+
+// Turns notifications on for THIS DEVICE: asks the browser for permission, registers the
+// service worker that handles background pushes, gets a device-specific token from FCM, and
+// stores that token under the shared household record (keyed by the token itself, so re-enabling
+// on the same device is naturally a no-op rather than a duplicate entry) so the daily Cloud
+// Function knows where to send the "name of the day" push. Returns a short status string the
+// Settings UI can show the user; never throws.
+async function enableNotifications(){
+  if(!('Notification' in window) || !('serviceWorker' in navigator)){
+    return 'unsupported';
+  }
+  if(!fbMessaging){
+    return 'error';
+  }
+  try{
+    const permission = await Notification.requestPermission();
+    if(permission !== 'granted') return 'denied';
+    const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+    const token = await fbMessaging.getToken({ vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: reg });
+    if(!token) return 'error';
+    await householdRef(`pushTokens/${token}`).set({ user: state.name, addedAt: Date.now() });
+    personalSet('push-token', token);
+    personalSet('notifications-enabled', true);
+    return 'enabled';
+  }catch(e){
+    console.error('enableNotifications failed', e);
+    return 'error';
+  }
+}
+
+// Turns notifications off for THIS DEVICE only — removes just this device's token from the
+// shared household record (other devices/parents are unaffected) and clears the local flag.
+async function disableNotifications(){
+  const token = personalGet('push-token');
+  personalSet('notifications-enabled', false);
+  personalSet('push-token', '');
+  if(token && fbDb && state.code){
+    try{ await householdRef(`pushTokens/${token}`).remove(); }catch(e){ console.error(e); }
+  }
+}
 
 function cribIcon(size){
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1829,6 +1913,10 @@ let state = {
   // fresh-household defaults, which would risk writing empty/default data over real data that
   // simply couldn't be read.
   loadError: false,
+  // Transient status line shown under the Notifications toggle in Settings after a change
+  // (e.g. "Notifications are on for this device.") — in-memory only, cleared naturally on the
+  // next tab switch/re-render, never persisted.
+  notifMessage: '',
 };
 
 function currentWeekNum(){
@@ -2377,6 +2465,12 @@ function overviewHTML(w){
 function settingsHTML(){
   const themePref = personalGet('theme-preference') || 'system';
   const colorThemePref = personalGet('color-theme') || '';
+  // A device only counts as "on" if BOTH this device previously turned it on AND the browser
+  // permission is still actually granted — if the user revoked notification permission from their
+  // browser's own settings (outside the app), this reflects that as off rather than showing a
+  // stale "on" toggle that silently does nothing.
+  const notifPermission = (typeof Notification !== 'undefined') ? Notification.permission : 'unsupported';
+  const notifOn = !!personalGet('notifications-enabled') && notifPermission === 'granted';
   return `
   <div class="card">
     <h2 style="margin-bottom:14px;">Baby's Info</h2>
@@ -2414,6 +2508,21 @@ function settingsHTML(){
       <option value="boy" ${colorThemePref === 'boy' ? 'selected' : ''}>Boy</option>
       <option value="girl" ${colorThemePref === 'girl' ? 'selected' : ''}>Girl</option>
     </select>
+  </div>
+  <div class="card">
+    <h2 style="margin-bottom:14px;">Notifications</h2>
+    <div class="switch-row">
+      <div>
+        <div class="switch-row-label">Daily Baby Name of the Day</div>
+        <div class="switch-row-sub">A push notification each morning with the new suggested name — this device only, your partner turns it on separately on theirs.</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="notif-toggle" ${notifOn ? 'checked' : ''} />
+        <span class="switch-track"></span>
+      </label>
+    </div>
+    ${state.notifMessage ? `<div class="notif-status">${escapeHtml(state.notifMessage)}</div>` : ''}
+    ${notifPermission === 'denied' ? `<div class="notif-status">Notifications are blocked for this site in your browser. Change that in your browser's site settings, then try the toggle again.</div>` : ''}
   </div>
   <div class="card">
     <h2 style="margin-bottom:14px;">Account Settings</h2>
@@ -3762,6 +3871,30 @@ function bindTabEvents(){
       } else {
         document.documentElement.removeAttribute('data-color-theme');
       }
+    };
+  }
+
+  // Settings — notifications (this device only)
+  const notifToggle = document.getElementById('notif-toggle');
+  if(notifToggle){
+    notifToggle.onchange = async () => {
+      notifToggle.disabled = true;
+      if(notifToggle.checked){
+        const result = await enableNotifications();
+        if(result === 'enabled'){
+          state.notifMessage = 'Notifications are on for this device.';
+        } else {
+          notifToggle.checked = false;
+          state.notifMessage =
+            result === 'denied' ? 'Notifications were blocked — allow them for this site in your browser settings, then try again.' :
+            result === 'unsupported' ? "This browser doesn't support push notifications." :
+            'Something went wrong turning notifications on. Try again in a moment.';
+        }
+      } else {
+        await disableNotifications();
+        state.notifMessage = 'Notifications are off for this device.';
+      }
+      render();
     };
   }
 
