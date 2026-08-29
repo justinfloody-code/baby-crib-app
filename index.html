@@ -626,13 +626,16 @@
      Favorites/Maybe/Skipped switcher, Settings' sections, the mobile combined-favorites switcher)
      becomes a single scrollable line instead of wrapping across multiple lines — there just isn't
      the vertical room on a phone to spare. The row's own scrollbar is hidden; a fade at either
-     edge (via the ::before/::after + .fade-left/.fade-right rules further below) hints there's
-     more to scroll, but ONLY on the side that actually continues — updateTabRowFades() in the
-     main script toggles those classes from each row's scroll position. */
+     edge (via .tab-scroll-wrap's ::before/::after + .fade-left/.fade-right rules further below)
+     hints there's more to scroll, but ONLY on the side that actually continues —
+     updateTabRowFade() in the main script toggles those classes from each row's scroll position. */
   @media(max-width:700px){
     .checklist-tab-row, .names-list-tab-row, .settings-tab-row, .fav-mobile-tab-row{
       flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
-      position:relative;
+      /* Restricts the browser's native handling of a touch drag on this row to the horizontal
+         axis only — without this, a slightly diagonal swipe could also nudge the page itself up
+         or down at the same time as the row scrolled sideways. */
+      touch-action:pan-x;
     }
     .checklist-tab-row::-webkit-scrollbar, .names-list-tab-row::-webkit-scrollbar,
     .settings-tab-row::-webkit-scrollbar, .fav-mobile-tab-row::-webkit-scrollbar{ display:none; }
@@ -650,29 +653,24 @@
        right of its header row, not jump to the front. */
     .checklist-tab-row > .checklist-add-btn{ order:-1; }
 
-    /* Edge fade overlays — invisible by default, faded in only on whichever side(s) the row's
-       .fade-left/.fade-right class (toggled by updateTabRowFades(), driven off scrollLeft) says
-       there's more content to scroll to. Anchored to var(--md-surface) since these rows sit
-       directly on the page background, not inside a .card. */
-    .checklist-tab-row::before, .checklist-tab-row::after,
-    .names-list-tab-row::before, .names-list-tab-row::after,
-    .settings-tab-row::before, .settings-tab-row::after,
-    .fav-mobile-tab-row::before, .fav-mobile-tab-row::after{
+    /* Edge fade overlays. These live on .tab-scroll-wrap — a plain, NON-scrolling wrapper placed
+       around each tab-row — rather than on the scrolling row itself: a ::before/::after on the
+       scroll container's own box scrolls away with the content (tried that first; the fade
+       visibly slid off with the tabs instead of staying pinned to the screen edge). The wrapper
+       never scrolls, so its pseudo-elements stay put while the row inside it moves. Invisible by
+       default, faded in only on whichever side(s) the wrapper's .fade-left/.fade-right class
+       (toggled by updateTabRowFade(), driven off the inner row's scrollLeft) says there's more
+       content to scroll to. Anchored to var(--md-surface) since these rows sit directly on the
+       page background, not inside a .card. */
+    .tab-scroll-wrap{ position:relative; }
+    .tab-scroll-wrap::before, .tab-scroll-wrap::after{
       content:''; position:absolute; top:0; bottom:0; width:24px; pointer-events:none;
       opacity:0; transition: opacity var(--md-duration-short) var(--md-easing-standard); z-index:1;
     }
-    .checklist-tab-row::before, .names-list-tab-row::before,
-    .settings-tab-row::before, .fav-mobile-tab-row::before{
-      left:0; background: linear-gradient(to right, var(--md-surface), transparent);
-    }
-    .checklist-tab-row::after, .names-list-tab-row::after,
-    .settings-tab-row::after, .fav-mobile-tab-row::after{
-      right:0; background: linear-gradient(to left, var(--md-surface), transparent);
-    }
-    .checklist-tab-row.fade-left::before, .names-list-tab-row.fade-left::before,
-    .settings-tab-row.fade-left::before, .fav-mobile-tab-row.fade-left::before{ opacity:1; }
-    .checklist-tab-row.fade-right::after, .names-list-tab-row.fade-right::after,
-    .settings-tab-row.fade-right::after, .fav-mobile-tab-row.fade-right::after{ opacity:1; }
+    .tab-scroll-wrap::before{ left:0; background: linear-gradient(to right, var(--md-surface), transparent); }
+    .tab-scroll-wrap::after{ right:0; background: linear-gradient(to left, var(--md-surface), transparent); }
+    .tab-scroll-wrap.fade-left::before{ opacity:1; }
+    .tab-scroll-wrap.fade-right::after{ opacity:1; }
   }
 
   /* M3 elevated card: surface-container-lowest tone + a level-1 tonal shadow */
@@ -2701,8 +2699,10 @@ const SETTINGS_TABS = [
 
 function settingsTabRowHTML(){
   return `
+  <div class="tab-scroll-wrap">
   <div class="settings-tab-row">
     ${SETTINGS_TABS.map(t => `<button type="button" class="settings-tab ${state.settingsTab===t.key?'active':''}" data-tab="${t.key}">${t.label}</button>`).join('')}
+  </div>
   </div>`;
 }
 
@@ -2855,12 +2855,14 @@ function catManageRowHTML(list, scope, colorMap){
 // a new one — sits above the checklist card itself.
 function checklistTabRowHTML(){
   return `
+  <div class="tab-scroll-wrap">
   <div class="checklist-tab-row">
     ${state.checklists.map(cl => `
     <span class="checklist-tab-wrap" data-id="${cl.id}">
       <button type="button" class="checklist-tab ${cl.id===state.activeChecklistId?'active':''}" data-id="${cl.id}">${escapeHtml(cl.name)}</button>
     </span>`).join('')}
     <button type="button" class="checklist-add-btn" id="checklist-add-btn" title="Add a checklist">+</button>
+  </div>
   </div>`;
 }
 
@@ -2895,12 +2897,14 @@ function newChecklistModalHTML(){
 // Checklist tab's handlers mistakenly attach to Notes theme buttons (and vice versa).
 function noteThemeTabRowHTML(){
   return `
+  <div class="tab-scroll-wrap">
   <div class="checklist-tab-row">
     ${state.noteThemes.map(t => `
     <span class="note-theme-tab-wrap" data-id="${t.id}">
       <button type="button" class="note-theme-tab ${t.id===state.activeNoteThemeId?'active':''}" data-id="${t.id}">${escapeHtml(t.name)}</button>
     </span>`).join('')}
     <button type="button" class="checklist-add-btn" id="note-theme-add-btn" title="Add a section">+</button>
+  </div>
   </div>`;
 }
 
@@ -3331,9 +3335,11 @@ function namesHTML(){
   const favMobileWho = state.favMobileWho === 'partner' ? 'partner' : 'me';
   const mobileFavCombinedHTML = `
   <div class="fav-mobile-combined">
+    <div class="tab-scroll-wrap">
     <div class="fav-mobile-tab-row">
       <button type="button" class="fav-mobile-tab ${favMobileWho==='me'?'active':''}" data-person="me">You</button>
       <button type="button" class="fav-mobile-tab ${favMobileWho==='partner'?'active':''}" data-person="partner">${partner ? escapeHtml(partner) : 'Partner'}</button>
+    </div>
     </div>
     ${favoritesPanelHTML(favMobileWho === 'me' ? user : partner)}
   </div>`;
@@ -3348,8 +3354,10 @@ function namesHTML(){
     ${favoritesPanelHTML(partner)}
   </div>
   ${mobileFavCombinedHTML}
+  <div class="tab-scroll-wrap">
   <div class="names-list-tab-row">
     ${NAME_LISTS.map(l => `<button type="button" class="names-list-tab ${view===l?'active':''}" data-list="${l}">${NAME_LIST_LABELS[l]}</button>`).join('')}
+  </div>
   </div>
   <div class="card">
     <h2 style="margin-bottom:14px;">${NAME_LIST_LABELS[view]}</h2>
@@ -3711,10 +3719,15 @@ function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<
 // fade only on whichever side still has more tabs to scroll to, using a small epsilon so
 // floating-point scroll math doesn't leave a fade stuck on at the natural resting ends. Harmless
 // to call on desktop too: there the row never actually overflows, so both classes just stay off.
+// The classes go on `row`'s parent .tab-scroll-wrap, not on `row` itself — the wrapper is what
+// holds the fade overlays (see CSS), since a fade element on the scrolling row's own box would
+// scroll away along with the tabs instead of staying pinned to the screen edge.
 function updateTabRowFade(row){
+  const wrap = row.parentElement;
+  if(!wrap) return;
   const epsilon = 2;
-  row.classList.toggle('fade-left', row.scrollLeft > epsilon);
-  row.classList.toggle('fade-right', row.scrollLeft < row.scrollWidth - row.clientWidth - epsilon);
+  wrap.classList.toggle('fade-left', row.scrollLeft > epsilon);
+  wrap.classList.toggle('fade-right', row.scrollLeft < row.scrollWidth - row.clientWidth - epsilon);
 }
 
 // Shared by the Checklist and Notes tab-row drag-to-reorder handlers in bindTabEvents(). On a
