@@ -324,13 +324,13 @@
      (M3's default feedback mechanism) instead of one-off hover color swaps, plus a visible
      focus-visible ring for keyboard users. Controls with their own meaningful hover color (e.g.
      delete buttons going red) keep that AND layer this on top. */
-  .btn, nav.tabs button, .checklist-tab, .note-theme-tab, .names-list-tab, .fav-mobile-tab, .settings-tab, .settings-icon-btn,
+  .btn, nav.tabs button, .checklist-tab, .note-theme-tab, .names-list-tab, .fav-mobile-tab, .settings-tab, .header-tab, .settings-icon-btn,
   .checklist-add-btn, .cat-rename-btn, .cat-delete-btn, .modal-close-btn,
   .row-menu-btn, .fmt-btn, .gender-tab, .rank-controls button, .who button,
   .hamburger-btn, .nav-drawer-links button{
     position: relative; isolation: isolate;
   }
-  .btn::after, nav.tabs button::after, .checklist-tab::after, .note-theme-tab::after, .names-list-tab::after, .fav-mobile-tab::after, .settings-tab::after,
+  .btn::after, nav.tabs button::after, .checklist-tab::after, .note-theme-tab::after, .names-list-tab::after, .fav-mobile-tab::after, .settings-tab::after, .header-tab::after,
   .settings-icon-btn::after, .checklist-add-btn::after, .cat-rename-btn::after,
   .cat-delete-btn::after, .modal-close-btn::after, .row-menu-btn::after,
   .fmt-btn::after, .gender-tab::after, .rank-controls button::after,
@@ -339,7 +339,7 @@
     background: currentColor; opacity:0; pointer-events:none; z-index:-1;
     transition: opacity var(--md-duration-short) var(--md-easing-standard);
   }
-  .btn:hover::after, nav.tabs button:hover::after, .checklist-tab:hover::after, .note-theme-tab:hover::after, .names-list-tab:hover::after, .fav-mobile-tab:hover::after, .settings-tab:hover::after,
+  .btn:hover::after, nav.tabs button:hover::after, .checklist-tab:hover::after, .note-theme-tab:hover::after, .names-list-tab:hover::after, .fav-mobile-tab:hover::after, .settings-tab:hover::after, .header-tab:hover::after,
   .settings-icon-btn:hover::after, .checklist-add-btn:hover::after, .cat-rename-btn:hover::after,
   .cat-delete-btn:hover::after, .modal-close-btn:hover::after, .row-menu-btn:hover::after,
   .fmt-btn:hover::after, .gender-tab:hover::after, .rank-controls button:hover::after,
@@ -347,20 +347,20 @@
     opacity: var(--md-state-hover);
   }
   .btn:focus-visible::after, nav.tabs button:focus-visible::after, .checklist-tab:focus-visible::after,
-  .note-theme-tab:focus-visible::after, .names-list-tab:focus-visible::after, .fav-mobile-tab:focus-visible::after, .settings-tab:focus-visible::after, .settings-icon-btn:focus-visible::after, .checklist-add-btn:focus-visible::after,
+  .note-theme-tab:focus-visible::after, .names-list-tab:focus-visible::after, .fav-mobile-tab:focus-visible::after, .settings-tab:focus-visible::after, .header-tab:focus-visible::after, .settings-icon-btn:focus-visible::after, .checklist-add-btn:focus-visible::after,
   .cat-rename-btn:focus-visible::after, .cat-delete-btn:focus-visible::after, .modal-close-btn:focus-visible::after,
   .row-menu-btn:focus-visible::after, .fmt-btn:focus-visible::after, .gender-tab:focus-visible::after,
   .rank-controls button:focus-visible::after, .hamburger-btn:focus-visible::after, .nav-drawer-links button:focus-visible::after{
     opacity: var(--md-state-focus);
   }
-  .btn:active::after, nav.tabs button:active::after, .checklist-tab:active::after, .note-theme-tab:active::after, .names-list-tab:active::after, .fav-mobile-tab:active::after, .settings-tab:active::after,
+  .btn:active::after, nav.tabs button:active::after, .checklist-tab:active::after, .note-theme-tab:active::after, .names-list-tab:active::after, .fav-mobile-tab:active::after, .settings-tab:active::after, .header-tab:active::after,
   .settings-icon-btn:active::after, .checklist-add-btn:active::after, .cat-rename-btn:active::after,
   .cat-delete-btn:active::after, .modal-close-btn:active::after, .row-menu-btn:active::after,
   .fmt-btn:active::after, .gender-tab:active::after, .rank-controls button:active::after,
   .hamburger-btn:active::after, .nav-drawer-links button:active::after{
     opacity: var(--md-state-pressed);
   }
-  .btn:focus-visible, nav.tabs button:focus-visible, .checklist-tab:focus-visible, .note-theme-tab:focus-visible, .names-list-tab:focus-visible, .fav-mobile-tab:focus-visible, .settings-tab:focus-visible,
+  .btn:focus-visible, nav.tabs button:focus-visible, .checklist-tab:focus-visible, .note-theme-tab:focus-visible, .names-list-tab:focus-visible, .fav-mobile-tab:focus-visible, .settings-tab:focus-visible, .header-tab:focus-visible,
   .settings-icon-btn:focus-visible, .checklist-add-btn:focus-visible, .cat-rename-btn:focus-visible,
   .cat-delete-btn:focus-visible, .modal-close-btn:focus-visible, .row-menu-btn:focus-visible,
   .fmt-btn:focus-visible, .gender-tab:focus-visible, .rank-controls button:focus-visible,
@@ -461,13 +461,29 @@
     cursor:pointer; display:flex; align-items:center; gap:inherit;
   }
   .brand-link:hover{ opacity:0.82; }
-  /* M3 standard icon button: the hamburger that opens the nav drawer */
+  /* M3 standard icon button: the hamburger that opens the nav drawer. Mobile-only — desktop shows
+     the page links inline instead (see .header-tabs below), so this is hidden above 700px. */
   .hamburger-btn{
     background:none; border:none; border-radius:50%; width:40px; height:40px; flex-shrink:0;
     cursor:pointer; color: var(--md-on-surface); display:flex; align-items:center; justify-content:center;
     padding:0; margin-top:2px;
   }
   .hamburger-btn svg{ width:24px; height:24px; }
+  @media(min-width:701px){ .hamburger-btn{ display:none; } }
+
+  /* Desktop-only inline page nav, sitting to the right of the Crib wordmark in the header — same
+     underline-tab look as .checklist-tab/.settings-tab. Replaces the hamburger menu on wide
+     viewports; below 700px this is hidden and the hamburger + drawer (above) is used instead. */
+  .header-tabs{ display:flex; align-items:center; gap:2px; flex-wrap:wrap; margin-left:6px; }
+  @media(max-width:700px){ .header-tabs{ display:none; } }
+  .header-tab{
+    font: var(--md-type-label-md); font-size:13.5px;
+    background:none; color: var(--md-on-surface-variant); border:none;
+    border-radius: var(--md-shape-sm) var(--md-shape-sm) 0 0;
+    border-bottom:2px solid transparent;
+    padding: 8px 12px 6px; cursor:pointer; white-space:nowrap; min-height:32px;
+  }
+  .header-tab.active{ color: var(--md-primary); border-bottom-color: var(--md-primary); font-weight:700; }
   /* Name and Settings pill sit in one row, name to the left of the pill. */
   .who-col{ display:flex; flex-direction:row; align-items:center; gap:10px; }
   .who{ font-family:'JetBrains Mono',monospace; font-size:12px; color: var(--md-on-surface-variant); }
@@ -559,11 +575,10 @@
   }
   .checklist-tab.active{ color: var(--md-primary); border-bottom-color: var(--md-primary); font-weight:700; }
   .checklist-add-btn{
-    background: none; border: 1.5px dashed var(--md-outline); border-radius:var(--md-shape-full);
+    background: none; border: 1.5px solid var(--md-primary); border-radius:var(--md-shape-full);
     width:32px; height:32px; flex-shrink:0; cursor:pointer; color: var(--md-primary);
     display:flex; align-items:center; justify-content:center; padding:0; font-size:17px; line-height:1;
   }
-  .checklist-add-btn:hover{ border-color: var(--md-primary); }
 
   .note-theme-tab-wrap{ display:flex; align-items:center; gap:0; }
   .note-theme-tab-wrap.dragging{ position:relative; z-index:5; }
@@ -604,6 +619,31 @@
   }
   .settings-tab.active{ color: var(--md-primary); border-bottom-color: var(--md-primary); font-weight:700; }
 
+  /* Mobile only: every underline tab-row (Checklist/Notes' shared .checklist-tab-row, Names'
+     Favorites/Maybe/Skipped switcher, Settings' sections, the mobile combined-favorites switcher)
+     becomes a single scrollable line instead of wrapping across multiple lines — there just isn't
+     the vertical room on a phone to spare. A mask-image fade at each edge hints there's more to
+     scroll; the row's own horizontal scrollbar is hidden since the fade already communicates that. */
+  @media(max-width:700px){
+    .checklist-tab-row, .names-list-tab-row, .settings-tab-row, .fav-mobile-tab-row{
+      flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+      -webkit-mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+      mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+    }
+    .checklist-tab-row::-webkit-scrollbar, .names-list-tab-row::-webkit-scrollbar,
+    .settings-tab-row::-webkit-scrollbar, .fav-mobile-tab-row::-webkit-scrollbar{ display:none; }
+    /* Without this, flexbox's default flex-shrink:1 would compress each tab's text to fit the
+       screen instead of letting the row actually scroll — these need to keep their natural width
+       so there's real overflow to scroll through. */
+    .checklist-tab-wrap, .note-theme-tab-wrap, .names-list-tab, .settings-tab, .fav-mobile-tab,
+    .checklist-add-btn{
+      flex-shrink:0;
+    }
+    /* The add-checklist/add-section button (shared .checklist-add-btn) moves to the front of its
+       row on mobile, ahead of every section name, rather than trailing at the end. */
+    .checklist-add-btn{ order:-1; }
+  }
+
   /* M3 elevated card: surface-container-lowest tone + a level-1 tonal shadow */
   .card{
     background: var(--md-surface-container-lowest); border: 1px solid var(--md-outline-variant); border-radius: var(--md-shape-lg);
@@ -613,12 +653,11 @@
 
   .card-header-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
   .settings-icon-btn{
-    background: none; border: 1.5px solid var(--md-outline); border-radius:var(--md-shape-sm);
+    background: none; border: 1.5px solid var(--md-primary); border-radius:var(--md-shape-sm);
     width:34px; height:34px; flex-shrink:0; cursor:pointer; color: var(--md-primary);
     display:flex; align-items:center; justify-content:center; padding:0;
   }
   .settings-icon-btn svg{ width:19px; height:19px; }
-  .settings-icon-btn:hover{ border-color: var(--md-primary); }
 
   /* M3 dialog (modal): surface-container-high + a level-3 shadow, distinct from resting cards */
   .modal-overlay{
@@ -786,7 +825,12 @@
      viewport width. Each row is its own flexbox so panels can have different widths based on
      content — but align-items:stretch (the flex default) keeps panels within the SAME row at
      equal height, for consistency; different rows are still free to have different heights. */
-  .home-grid-row{ display:flex; flex-wrap:wrap; align-items:stretch; gap:16px; margin-bottom:16px; }
+  /* Capped and centered to the SAME effective content width as every other page's #root column
+     (max-width:1100px minus its own 32px+32px padding = 1036px) — .home-grid-wrap itself is a
+     full-bleed 100vw band (so its background reaches the true page edges), but the row content
+     inside it needs this explicit cap or it just keeps growing with the viewport past 1100px,
+     landing wider than the Checklist/Registry/Names/etc. panels above the fold. */
+  .home-grid-row{ display:flex; flex-wrap:wrap; align-items:stretch; gap:16px; margin-bottom:16px; max-width:1036px; margin-left:auto; margin-right:auto; }
   .home-grid-row:last-child{ margin-bottom:0; }
   .home-grid-row > .card{ flex:1 1 320px; }
   .home-grid-row > .name-of-day-card{ flex:0 1 260px; max-width:320px; }
@@ -941,6 +985,11 @@
     .mobile-controls{ display:none; }
     .mobile-controls.open{ display:block; }
   }
+  /* Mobile-only "+" toggle used on Journal/Notes' New entry/New note panel header (sits beside
+     the h2 via .card-header-row) — same round button look as .checklist-add-btn, but this one
+     is hidden entirely on desktop, where the panel is never collapsed in the first place. */
+  .mobile-new-toggle{ display:none; }
+  @media(max-width:700px){ .mobile-new-toggle{ display:flex; } }
   .hide-completed-toggle{
     display:flex; align-items:center; gap:7px; font-size:13px; font-weight:600;
     color: var(--md-on-surface); font-family:'Public Sans',sans-serif; white-space:nowrap; cursor:pointer;
@@ -1304,7 +1353,7 @@ function rattleSilhouetteSVG(){
   return `
   <svg viewBox="0 0 24 34" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
     <circle cx="12" cy="9" r="7"/>
-    <rect x="9.4" y="15" width="5.2" height="13" rx="2.6"/>
+    <rect x="10.4" y="15" width="3.2" height="13" rx="1.6"/>
     <circle cx="12" cy="29.5" r="3"/>
     <circle cx="3" cy="4" r="1.3" opacity="0.55"/>
     <circle cx="21" cy="3" r="1.7" opacity="0.55"/>
@@ -2037,6 +2086,11 @@ let state = {
   // controls are always shown regardless of this flag.
   checklistControlsOpen: false,
   registryControlsOpen: false,
+  // Same mobile-only collapse pattern, applied to the Journal/Notes "new entry" panel instead of
+  // an add/filter row — collapsed by default on a phone, always open on desktop regardless of
+  // this flag (see .mobile-controls CSS).
+  journalNewOpen: false,
+  notesNewOpen: false,
   // Which Settings section is currently shown (underline tabs, same pattern as Checklist's
   // multiple-checklists switcher) — plain per-device view state, never synced, never persisted.
   settingsTab: 'info',
@@ -2397,6 +2451,9 @@ function renderApp(){
         <div class="topbar-left">
           <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu">${hamburgerIconSVG()}</button>
           <h1><button class="brand-link" id="brand-home-btn"><span class="brand-icon">${cribIcon(36)}</span>${BRAND}</button></h1>
+          <nav class="header-tabs">
+            ${navLinks.map(l => `<button type="button" data-tab="${l.tab}" class="header-tab ${state.tab===l.tab?'active':''}">${l.label}</button>`).join('')}
+          </nav>
         </div>
         <div class="who-col">
           <div class="who">${state.name}</div>
@@ -2433,9 +2490,15 @@ function renderApp(){
   if(navDrawerClose) navDrawerClose.onclick = closeMenu;
   const navDrawerOverlay = document.getElementById('nav-drawer-overlay');
   if(navDrawerOverlay) navDrawerOverlay.onclick = closeMenu;
-  root.querySelectorAll('.nav-drawer-links button').forEach(b => {
-    b.onclick = () => { state.tab = b.dataset.tab; state.menuOpen = false; state.openMenuId = null; state.editingId = null; state.selectedFactsWeek = null; state.showCatSettings = false; state.showAddNoteTheme = false; state.showNoteThemeSettings = false; render(); };
-  });
+  // Shared by both the mobile hamburger drawer's links and the desktop inline header tabs —
+  // same destination, same view-state reset, just two different visual homes for it.
+  const goToTab = (tab) => {
+    state.tab = tab; state.menuOpen = false; state.openMenuId = null; state.editingId = null;
+    state.selectedFactsWeek = null; state.showCatSettings = false; state.showAddNoteTheme = false;
+    state.showNoteThemeSettings = false; render();
+  };
+  root.querySelectorAll('.nav-drawer-links button').forEach(b => { b.onclick = () => goToTab(b.dataset.tab); });
+  root.querySelectorAll('.header-tab').forEach(b => { b.onclick = () => goToTab(b.dataset.tab); });
 
   const content = document.getElementById('tab-content');
   // The Home tab's hero deliberately touches the header (one continuous white band); every
@@ -3464,17 +3527,22 @@ function journalHTML(){
 
   return `
   <div class="card">
-    <h2 style="margin-bottom:14px;">New entry</h2>
-    <div class="journal-editor">
-      ${formatToolbarHTML()}
-      <div class="journal-rich-input" id="journal-new-text" contenteditable="true" data-placeholder="How are you feeling today?"></div>
+    <div class="card-header-row">
+      <h2 style="margin-bottom:0;">New entry</h2>
+      <button type="button" class="checklist-add-btn mobile-new-toggle" id="journal-new-toggle" title="${state.journalNewOpen ? 'Hide' : 'Add entry'}">${state.journalNewOpen ? '×' : '+'}</button>
     </div>
-    <div class="journal-controls">
-      <select id="journal-new-visibility">
-        <option value="public">Shared with my partner</option>
-        <option value="private" selected>Private — just for me</option>
-      </select>
-      <button class="btn small" id="journal-new-save">Save entry</button>
+    <div class="mobile-controls ${state.journalNewOpen ? 'open' : ''}">
+      <div class="journal-editor" style="margin-top:14px;">
+        ${formatToolbarHTML()}
+        <div class="journal-rich-input" id="journal-new-text" contenteditable="true" data-placeholder="How are you feeling today?"></div>
+      </div>
+      <div class="journal-controls">
+        <select id="journal-new-visibility">
+          <option value="public">Shared with my partner</option>
+          <option value="private" selected>Private — just for me</option>
+        </select>
+        <button class="btn small" id="journal-new-save">Save entry</button>
+      </div>
     </div>
   </div>
   <div class="card">
@@ -3567,8 +3635,12 @@ function notesHTML(){
   return `
   ${noteThemeTabRowHTML()}
   <div class="card">
-    <h2 style="margin-bottom:14px;">New note</h2>
-    <div class="journal-editor">
+    <div class="card-header-row">
+      <h2 style="margin-bottom:0;">New note</h2>
+      <button type="button" class="checklist-add-btn mobile-new-toggle" id="notes-new-toggle" title="${state.notesNewOpen ? 'Hide' : 'Add note'}">${state.notesNewOpen ? '×' : '+'}</button>
+    </div>
+    <div class="mobile-controls ${state.notesNewOpen ? 'open' : ''}">
+    <div class="journal-editor" style="margin-top:14px;">
       ${formatToolbarHTML()}
       <div class="journal-rich-input" id="notes-new-text" contenteditable="true" data-placeholder="What's on your mind?"></div>
     </div>
@@ -3581,6 +3653,7 @@ function notesHTML(){
         <option value="private">Private — just for me</option>
       </select>
       <button class="btn small" id="notes-new-save">Save note</button>
+    </div>
     </div>
   </div>
   <div class="card">
@@ -3652,6 +3725,14 @@ function bindTabEvents(){
   const registryControlsToggle = document.getElementById('registry-controls-toggle');
   if(registryControlsToggle){
     registryControlsToggle.onclick = () => { state.registryControlsOpen = !state.registryControlsOpen; render(); };
+  }
+  const journalNewToggle = document.getElementById('journal-new-toggle');
+  if(journalNewToggle){
+    journalNewToggle.onclick = () => { state.journalNewOpen = !state.journalNewOpen; render(); };
+  }
+  const notesNewToggle = document.getElementById('notes-new-toggle');
+  if(notesNewToggle){
+    notesNewToggle.onclick = () => { state.notesNewOpen = !state.notesNewOpen; render(); };
   }
   // Home — baby name of the day
   const notdAdd = document.getElementById('notd-add');
