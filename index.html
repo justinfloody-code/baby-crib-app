@@ -1170,9 +1170,12 @@ try{
     // Foreground messages (the tab is open and focused) don't trigger the service worker's
     // background handler at all — Firebase hands them straight to the page instead, so we show
     // the notification ourselves here for a consistent experience whether the tab is open or not.
+    // Title/body come from `payload.data` (not `payload.notification`) — the Cloud Function sends
+    // data-only messages on purpose, see the comment on sendPushToTokens in functions/index.js for
+    // why (avoids every push showing twice).
     fbMessaging.onMessage((payload) => {
-      const title = (payload.notification && payload.notification.title) || 'Crib';
-      const body = (payload.notification && payload.notification.body) || '';
+      const title = (payload.data && payload.data.title) || 'Crib';
+      const body = (payload.data && payload.data.body) || '';
       if(Notification.permission === 'granted'){
         try{ new Notification(title, { body, icon: 'icon-192.png' }); }catch(e){}
       }

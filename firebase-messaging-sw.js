@@ -32,8 +32,13 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const title = (payload.notification && payload.notification.title) || 'Crib';
-  const body = (payload.notification && payload.notification.body) || '';
+  // Title/body live in `payload.data` (not `payload.notification`) — the Cloud Function sends
+  // data-only messages on purpose. If a push carries a top-level `notification` field, FCM's web
+  // SDK auto-displays a system notification from it in the background AND this handler also
+  // fires and shows a second one for the same push — every notification was showing up twice.
+  // Data-only messages mean showing it is entirely this handler's job, done exactly once.
+  const title = (payload.data && payload.data.title) || 'Crib';
+  const body = (payload.data && payload.data.body) || '';
   self.registration.showNotification(title, {
     body,
     icon: 'icon-192.png',
