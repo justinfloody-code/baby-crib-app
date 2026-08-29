@@ -571,7 +571,10 @@
     border-radius: var(--md-shape-sm) var(--md-shape-sm) 0 0;
     border-bottom:2px solid transparent;
     padding: 8px 12px 6px; cursor:pointer; white-space:nowrap; min-height:32px;
-    touch-action:none; user-select:none; -webkit-user-select:none;
+    /* pan-x (not none) so a plain touch swipe scrolls the now-horizontally-scrollable mobile tab
+       row by default; attachTabDragReorder() only switches this to 'none' (via inline style,
+       temporarily) once a touch press has been held long enough to arm drag-to-reorder. */
+    touch-action:pan-x; user-select:none; -webkit-user-select:none;
   }
   .checklist-tab.active{ color: var(--md-primary); border-bottom-color: var(--md-primary); font-weight:700; }
   .checklist-add-btn{
@@ -589,7 +592,7 @@
     border-radius: var(--md-shape-sm) var(--md-shape-sm) 0 0;
     border-bottom:2px solid transparent;
     padding: 8px 12px 6px; cursor:pointer; white-space:nowrap; min-height:32px;
-    touch-action:none; user-select:none; -webkit-user-select:none;
+    touch-action:pan-x; user-select:none; -webkit-user-select:none;
   }
   .note-theme-tab.active{ color: var(--md-primary); border-bottom-color: var(--md-primary); font-weight:700; }
 
@@ -622,13 +625,14 @@
   /* Mobile only: every underline tab-row (Checklist/Notes' shared .checklist-tab-row, Names'
      Favorites/Maybe/Skipped switcher, Settings' sections, the mobile combined-favorites switcher)
      becomes a single scrollable line instead of wrapping across multiple lines — there just isn't
-     the vertical room on a phone to spare. A mask-image fade at each edge hints there's more to
-     scroll; the row's own horizontal scrollbar is hidden since the fade already communicates that. */
+     the vertical room on a phone to spare. The row's own scrollbar is hidden; a fade at either
+     edge (via the ::before/::after + .fade-left/.fade-right rules further below) hints there's
+     more to scroll, but ONLY on the side that actually continues — updateTabRowFades() in the
+     main script toggles those classes from each row's scroll position. */
   @media(max-width:700px){
     .checklist-tab-row, .names-list-tab-row, .settings-tab-row, .fav-mobile-tab-row{
       flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
-      -webkit-mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
-      mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+      position:relative;
     }
     .checklist-tab-row::-webkit-scrollbar, .names-list-tab-row::-webkit-scrollbar,
     .settings-tab-row::-webkit-scrollbar, .fav-mobile-tab-row::-webkit-scrollbar{ display:none; }
@@ -640,8 +644,35 @@
       flex-shrink:0;
     }
     /* The add-checklist/add-section button (shared .checklist-add-btn) moves to the front of its
-       row on mobile, ahead of every section name, rather than trailing at the end. */
-    .checklist-add-btn{ order:-1; }
+       row on mobile, ahead of every section name, rather than trailing at the end. Scoped to the
+       tab-row's own add button specifically — .checklist-add-btn is reused on the Journal/Notes
+       collapsible-panel toggle too (see .mobile-new-toggle), and that one should stay on the
+       right of its header row, not jump to the front. */
+    .checklist-tab-row > .checklist-add-btn{ order:-1; }
+
+    /* Edge fade overlays — invisible by default, faded in only on whichever side(s) the row's
+       .fade-left/.fade-right class (toggled by updateTabRowFades(), driven off scrollLeft) says
+       there's more content to scroll to. Anchored to var(--md-surface) since these rows sit
+       directly on the page background, not inside a .card. */
+    .checklist-tab-row::before, .checklist-tab-row::after,
+    .names-list-tab-row::before, .names-list-tab-row::after,
+    .settings-tab-row::before, .settings-tab-row::after,
+    .fav-mobile-tab-row::before, .fav-mobile-tab-row::after{
+      content:''; position:absolute; top:0; bottom:0; width:24px; pointer-events:none;
+      opacity:0; transition: opacity var(--md-duration-short) var(--md-easing-standard); z-index:1;
+    }
+    .checklist-tab-row::before, .names-list-tab-row::before,
+    .settings-tab-row::before, .fav-mobile-tab-row::before{
+      left:0; background: linear-gradient(to right, var(--md-surface), transparent);
+    }
+    .checklist-tab-row::after, .names-list-tab-row::after,
+    .settings-tab-row::after, .fav-mobile-tab-row::after{
+      right:0; background: linear-gradient(to left, var(--md-surface), transparent);
+    }
+    .checklist-tab-row.fade-left::before, .names-list-tab-row.fade-left::before,
+    .settings-tab-row.fade-left::before, .fav-mobile-tab-row.fade-left::before{ opacity:1; }
+    .checklist-tab-row.fade-right::after, .names-list-tab-row.fade-right::after,
+    .settings-tab-row.fade-right::after, .fav-mobile-tab-row.fade-right::after{ opacity:1; }
   }
 
   /* M3 elevated card: surface-container-lowest tone + a level-1 tonal shadow */
@@ -3676,7 +3707,130 @@ function notesHTML(){
 
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+// Mobile-only edge-fade for scrollable tab rows (see .fade-left/.fade-right CSS) — shows the
+// fade only on whichever side still has more tabs to scroll to, using a small epsilon so
+// floating-point scroll math doesn't leave a fade stuck on at the natural resting ends. Harmless
+// to call on desktop too: there the row never actually overflows, so both classes just stay off.
+function updateTabRowFade(row){
+  const epsilon = 2;
+  row.classList.toggle('fade-left', row.scrollLeft > epsilon);
+  row.classList.toggle('fade-right', row.scrollLeft < row.scrollWidth - row.clientWidth - epsilon);
+}
+
+// Shared by the Checklist and Notes tab-row drag-to-reorder handlers in bindTabEvents(). On a
+// mouse, dragging still starts immediately on any real horizontal movement, same as always —
+// desktop's tab row never scrolls, so there's nothing to conflict with. On a touch pointer,
+// though, a plain swipe now needs to scroll the row (see .checklist-tab-row's overflow-x:auto)
+// instead of instantly grabbing the tab, so touch has to hold still for LONG_PRESS_MS before
+// drag-to-reorder arms; give up before then and the browser's native pan-x scroll (never
+// disabled in the first place) just keeps handling it. `onReorder(orderedIds)` is called once
+// the tab has actually been dropped in a new position, to persist it.
+const TAB_DRAG_LONG_PRESS_MS = 400;
+const TAB_DRAG_LONG_PRESS_JITTER = 8;
+function attachTabDragReorder(wrapClass, tabClass, threshold, onReorder){
+  root.querySelectorAll('.' + wrapClass).forEach(wrap => {
+    const btn = wrap.querySelector('.' + tabClass);
+    if(!btn) return;
+    let startX = 0, startY = 0;
+    let dragging = false;
+    let pressed = false; // guards pointermove so hovering (no button/finger down) does nothing
+    let armed = false;    // true once ready to interpret horizontal movement as a reorder drag
+    let longPressTimer = null;
+    const clearLongPress = () => { if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; } };
+
+    btn.onpointerdown = (e) => {
+      pressed = true;
+      dragging = false;
+      startX = e.clientX; startY = e.clientY;
+      if(e.pointerType === 'touch'){
+        armed = false;
+        longPressTimer = setTimeout(() => {
+          longPressTimer = null;
+          if(!pressed) return;
+          armed = true;
+          btn.style.touchAction = 'none';
+          try{ btn.setPointerCapture(e.pointerId); }catch(err){}
+        }, TAB_DRAG_LONG_PRESS_MS);
+      } else {
+        armed = true;
+        try{ btn.setPointerCapture(e.pointerId); }catch(err){}
+      }
+    };
+    btn.onpointermove = (e) => {
+      if(!pressed) return;
+      const dx = e.clientX - startX;
+      if(!armed){
+        // Still waiting out the long-press window — a clear move means this is a swipe/scroll,
+        // not a long-press-to-drag, so back off entirely and let the native scroll keep going.
+        const dy = e.clientY - startY;
+        if(Math.abs(dx) > TAB_DRAG_LONG_PRESS_JITTER || Math.abs(dy) > TAB_DRAG_LONG_PRESS_JITTER){
+          clearLongPress();
+          pressed = false;
+        }
+        return;
+      }
+      if(!dragging && Math.abs(dx) > threshold){
+        dragging = true;
+        wrap.classList.add('dragging');
+      }
+      if(dragging) wrap.style.transform = `translateX(${dx}px)`;
+    };
+    const endDrag = async (e) => {
+      clearLongPress();
+      pressed = false;
+      armed = false;
+      btn.style.touchAction = '';
+      try{ btn.releasePointerCapture(e.pointerId); }catch(err){}
+      if(!dragging) return; // plain tap — let the click handler below switch tabs
+      btn._justDragged = true;
+
+      const row = wrap.parentElement;
+      const siblings = [...row.querySelectorAll('.' + wrapClass)].filter(s => s !== wrap);
+      // getBoundingClientRect() reflects the live transform, so this is the tab's actual
+      // on-screen center after being dragged — find the first sibling whose midpoint it has
+      // passed and drop it there; if it was dragged past everyone, it goes at the end.
+      const wrapRect = wrap.getBoundingClientRect();
+      const wrapCenter = wrapRect.left + wrapRect.width / 2;
+      let placed = false;
+      for(const sib of siblings){
+        const rect = sib.getBoundingClientRect();
+        const mid = rect.left + rect.width / 2;
+        if(wrapCenter < mid){
+          row.insertBefore(wrap, sib);
+          placed = true;
+          break;
+        }
+      }
+      if(!placed && siblings.length) siblings[siblings.length - 1].after(wrap);
+
+      wrap.classList.remove('dragging');
+      wrap.style.transform = '';
+      dragging = false;
+
+      const orderedIds = [...row.querySelectorAll('.' + wrapClass)].map(w => w.dataset.id);
+      await onReorder(orderedIds);
+    };
+    btn.onpointerup = endDrag;
+    btn.onpointercancel = () => {
+      clearLongPress();
+      pressed = false;
+      dragging = false;
+      armed = false;
+      btn.style.touchAction = '';
+      wrap.classList.remove('dragging');
+      wrap.style.transform = '';
+    };
+  });
+}
+
 function bindTabEvents(){
+  // Every underline tab-row that can scroll horizontally on mobile — set each one's initial
+  // fade state now, and keep it live as the user scrolls.
+  root.querySelectorAll('.checklist-tab-row, .names-list-tab-row, .settings-tab-row, .fav-mobile-tab-row').forEach(row => {
+    updateTabRowFade(row);
+    row.onscroll = () => updateTabRowFade(row);
+  });
+
   // Overview / Settings — due date
   const dueSave = document.getElementById('due-save');
   if(dueSave){
@@ -3942,64 +4096,10 @@ function bindTabEvents(){
 
   // Note theme switcher + drag-to-reorder — identical pattern to the Checklist tab row above,
   // duplicated under note-theme-* class names so the two tabs' handlers can't cross-bind.
-  const NOTE_THEME_DRAG_THRESHOLD = 6;
-  root.querySelectorAll('.note-theme-tab-wrap').forEach(wrap => {
-    const btn = wrap.querySelector('.note-theme-tab');
-    if(!btn) return;
-    let startX = 0;
-    let dragging = false;
-    let pressed = false;
-
-    btn.onpointerdown = (e) => {
-      pressed = true;
-      startX = e.clientX;
-      dragging = false;
-      try{ btn.setPointerCapture(e.pointerId); }catch(err){}
-    };
-    btn.onpointermove = (e) => {
-      if(!pressed) return;
-      const dx = e.clientX - startX;
-      if(!dragging && Math.abs(dx) > NOTE_THEME_DRAG_THRESHOLD){
-        dragging = true;
-        wrap.classList.add('dragging');
-      }
-      if(dragging) wrap.style.transform = `translateX(${dx}px)`;
-    };
-    const endDrag = async (e) => {
-      pressed = false;
-      try{ btn.releasePointerCapture(e.pointerId); }catch(err){}
-      if(!dragging) return;
-      btn._justDragged = true;
-
-      const row = wrap.parentElement;
-      const siblings = [...row.querySelectorAll('.note-theme-tab-wrap')].filter(s => s !== wrap);
-      const wrapRect = wrap.getBoundingClientRect();
-      const wrapCenter = wrapRect.left + wrapRect.width / 2;
-      let placed = false;
-      for(const sib of siblings){
-        const rect = sib.getBoundingClientRect();
-        const mid = rect.left + rect.width / 2;
-        if(wrapCenter < mid){ row.insertBefore(wrap, sib); placed = true; break; }
-      }
-      if(!placed && siblings.length) siblings[siblings.length - 1].after(wrap);
-
-      wrap.classList.remove('dragging');
-      wrap.style.transform = '';
-      dragging = false;
-
-      const row2 = wrap.parentElement;
-      const orderedIds = [...row2.querySelectorAll('.note-theme-tab-wrap')].map(w => w.dataset.id);
-      state.noteThemes.sort((a,b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id));
-      await saveHousehold('noteThemes');
-      render();
-    };
-    btn.onpointerup = endDrag;
-    btn.onpointercancel = () => {
-      pressed = false;
-      dragging = false;
-      wrap.classList.remove('dragging');
-      wrap.style.transform = '';
-    };
+  attachTabDragReorder('note-theme-tab-wrap', 'note-theme-tab', 6, async (orderedIds) => {
+    state.noteThemes.sort((a,b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id));
+    await saveHousehold('noteThemes');
+    render();
   });
   root.querySelectorAll('.note-theme-tab').forEach(btn => {
     btn.onclick = () => {
@@ -4286,71 +4386,10 @@ function bindTabEvents(){
   // left/right with the pointer via a CSS transform (pointer capture keeps move/up events
   // flowing to the button even once the finger moves off it), and the resulting click that the
   // browser fires right after pointerup is swallowed so a drag never also triggers a switch.
-  const CHECKLIST_DRAG_THRESHOLD = 6;
-  root.querySelectorAll('.checklist-tab-wrap').forEach(wrap => {
-    const btn = wrap.querySelector('.checklist-tab');
-    if(!btn) return;
-    let startX = 0;
-    let dragging = false;
-    let pressed = false; // guards pointermove so hovering (no button/finger down) does nothing —
-                          // pointermove fires on plain mouse hover too, not just while dragging
-
-    btn.onpointerdown = (e) => {
-      pressed = true;
-      startX = e.clientX;
-      dragging = false;
-      try{ btn.setPointerCapture(e.pointerId); }catch(err){}
-    };
-    btn.onpointermove = (e) => {
-      if(!pressed) return;
-      const dx = e.clientX - startX;
-      if(!dragging && Math.abs(dx) > CHECKLIST_DRAG_THRESHOLD){
-        dragging = true;
-        wrap.classList.add('dragging');
-      }
-      if(dragging) wrap.style.transform = `translateX(${dx}px)`;
-    };
-    const endDrag = async (e) => {
-      pressed = false;
-      try{ btn.releasePointerCapture(e.pointerId); }catch(err){}
-      if(!dragging) return; // plain tap — let the click handler below switch checklists
-      btn._justDragged = true;
-
-      const row = wrap.parentElement;
-      const siblings = [...row.querySelectorAll('.checklist-tab-wrap')].filter(s => s !== wrap);
-      // getBoundingClientRect() reflects the live transform, so this is the tab's actual
-      // on-screen center after being dragged — find the first sibling whose midpoint it has
-      // passed and drop it there; if it was dragged past everyone, it goes at the end.
-      const wrapRect = wrap.getBoundingClientRect();
-      const wrapCenter = wrapRect.left + wrapRect.width / 2;
-      let placed = false;
-      for(const sib of siblings){
-        const rect = sib.getBoundingClientRect();
-        const mid = rect.left + rect.width / 2;
-        if(wrapCenter < mid){
-          row.insertBefore(wrap, sib);
-          placed = true;
-          break;
-        }
-      }
-      if(!placed && siblings.length) siblings[siblings.length - 1].after(wrap);
-
-      wrap.classList.remove('dragging');
-      wrap.style.transform = '';
-      dragging = false;
-
-      const orderedIds = [...row.querySelectorAll('.checklist-tab-wrap')].map(w => w.dataset.id);
-      state.checklists.sort((a,b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id));
-      await saveHousehold('checklists');
-      render();
-    };
-    btn.onpointerup = endDrag;
-    btn.onpointercancel = () => {
-      pressed = false;
-      dragging = false;
-      wrap.classList.remove('dragging');
-      wrap.style.transform = '';
-    };
+  attachTabDragReorder('checklist-tab-wrap', 'checklist-tab', 6, async (orderedIds) => {
+    state.checklists.sort((a,b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id));
+    await saveHousehold('checklists');
+    render();
   });
   root.querySelectorAll('.checklist-tab').forEach(btn => {
     btn.onclick = () => {
